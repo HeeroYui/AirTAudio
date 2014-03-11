@@ -10,6 +10,11 @@
 #if defined(__WINDOWS_DS__)
 #include <airtaudio/Interface.h>
 
+airtaudio::Api* airtaudio::api::Ds::Create(void) {
+	return new airtaudio::api::Ds();
+}
+
+
 // Modified by Robin Davies, October 2005
 // - Improvements to DirectX pointer chasing. 
 // - Bug fix for non-power-of-two Asio granularity used by Edirol PCR-A30.

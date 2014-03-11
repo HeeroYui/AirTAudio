@@ -17,15 +17,20 @@ namespace airtaudio {
 		 * @brief Audio API specifier arguments.
 		 */
 		enum type {
-			UNSPECIFIED, /*!< Search for a working compiled API. */
-			LINUX_ALSA, /*!< The Advanced Linux Sound Architecture API. */
-			LINUX_PULSE, /*!< The Linux PulseAudio API. */
-			LINUX_OSS, /*!< The Linux Open Sound System API. */
-			UNIX_JACK, /*!< The Jack Low-Latency Audio Server API. */
-			MACOSX_CORE, /*!< Macintosh OS-X Core Audio API. */
-			WINDOWS_ASIO, /*!< The Steinberg Audio Stream I/O API. */
-			WINDOWS_DS, /*!< The Microsoft Direct Sound API. */
-			RTAUDIO_DUMMY /*!< A compilable but non-functional API. */
+			UNSPECIFIED, //!< Search for a working compiled API.
+			LINUX_ALSA, //!< The Advanced Linux Sound Architecture API.
+			LINUX_PULSE, //!< The Linux PulseAudio API.
+			LINUX_OSS, //!< The Linux Open Sound System API.
+			UNIX_JACK, //!< The Jack Low-Latency Audio Server API.
+			MACOSX_CORE, //!< Macintosh OS-X Core Audio API.
+			WINDOWS_ASIO, //!< The Steinberg Audio Stream I/O API.
+			WINDOWS_DS, //!< The Microsoft Direct Sound API.
+			RTAUDIO_DUMMY, //!< A compilable but non-functional API.
+			ANDROID_JAVA, //!< Android Interface.
+			USER_INTERFACE_1, //!< User interface 1.
+			USER_INTERFACE_2, //!< User interface 2.
+			USER_INTERFACE_3, //!< User interface 3.
+			USER_INTERFACE_4, //!< User interface 4.
 		};
 		
 		extern const uint32_t MAX_SAMPLE_RATES;
@@ -118,19 +123,19 @@ namespace airtaudio {
 			virtual airtaudio::DeviceInfo getDeviceInfo(uint32_t _device) = 0;
 			virtual uint32_t getDefaultInputDevice(void);
 			virtual uint32_t getDefaultOutputDevice(void);
-			void openStream(airtaudio::StreamParameters *_outputParameters,
-			                airtaudio::StreamParameters *_inputParameters,
-			                airtaudio::format _format,
-			                uint32_t _sampleRate,
-			                uint32_t *_bufferFrames,
-			                airtaudio::AirTAudioCallback _callback,
-			                void *_userData,
-			                airtaudio::StreamOptions *_options,
-			                airtaudio::AirTAudioErrorCallback _errorCallback);
-			virtual void closeStream(void);
-			virtual void startStream(void) = 0;
-			virtual void stopStream(void) = 0;
-			virtual void abortStream(void) = 0;
+			enum airtaudio::errorType openStream(airtaudio::StreamParameters *_outputParameters,
+			                                     airtaudio::StreamParameters *_inputParameters,
+			                                     airtaudio::format _format,
+			                                     uint32_t _sampleRate,
+			                                     uint32_t *_bufferFrames,
+			                                     airtaudio::AirTAudioCallback _callback,
+			                                     void *_userData,
+			                                     airtaudio::StreamOptions *_options,
+			                                     airtaudio::AirTAudioErrorCallback _errorCallback);
+			virtual enum airtaudio::errorType closeStream(void);
+			virtual enum airtaudio::errorType startStream(void) = 0;
+			virtual enum airtaudio::errorType stopStream(void) = 0;
+			virtual enum airtaudio::errorType abortStream(void) = 0;
 			long getStreamLatency(void);
 			uint32_t getStreamSampleRate(void);
 			virtual double getStreamTime(void);

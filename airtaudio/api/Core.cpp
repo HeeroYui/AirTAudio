@@ -17,6 +17,11 @@
 
 #include <airtaudio/Interface.h>
 
+airtaudio::Api* airtaudio::api::Core::Create(void) {
+	return new airtaudio::api::Core();
+}
+
+
 // The OS X CoreAudio API is designed to use a separate callback
 // procedure for each of its audio devices.	A single RtAudio duplex
 // stream using two different devices is supported here, though it

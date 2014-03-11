@@ -36,6 +36,8 @@ namespace airtaudio {
 	 */
 	class Interface {
 		protected:
+			std::vector<std::pair<airtaudio::api::type, Api* (*)(void)>> m_apiAvaillable;
+		protected:
 			airtaudio::Api *m_rtapi;
 		public:
 			/**
@@ -51,18 +53,12 @@ namespace airtaudio {
 			 * the enumerated list values. Note that there can be more than one
 			 * API compiled for certain operating systems.
 			 */
-			static std::vector<airtaudio::api::type> getCompiledApi(void);
+			std::vector<airtaudio::api::type> getCompiledApi(void);
 			/**
 			 * @brief The class constructor.
-			 * 
-			 * The constructor performs minor initialization tasks.	No exceptions
-			 * can be thrown.
-			 * 
-			 * If no API argument is specified and multiple API support has been
-			 * compiled, the default order of use is JACK, ALSA, OSS (Linux
-			 * systems) and ASIO, DS (Windows systems).
+			 * @note the creating of the basic instance is done by Instanciate
 			 */
-			Interface(airtaudio::api::type _api = airtaudio::api::UNSPECIFIED);
+			Interface(void);
 			/**
 			 * @brief The destructor.
 			 * 
@@ -70,6 +66,16 @@ namespace airtaudio {
 			 * automatically.
 			 */
 			~Interface(void);
+			/**
+			 * @brief Add an interface of the Possible List.
+			 * @param[in] _api Type of the interface.
+			 * @param[in] _callbackCreate API creation callback.
+			 */
+			void addInterface(airtaudio::api::type _api, Api* (*_callbackCreate)(void));
+			/**
+			 * @brief Create an interface instance
+			 */
+			enum airtaudio::errorType instanciate(airtaudio::api::type _api = airtaudio::api::UNSPECIFIED);
 			/**
 			 * @return the audio API specifier for the current instance of airtaudio.
 			 */
@@ -179,15 +185,15 @@ namespace airtaudio {
 			 * @param  _errorCallback A client-defined function that will be invoked
 			 *           when an error has occured.
 			 */
-			void openStream(airtaudio::StreamParameters *_outputParameters,
-			                airtaudio::StreamParameters *_inputParameters,
-			                airtaudio::format _format,
-			                uint32_t _sampleRate,
-			                uint32_t *_bufferFrames,
-			                airtaudio::AirTAudioCallback _callback,
-			                void *_userData = NULL,
-			                airtaudio::StreamOptions *_options = NULL,
-			                airtaudio::AirTAudioErrorCallback _errorCallback = NULL);
+			enum airtaudio::errorType openStream(airtaudio::StreamParameters *_outputParameters,
+			                                     airtaudio::StreamParameters *_inputParameters,
+			                                     airtaudio::format _format,
+			                                     uint32_t _sampleRate,
+			                                     uint32_t *_bufferFrames,
+			                                     airtaudio::AirTAudioCallback _callback,
+			                                     void *_userData = NULL,
+			                                     airtaudio::StreamOptions *_options = NULL,
+			                                     airtaudio::AirTAudioErrorCallback _errorCallback = NULL);
 			
 			/**
 			 * @brief A function that closes a stream and frees any associated stream memory.
@@ -195,7 +201,7 @@ namespace airtaudio {
 			 * If a stream is not open, this function issues a warning and
 			 * returns (no exception is thrown).
 			 */
-			void closeStream(void) {
+			enum airtaudio::errorType closeStream(void) {
 				if (m_rtapi == NULL) {
 					return;
 				}
@@ -209,7 +215,7 @@ namespace airtaudio {
 			 * stream is not open.	A warning is issued if the stream is already
 			 * running.
 			 */
-			void startStream(void) {
+			enum airtaudio::errorType startStream(void) {
 				if (m_rtapi == NULL) {
 					return;
 				}
@@ -223,7 +229,7 @@ namespace airtaudio {
 			 * stream is not open.	A warning is issued if the stream is already
 			 * stopped.
 			*/
-			void stopStream(void) {
+			enum airtaudio::errorType stopStream(void) {
 				if (m_rtapi == NULL) {
 					return;
 				}
@@ -236,7 +242,7 @@ namespace airtaudio {
 			 * stream is not open.	A warning is issued if the stream is already
 			 * stopped.
 			 */
-			void abortStream(void) {
+			enum airtaudio::errorType abortStream(void) {
 				if (m_rtapi == NULL) {
 					return;
 				}
@@ -301,6 +307,9 @@ namespace airtaudio {
 			 * @brief Specify whether warning messages should be printed to stderr.
 			 */
 			void showWarnings(bool _value = true) {
+				if (m_rtapi == NULL) {
+					return;
+				}
 				m_rtapi->showWarnings(_value);
 			}
 		protected:

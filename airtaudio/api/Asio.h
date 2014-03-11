@@ -13,6 +13,8 @@ namespace airtaudio {
 	namespace api {
 		class Asio: public airtaudio::Api {
 			public:
+				static airtaudio::Api* Create(void);
+			public:
 				Asio();
 				~Asio();
 				airtaudio::api::type getCurrentApi(void) {

@@ -8,6 +8,11 @@
 
 #if defined(__AIRTAUDIO_DUMMY__)
 
+airtaudio::Api* airtaudio::api::Dummy::Create(void) {
+	return new airtaudio::api::Dummy();
+}
+
+
 airtaudio::api::Dummy::Dummy(void) {
 	m_errorText = "airtaudio::api::Dummy: This class provides no functionality.";
 	error(airtaudio::errorWarning);

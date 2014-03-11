@@ -15,6 +15,8 @@ namespace airtaudio {
 	namespace api {
 		class Dummy: public airtaudio::Api {
 			public:
+				static airtaudio::Api* Create(void);
+			public:
 				Dummy(void);
 				airtaudio::api::type getCurrentApi(void) {
 					return airtaudio::api::RTAUDIO_DUMMY;

@@ -13,6 +13,8 @@ namespace airtaudio {
 	namespace api {
 		class Pulse: public airtaudio::Api {
 			public:
+				static airtaudio::Api* Create(void);
+			public:
 				~Pulse(void);
 				airtaudio::api::type getCurrentApi(void) {
 					return airtaudio::api::LINUX_PULSE;

@@ -15,6 +15,8 @@ namespace airtaudio {
 	namespace api {
 		class Core: public airtaudio::Api {
 			public:
+				static airtaudio::Api* Create(void);
+			public:
 				Core();
 				~Core();
 				airtaudio::api::type getCurrentApi(void) {

@@ -13,6 +13,8 @@ namespace airtaudio {
 	namespace api {
 		class Ds: public airtaudio::Api {
 			public:
+				static airtaudio::Api* Create(void);
+			public:
 				Ds(void);
 				~Ds(void);
 				airtaudio::api::type getCurrentApi(void) {

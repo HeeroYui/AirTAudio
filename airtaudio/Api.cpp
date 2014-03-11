@@ -34,15 +34,15 @@ airtaudio::Api::~Api(void) {
 	
 }
 
-void airtaudio::Api::openStream(airtaudio::StreamParameters *oParams,
-                                airtaudio::StreamParameters *iParams,
-                                airtaudio::format format,
-                                uint32_t sampleRate,
-                                uint32_t *bufferFrames,
-                                airtaudio::AirTAudioCallback callback,
-                                void *userData,
-                                airtaudio::StreamOptions *options,
-                                airtaudio::AirTAudioErrorCallback errorCallback) {
+enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters *oParams,
+                                                     airtaudio::StreamParameters *iParams,
+                                                     airtaudio::format format,
+                                                     uint32_t sampleRate,
+                                                     uint32_t *bufferFrames,
+                                                     airtaudio::AirTAudioCallback callback,
+                                                     void *userData,
+                                                     airtaudio::StreamOptions *options,
+                                                     airtaudio::AirTAudioErrorCallback errorCallback) {
 	if (m_stream.state != airtaudio::api::STREAM_CLOSED) {
 		m_errorText = "airtaudio::Api::openStream: a stream is already open!";
 		error(airtaudio::errorInvalidUse);
@@ -113,7 +113,9 @@ void airtaudio::Api::openStream(airtaudio::StreamParameters *oParams,
 		                         bufferFrames,
 		                         options);
 		if (result == false) {
-			if (oChannels > 0) closeStream();
+			if (oChannels > 0) {
+				closeStream();
+			}
 			error(airtaudio::errorSystemError);
 			return;
 		}
@@ -137,9 +139,9 @@ uint32_t airtaudio::Api::getDefaultOutputDevice(void) {
 	return 0;
 }
 
-void airtaudio::Api::closeStream(void) {
+enum airtaudio::errorType airtaudio::Api::closeStream(void) {
 	// MUST be implemented in subclasses!
-	return;
+	return airtaudio::errorNone;
 }
 
 bool airtaudio::Api::probeDeviceOpen(uint32_t /*device*/,

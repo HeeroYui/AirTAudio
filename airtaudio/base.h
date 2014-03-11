@@ -25,6 +25,8 @@
 namespace airtaudio {
 	//! Defined RtError types.
 	enum errorType {
+		errorNone, //!< No error
+		errorFail, //!< An error occure in the operation
 		errorWarning, //!< A non-critical error.
 		errorInvalidUse, //!< The function was called incorrectly.
 		errorSystemError //!< A system error occured.

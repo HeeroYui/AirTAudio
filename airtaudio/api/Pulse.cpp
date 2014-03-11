@@ -19,6 +19,11 @@
 #include <pulse/simple.h>
 #include <cstdio>
 
+airtaudio::Api* airtaudio::api::Pulse::Create(void) {
+	return new airtaudio::api::Pulse();
+}
+
+
 static const uint32_t SUPPORTED_SAMPLERATES[] = {
 	8000,
 	16000,
@@ -47,7 +52,12 @@ struct PulseAudioHandle {
 	std::thread* thread;
 	std::condition_variable runnable_cv;
 	bool runnable;
-	PulseAudioHandle() : s_play(0), s_rec(0), runnable(false) { }
+	PulseAudioHandle(void) :
+	  s_play(0),
+	  s_rec(0),
+	  runnable(false) {
+		
+	}
 };
 
 airtaudio::api::Pulse::~Pulse()

@@ -18,6 +18,10 @@
 #include <errno.h>
 #include <math.h>
 
+airtaudio::Api* airtaudio::api::Oss::Create(void) {
+	return new airtaudio::api::Oss();
+}
+
 static void *ossCallbackHandler(void * ptr);
 
 // A structure to hold various information related to the OSS API
@@ -28,8 +32,13 @@ struct OssHandle {
 	bool triggered;
 	pthread_cond_t runnable;
 
-	OssHandle()
-		:triggered(false) { id[0] = 0; id[1] = 0; xrun[0] = false; xrun[1] = false; }
+	OssHandle(void):
+	  triggered(false) {
+		id[0] = 0;
+		id[1] = 0;
+		xrun[0] = false;
+		xrun[1] = false;
+	}
 };
 
 airtaudio::api::Oss::Oss(void) {

@@ -14,6 +14,11 @@
 #include <airtaudio/Interface.h>
 #include <string.h>
 
+airtaudio::Api* airtaudio::api::Jack::Create(void) {
+	return new airtaudio::api::Jack();
+}
+
+
 // JACK is a low-latency audio server, originally written for the
 // GNU/Linux operating system and now also ported to OS-X. It can
 // connect a number of different applications to an audio device, as

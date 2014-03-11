@@ -11,6 +11,11 @@
 
 #include <airtaudio/Interface.h>
 
+airtaudio::Api* airtaudio::api::Asio::Create(void) {
+	return new airtaudio::api::Asio();
+}
+
+
 // The ASIO API is designed around a callback scheme, so this
 // implementation is similar to that used for OS-X CoreAudio and Linux
 // Jack.	The primary constraint with ASIO is that it only allows

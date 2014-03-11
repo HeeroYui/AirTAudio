@@ -14,6 +14,11 @@
 #include <airtaudio/Interface.h>
 #include <limits.h>
 
+airtaudio::Api* airtaudio::api::Alsa::Create(void) {
+	return new airtaudio::api::Alsa();
+}
+
+
 // A structure to hold various information related to the ALSA API
 // implementation.
 struct AlsaHandle {
@@ -370,13 +375,13 @@ void airtaudio::api::Alsa::saveDeviceInfo(void) {
 }
 
 bool airtaudio::api::Alsa::probeDeviceOpen(uint32_t _device,
-                                airtaudio::api::StreamMode _mode,
-                                uint32_t _channels,
-                                uint32_t _firstChannel,
-                                uint32_t _sampleRate,
-                                airtaudio::format _format,
-                                uint32_t *_bufferSize,
-                                airtaudio::StreamOptions *_options) {
+                                           airtaudio::api::StreamMode _mode,
+                                           uint32_t _channels,
+                                           uint32_t _firstChannel,
+                                           uint32_t _sampleRate,
+                                           airtaudio::format _format,
+                                           uint32_t *_bufferSize,
+                                           airtaudio::StreamOptions *_options) {
 #if defined(__RTAUDIO_DEBUG__)
 	snd_output_t *out;
 	snd_output_stdio_attach(&out, stderr, 0);
@@ -818,7 +823,7 @@ error:
 	return FAILURE;
 }
 
-void airtaudio::api::Alsa::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Alsa::closeStream(void) {
 	if (m_stream.state == STREAM_CLOSED) {
 		m_errorText = "airtaudio::api::Alsa::closeStream(): no open stream to close!";
 		error(airtaudio::errorWarning);
@@ -871,7 +876,7 @@ void airtaudio::api::Alsa::closeStream(void) {
 	m_stream.state = STREAM_CLOSED;
 }
 
-void airtaudio::api::Alsa::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Alsa::startStream(void) {
 	// This method calls snd_pcm_prepare if the device isn't already in that state.
 	verifyStream();
 	if (m_stream.state == STREAM_RUNNING) {
@@ -918,7 +923,7 @@ unlock:
 	error(airtaudio::errorSystemError);
 }
 
-void airtaudio::api::Alsa::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Alsa::stopStream(void) {
 	verifyStream();
 	if (m_stream.state == STREAM_STOPPED) {
 		m_errorText = "airtaudio::api::Alsa::stopStream(): the stream is already stopped!";
@@ -960,7 +965,7 @@ unlock:
 	error(airtaudio::errorSystemError);
 }
 
-void airtaudio::api::Alsa::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Alsa::abortStream(void) {
 	verifyStream();
 	if (m_stream.state == STREAM_STOPPED) {
 		m_errorText = "airtaudio::api::Alsa::abortStream(): the stream is already stopped!";

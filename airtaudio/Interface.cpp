@@ -13,110 +13,93 @@ std::vector<airtaudio::api::type> airtaudio::Interface::getCompiledApi(void) {
 	std::vector<airtaudio::api::type> apis;
 	// The order here will control the order of RtAudio's API search in
 	// the constructor.
-#if defined(__UNIX_JACK__)
-	apis.push_back(airtaudio::api::UNIX_JACK);
-#endif
-#if defined(__LINUX_ALSA__)
-	apis.push_back(airtaudio::api::LINUX_ALSA);
-#endif
-#if defined(__LINUX_PULSE__)
-	apis.push_back(airtaudio::api::LINUX_PULSE);
-#endif
-#if defined(__LINUX_OSS__)
-	apis.push_back(airtaudio::api::LINUX_OSS);
-#endif
-#if defined(__WINDOWS_ASIO__)
-	apis.push_back(airtaudio::api::WINDOWS_ASIO);
-#endif
-#if defined(__WINDOWS_DS__)
-	apis.push_back(airtaudio::api::WINDOWS_DS);
-#endif
-#if defined(__MACOSX_CORE__)
-	apis.push_back(airtaudio::api::MACOSX_CORE);
-#endif
-#if defined(__AIRTAUDIO_DUMMY__)
-	apis.push_back(airtaudio::api::RTAUDIO_DUMMY);
-#endif
+	for (auto &it : m_apiAvaillable) {
+		apis.push_back(it.first);
+	}
 	return apis;
 }
+
+
 
 void airtaudio::Interface::openRtApi(airtaudio::api::type _api) {
 	if (m_rtapi != NULL) {
 		delete m_rtapi;
 		m_rtapi = NULL;
 	}
-#if defined(__UNIX_JACK__)
-	if (_api == airtaudio::api::UNIX_JACK) {
-		m_rtapi = new airtaudio::api::Jack();
+	for (auto &it :m_apiAvaillable) {
+		if (_api == it.first) {
+			m_rtapi = it.second();
+			if (m_rtapi != NULL) {
+				return;
+			}
+		}
 	}
+	// TODO : An eror occured ...
+}
+
+
+airtaudio::Interface::Interface(void) :
+  m_rtapi(NULL) {
+#if defined(__UNIX_JACK__)
+	addInterface(airtaudio::api::UNIX_JACK, airtaudio::api::Jack::Create);
 #endif
 #if defined(__LINUX_ALSA__)
-	if (_api == airtaudio::api::LINUX_ALSA) {
-		m_rtapi = new airtaudio::api::Alsa();
-	}
+	addInterface(airtaudio::api::LINUX_ALSA, airtaudio::api::Alsa::Create);
 #endif
 #if defined(__LINUX_PULSE__)
-	if (_api == airtaudio::api::LINUX_PULSE) {
-		m_rtapi = new airtaudio::api::Pulse();
-	}
+	addInterface(airtaudio::api::LINUX_PULSE, airtaudio::api::Pulse::Create);
 #endif
 #if defined(__LINUX_OSS__)
-	if (_api == airtaudio::api::LINUX_OSS) {
-		m_rtapi = new airtaudio::api::Oss();
-	}
+	addInterface(airtaudio::api::LINUX_OSS, airtaudio::api::Oss::Create);
 #endif
 #if defined(__WINDOWS_ASIO__)
-	if (_api == airtaudio::api::WINDOWS_ASIO) {
-		m_rtapi = new airtaudio::api::Asio();
-	}
+	addInterface(airtaudio::api::WINDOWS_ASIO, airtaudio::api::Asio::Create);
 #endif
 #if defined(__WINDOWS_DS__)
-	if (_api == airtaudio::api::WINDOWS_DS) {
-		m_rtapi = new airtaudio::api::Ds();
-	}
+	addInterface(airtaudio::api::WINDOWS_DS, airtaudio::api::Ds::Create);
 #endif
 #if defined(__MACOSX_CORE__)
-	if (_api == airtaudio::api::MACOSX_CORE) {
-		m_rtapi = new airtaudio::api::Core();
-	}
+	addInterface(airtaudio::api::MACOSX_CORE, airtaudio::api::Core::Create);
 #endif
 #if defined(__AIRTAUDIO_DUMMY__)
-	if (_api == rtaudio::RTAUDIO_DUMMY) {
-		m_rtapi = new airtaudio::api::Dummy();
-	}
+	addInterface(airtaudio::api::RTAUDIO_DUMMY, airtaudio::api::Dummy::Create);
 #endif
 }
 
-airtaudio::Interface::Interface(airtaudio::api::type _api) :
-  m_rtapi(NULL) {
+void airtaudio::Interface::addInterface(airtaudio::api::type _api, Api* (*_callbackCreate)(void)) {
+	m_apiAvaillable.push_back(std::pair<airtaudio::api::type, Api* (*)(void)>(_api, _callbackCreate));
+}
+
+enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type _api) {
+	if (m_rtapi != NULL) {
+		std::cerr << "\nInterface already started ...!\n" << std::endl;
+		return airtaudio::errorNone;
+	}
 	if (_api != airtaudio::api::UNSPECIFIED) {
 		// Attempt to open the specified API.
 		openRtApi(_api);
 		if (m_rtapi != NULL) {
-			return;
+			return airtaudio::errorNone;
 		}
 		// No compiled support for specified API value.	Issue a debug
 		// warning and continue as if no API was specified.
 		std::cerr << "\nRtAudio: no compiled support for specified API argument!\n" << std::endl;
+		return airtaudio::errorFail;
 	}
 	// Iterate through the compiled APIs and return as soon as we find
 	// one with at least one device or we reach the end of the list.
 	std::vector<airtaudio::api::type> apis = getCompiledApi();
-	for (uint32_t iii=0; iii<apis.size(); ++iii) {
-		openRtApi(apis[iii]);
+	for (auto &it : apis) {
+		openRtApi(it);
 		if (m_rtapi->getDeviceCount() != 0) {
 			break;
 		}
 	}
 	if (m_rtapi != NULL) {
-		return;
+		return airtaudio::errorNone;
 	}
-	// It should not be possible to get here because the preprocessor
-	// definition __AIRTAUDIO_DUMMY__ is automatically defined if no
-	// API-specific definitions are passed to the compiler. But just in
-	// case something weird happens, we'll print out an error message.
-	// TODO : Set it in error ...
 	std::cout << "\nRtAudio: no compiled API support found ... critical error!!\n\n";
+	return airtaudio::errorFail;
 }
 
 airtaudio::Interface::~Interface(void) {
@@ -126,16 +109,16 @@ airtaudio::Interface::~Interface(void) {
 	}
 }
 
-void airtaudio::Interface::openStream(airtaudio::StreamParameters* _outputParameters,
-                                      airtaudio::StreamParameters* _inputParameters,
-                                      airtaudio::format _format,
-                                      uint32_t _sampleRate,
-                                      uint32_t* _bufferFrames,
-                                      airtaudio::AirTAudioCallback _callback,
-                                      void* _userData,
-                                      airtaudio::StreamOptions* _options,
-                                      airtaudio::AirTAudioErrorCallback _errorCallback)
-{
+enum airtaudio::errorType airtaudio::Interface::openStream(
+                airtaudio::StreamParameters* _outputParameters,
+                airtaudio::StreamParameters* _inputParameters,
+                airtaudio::format _format,
+                uint32_t _sampleRate,
+                uint32_t* _bufferFrames,
+                airtaudio::AirTAudioCallback _callback,
+                void* _userData,
+                airtaudio::StreamOptions* _options,
+                airtaudio::AirTAudioErrorCallback _errorCallback) {
 	if (m_rtapi == NULL) {
 		return;
 	}
