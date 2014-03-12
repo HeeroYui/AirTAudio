@@ -9,6 +9,7 @@
 // Windows DirectSound API
 #if defined(__WINDOWS_DS__)
 #include <airtaudio/Interface.h>
+#include <airtaudio/debug.h>
 
 airtaudio::Api* airtaudio::api::Ds::Create(void) {
 	return new airtaudio::api::Ds();
@@ -843,7 +844,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t device, StreamMode mode, uint3
 	return FAILURE;
 }
 
-void airtaudio::api::Ds::closeStream()
+enum airtaudio::errorType airtaudio::api::Ds::closeStream()
 {
 	if (m_stream.state == STREAM_CLOSED) {
 		m_errorText = "airtaudio::api::Ds::closeStream(): no open stream to close!";
@@ -897,9 +898,11 @@ void airtaudio::api::Ds::closeStream()
 	m_stream.state = STREAM_CLOSED;
 }
 
-void airtaudio::api::Ds::startStream()
+enum airtaudio::errorType airtaudio::api::Ds::startStream()
 {
-	verifyStream();
+	if (verifyStream() != airtaudio::errorNone) {
+		return airtaudio::errorFail;
+	}
 	if (m_stream.state == STREAM_RUNNING) {
 		m_errorText = "airtaudio::api::Ds::startStream(): the stream is already running!";
 		error(airtaudio::errorWarning);
@@ -953,9 +956,11 @@ void airtaudio::api::Ds::startStream()
 	if (FAILED(result)) error(airtaudio::errorSystemError);
 }
 
-void airtaudio::api::Ds::stopStream()
+enum airtaudio::errorType airtaudio::api::Ds::stopStream()
 {
-	verifyStream();
+	if (verifyStream() != airtaudio::errorNone) {
+		return airtaudio::errorFail;
+	}
 	if (m_stream.state == STREAM_STOPPED) {
 		m_errorText = "airtaudio::api::Ds::stopStream(): the stream is already stopped!";
 		error(airtaudio::errorWarning);
@@ -1050,9 +1055,11 @@ void airtaudio::api::Ds::stopStream()
 	if (FAILED(result)) error(airtaudio::errorSystemError);
 }
 
-void airtaudio::api::Ds::abortStream()
+enum airtaudio::errorType airtaudio::api::Ds::abortStream()
 {
-	verifyStream();
+	if (verifyStream() != airtaudio::errorNone) {
+		return airtaudio::errorFail;
+	}
 	if (m_stream.state == STREAM_STOPPED) {
 		m_errorText = "airtaudio::api::Ds::abortStream(): the stream is already stopped!";
 		error(airtaudio::errorWarning);
@@ -1492,9 +1499,9 @@ static std::string convertTChar(LPCTSTR name)
 }
 
 static BOOL CALLBACK deviceQueryCallback(LPGUID lpguid,
-																					LPCTSTR description,
-																					LPCTSTR module,
-																					LPVOID lpContext)
+                                         LPCTSTR description,
+                                         LPCTSTR module,
+                                         LPVOID lpContext)
 {
 	struct DsProbeData& probeInfo = *(struct DsProbeData*) lpContext;
 	std::vector<struct DsDevice>& dsDevices = *probeInfo.dsDevices;
@@ -1572,55 +1579,39 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID lpguid,
 static const char* getErrorString(int32_t code)
 {
 	switch (code) {
-
-	case DSERR_ALLOCATED:
-		return "Already allocated";
-
-	case DSERR_CONTROLUNAVAIL:
-		return "Control unavailable";
-
-	case DSERR_INVALIDPARAM:
-		return "Invalid parameter";
-
-	case DSERR_INVALIDCALL:
-		return "Invalid call";
-
-	case DSERR_GENERIC:
-		return "Generic error";
-
-	case DSERR_PRIOLEVELNEEDED:
-		return "Priority level needed";
-
-	case DSERR_OUTOFMEMORY:
-		return "Out of memory";
-
-	case DSERR_BADFORMAT:
-		return "The sample rate or the channel format is not supported";
-
-	case DSERR_UNSUPPORTED:
-		return "Not supported";
-
-	case DSERR_NODRIVER:
-		return "No driver";
-
-	case DSERR_ALREADYINITIALIZED:
-		return "Already initialized";
-
-	case DSERR_NOAGGREGATION:
-		return "No aggregation";
-
-	case DSERR_BUFFERLOST:
-		return "Buffer lost";
-
-	case DSERR_OTHERAPPHASPRIO:
-		return "Another application already has priority";
-
-	case DSERR_UNINITIALIZED:
-		return "Uninitialized";
-
-	default:
-		return "DirectSound unknown error";
+		case DSERR_ALLOCATED:
+			return "Already allocated";
+		case DSERR_CONTROLUNAVAIL:
+			return "Control unavailable";
+		case DSERR_INVALIDPARAM:
+			return "Invalid parameter";
+		case DSERR_INVALIDCALL:
+			return "Invalid call";
+		case DSERR_GENERIC:
+			return "Generic error";
+		case DSERR_PRIOLEVELNEEDED:
+			return "Priority level needed";
+		case DSERR_OUTOFMEMORY:
+			return "Out of memory";
+		case DSERR_BADFORMAT:
+			return "The sample rate or the channel format is not supported";
+		case DSERR_UNSUPPORTED:
+			return "Not supported";
+		case DSERR_NODRIVER:
+			return "No driver";
+		case DSERR_ALREADYINITIALIZED:
+			return "Already initialized";
+		case DSERR_NOAGGREGATION:
+			return "No aggregation";
+		case DSERR_BUFFERLOST:
+			return "Buffer lost";
+		case DSERR_OTHERAPPHASPRIO:
+			return "Another application already has priority";
+		case DSERR_UNINITIALIZED:
+			return "Uninitialized";
+		default:
+			return "DirectSound unknown error";
 	}
 }
-//******************** End of __WINDOWS_DS__ *********************//
+
 #endif

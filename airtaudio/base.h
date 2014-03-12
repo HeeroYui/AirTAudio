@@ -28,6 +28,7 @@ namespace airtaudio {
 		errorNone, //!< No error
 		errorFail, //!< An error occure in the operation
 		errorWarning, //!< A non-critical error.
+		errorInputNull, //!< null input or internal errror
 		errorInvalidUse, //!< The function was called incorrectly.
 		errorSystemError //!< A system error occured.
 	};
@@ -171,14 +172,6 @@ namespace airtaudio {
 	                                     double _streamTime,
 	                                     airtaudio::streamStatus _status,
 	                                     void *_userData);
-	
-	/**
-	 * @brief RtAudio error callback function prototype.
-	 * @param _type Type of error.
-	 * @param _errorText Error description.
-	 */
-	typedef void (*AirTAudioErrorCallback)(airtaudio::errorType _type,
-	                                       const std::string &_errorText);
 }
 
 #include <airtaudio/DeviceInfo.h>

@@ -192,8 +192,7 @@ namespace airtaudio {
 			                                     uint32_t *_bufferFrames,
 			                                     airtaudio::AirTAudioCallback _callback,
 			                                     void *_userData = NULL,
-			                                     airtaudio::StreamOptions *_options = NULL,
-			                                     airtaudio::AirTAudioErrorCallback _errorCallback = NULL);
+			                                     airtaudio::StreamOptions *_options = NULL);
 			
 			/**
 			 * @brief A function that closes a stream and frees any associated stream memory.
@@ -203,7 +202,7 @@ namespace airtaudio {
 			 */
 			enum airtaudio::errorType closeStream(void) {
 				if (m_rtapi == NULL) {
-					return;
+					return airtaudio::errorInputNull;
 				}
 				return m_rtapi->closeStream();
 			}
@@ -217,7 +216,7 @@ namespace airtaudio {
 			 */
 			enum airtaudio::errorType startStream(void) {
 				if (m_rtapi == NULL) {
-					return;
+					return airtaudio::errorInputNull;
 				}
 				return m_rtapi->startStream();
 			}
@@ -231,7 +230,7 @@ namespace airtaudio {
 			*/
 			enum airtaudio::errorType stopStream(void) {
 				if (m_rtapi == NULL) {
-					return;
+					return airtaudio::errorInputNull;
 				}
 				return m_rtapi->stopStream();
 			}
@@ -244,7 +243,7 @@ namespace airtaudio {
 			 */
 			enum airtaudio::errorType abortStream(void) {
 				if (m_rtapi == NULL) {
-					return;
+					return airtaudio::errorInputNull;
 				}
 				return m_rtapi->abortStream();
 			}
@@ -302,15 +301,6 @@ namespace airtaudio {
 					return 0;
 				}
 				return m_rtapi->getStreamSampleRate();
-			}
-			/**
-			 * @brief Specify whether warning messages should be printed to stderr.
-			 */
-			void showWarnings(bool _value = true) {
-				if (m_rtapi == NULL) {
-					return;
-				}
-				m_rtapi->showWarnings(_value);
 			}
 		protected:
 			void openRtApi(airtaudio::api::type _api);

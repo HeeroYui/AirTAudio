@@ -21,7 +21,6 @@ namespace airtaudio {
 			std::thread* thread;
 			void* callback;
 			void* userData;
-			void* errorCallback;
 			void* apiInfo; // void pointer for API specific callback information
 			bool isRunning;
 			bool doRealtime;
@@ -32,7 +31,6 @@ namespace airtaudio {
 			  object(0),
 			  callback(0),
 			  userData(0),
-			  errorCallback(0),
 			  apiInfo(0),
 			  isRunning(false),
 			  doRealtime(false) {

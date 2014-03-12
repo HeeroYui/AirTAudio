@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <limits.h>
 #include <airtaudio/Interface.h>
+#include <airtaudio/debug.h>
 // Code written by Peter Meerwald, pmeerw@pmeerw.net
 // and Tristan Matthews.
 
@@ -60,10 +61,10 @@ struct PulseAudioHandle {
 	}
 };
 
-airtaudio::api::Pulse::~Pulse()
-{
-	if (m_stream.state != STREAM_CLOSED)
+airtaudio::api::Pulse::~Pulse(void) {
+	if (m_stream.state != STREAM_CLOSED) {
 		closeStream();
+	}
 }
 
 uint32_t airtaudio::api::Pulse::getDeviceCount(void) {
@@ -95,7 +96,7 @@ static void pulseaudio_callback(void* _user) {
 	}
 }
 
-void airtaudio::api::Pulse::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Pulse::closeStream(void) {
 	PulseAudioHandle *pah = static_cast<PulseAudioHandle *>(m_stream.apiHandle);
 	m_stream.callbackInfo.isRunning = false;
 	if (pah) {
@@ -114,7 +115,7 @@ void airtaudio::api::Pulse::closeStream(void) {
 			pa_simple_free(pah->s_rec);
 		}
 		delete pah;
-		m_stream.apiHandle = 0;
+		m_stream.apiHandle = NULL;
 	}
 	if (m_stream.userBuffer[0] != NULL) {
 		free(m_stream.userBuffer[0]);
@@ -126,6 +127,7 @@ void airtaudio::api::Pulse::closeStream(void) {
 	}
 	m_stream.state = STREAM_CLOSED;
 	m_stream.mode = UNINITIALIZED;
+	return airtaudio::errorNone;
 }
 
 void airtaudio::api::Pulse::callbackEvent(void) {
@@ -141,9 +143,7 @@ void airtaudio::api::Pulse::callbackEvent(void) {
 		}
 	}
 	if (m_stream.state == STREAM_CLOSED) {
-		m_errorText = "airtaudio::api::Pulse::callbackEvent(): the stream is closed ... "
-			"this shouldn't happen!";
-		error(airtaudio::errorWarning);
+		ATA_ERROR("airtaudio::api::Pulse::callbackEvent(): the stream is closed ... this shouldn't happen!");
 		return;
 	}
 	airtaudio::AirTAudioCallback callback = (airtaudio::AirTAudioCallback) m_stream.callbackInfo.callback;
@@ -178,9 +178,8 @@ void airtaudio::api::Pulse::callbackEvent(void) {
 			bytes = m_stream.nUserChannels[OUTPUT] * m_stream.bufferSize * formatBytes(m_stream.userFormat);
 		}
 		if (pa_simple_write(pah->s_play, pulse_out, bytes, &pa_error) < 0) {
-			m_errorStream << "airtaudio::api::Pulse::callbackEvent: audio write error, " << pa_strerror(pa_error) << ".";
-			m_errorText = m_errorStream.str();
-			error(airtaudio::errorWarning);
+			ATA_ERROR("airtaudio::api::Pulse::callbackEvent: audio write error, " << pa_strerror(pa_error) << ".");
+			return;
 		}
 	}
 	if (m_stream.mode == INPUT || m_stream.mode == DUPLEX) {
@@ -190,9 +189,8 @@ void airtaudio::api::Pulse::callbackEvent(void) {
 			bytes = m_stream.nUserChannels[INPUT] * m_stream.bufferSize * formatBytes(m_stream.userFormat);
 		}
 		if (pa_simple_read(pah->s_rec, pulse_in, bytes, &pa_error) < 0) {
-			m_errorStream << "airtaudio::api::Pulse::callbackEvent: audio read error, " << pa_strerror(pa_error) << ".";
-			m_errorText = m_errorStream.str();
-			error(airtaudio::errorWarning);
+			ATA_ERROR("airtaudio::api::Pulse::callbackEvent: audio read error, " << pa_strerror(pa_error) << ".");
+			return;
 		}
 		if (m_stream.doConvertBuffer[INPUT]) {
 			convertBuffer(m_stream.userBuffer[INPUT],
@@ -200,135 +198,127 @@ void airtaudio::api::Pulse::callbackEvent(void) {
 			              m_stream.convertInfo[INPUT]);
 		}
 	}
-
 unlock:
 	m_stream.mutex.unlock();
 	airtaudio::Api::tickStreamTime();
 	if (doStopStream == 1) {
 		stopStream();
+		return;
 	}
+	return;
 }
 
-void airtaudio::api::Pulse::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Pulse::startStream(void) {
 	PulseAudioHandle *pah = static_cast<PulseAudioHandle *>(m_stream.apiHandle);
 	if (m_stream.state == STREAM_CLOSED) {
-		m_errorText = "airtaudio::api::Pulse::startStream(): the stream is not open!";
-		error(airtaudio::errorInvalidUse);
-		return;
+		ATA_ERROR("airtaudio::api::Pulse::startStream(): the stream is not open!");
+		return airtaudio::errorInvalidUse;
 	}
 	if (m_stream.state == STREAM_RUNNING) {
-		m_errorText = "airtaudio::api::Pulse::startStream(): the stream is already running!";
-		error(airtaudio::errorWarning);
-		return;
+		ATA_ERROR("airtaudio::api::Pulse::startStream(): the stream is already running!");
+		return airtaudio::errorWarning;
 	}
 	m_stream.mutex.lock();
 	m_stream.state = STREAM_RUNNING;
 	pah->runnable = true;
 	pah->runnable_cv.notify_one();
 	m_stream.mutex.unlock();
+	return airtaudio::errorNone;
 }
 
-void airtaudio::api::Pulse::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Pulse::stopStream(void) {
 	PulseAudioHandle *pah = static_cast<PulseAudioHandle *>(m_stream.apiHandle);
 	if (m_stream.state == STREAM_CLOSED) {
-		m_errorText = "airtaudio::api::Pulse::stopStream(): the stream is not open!";
-		error(airtaudio::errorInvalidUse);
-		return;
+		ATA_ERROR("airtaudio::api::Pulse::stopStream(): the stream is not open!");
+		return airtaudio::errorInvalidUse;
 	}
 	if (m_stream.state == STREAM_STOPPED) {
-		m_errorText = "airtaudio::api::Pulse::stopStream(): the stream is already stopped!";
-		error(airtaudio::errorWarning);
-		return;
+		ATA_ERROR("airtaudio::api::Pulse::stopStream(): the stream is already stopped!");
+		return airtaudio::errorWarning;
 	}
 	m_stream.state = STREAM_STOPPED;
 	m_stream.mutex.lock();
 	if (pah && pah->s_play) {
 		int32_t pa_error;
 		if (pa_simple_drain(pah->s_play, &pa_error) < 0) {
-			m_errorStream << "airtaudio::api::Pulse::stopStream: error draining output device, " <<
-				pa_strerror(pa_error) << ".";
-			m_errorText = m_errorStream.str();
+			ATA_ERROR("airtaudio::api::Pulse::stopStream: error draining output device, " << pa_strerror(pa_error) << ".");
 			m_stream.mutex.unlock();
-			error(airtaudio::errorSystemError);
-			return;
+			return airtaudio::errorSystemError;
 		}
 	}
 	m_stream.state = STREAM_STOPPED;
 	m_stream.mutex.unlock();
+	return airtaudio::errorNone;
 }
 
-void airtaudio::api::Pulse::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Pulse::abortStream(void) {
 	PulseAudioHandle *pah = static_cast<PulseAudioHandle*>(m_stream.apiHandle);
 	if (m_stream.state == STREAM_CLOSED) {
-		m_errorText = "airtaudio::api::Pulse::abortStream(): the stream is not open!";
-		error(airtaudio::errorInvalidUse);
-		return;
+		ATA_ERROR("airtaudio::api::Pulse::abortStream(): the stream is not open!");
+		return airtaudio::errorInvalidUse;
 	}
 	if (m_stream.state == STREAM_STOPPED) {
-		m_errorText = "airtaudio::api::Pulse::abortStream(): the stream is already stopped!";
-		error(airtaudio::errorWarning);
-		return;
+		ATA_ERROR("airtaudio::api::Pulse::abortStream(): the stream is already stopped!");
+		return airtaudio::errorWarning;
 	}
 	m_stream.state = STREAM_STOPPED;
 	m_stream.mutex.lock();
 	if (pah && pah->s_play) {
 		int32_t pa_error;
 		if (pa_simple_flush(pah->s_play, &pa_error) < 0) {
-			m_errorStream << "airtaudio::api::Pulse::abortStream: error flushing output device, " <<
-				pa_strerror(pa_error) << ".";
-			m_errorText = m_errorStream.str();
+			ATA_ERROR("airtaudio::api::Pulse::abortStream: error flushing output device, " << pa_strerror(pa_error) << ".");
 			m_stream.mutex.unlock();
-			error(airtaudio::errorSystemError);
-			return;
+			return airtaudio::errorSystemError;
 		}
 	}
 	m_stream.state = STREAM_STOPPED;
 	m_stream.mutex.unlock();
+	return airtaudio::errorNone;
 }
 
-bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t device,
-                                            airtaudio::api::StreamMode mode,
-                                            uint32_t channels,
-                                            uint32_t firstChannel,
-                                            uint32_t sampleRate,
-                                            airtaudio::format format,
-                                            uint32_t *bufferSize,
-                                            airtaudio::StreamOptions *options) {
+bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t _device,
+                                            airtaudio::api::StreamMode _mode,
+                                            uint32_t _channels,
+                                            uint32_t _firstChannel,
+                                            uint32_t _sampleRate,
+                                            airtaudio::format _format,
+                                            uint32_t *_bufferSize,
+                                            airtaudio::StreamOptions *_options) {
 	PulseAudioHandle *pah = 0;
 	uint64_t bufferBytes = 0;
 	pa_sample_spec ss;
-	if (device != 0) {
+	if (_device != 0) {
 		return false;
 	}
-	if (mode != INPUT && mode != OUTPUT) {
+	if (_mode != INPUT && _mode != OUTPUT) {
 		return false;
 	}
-	if (channels != 1 && channels != 2) {
-		m_errorText = "airtaudio::api::Pulse::probeDeviceOpen: unsupported number of channels.";
+	if (_channels != 1 && _channels != 2) {
+		ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: unsupported number of channels.");
 		return false;
 	}
-	ss.channels = channels;
-	if (firstChannel != 0) {
+	ss.channels = _channels;
+	if (_firstChannel != 0) {
 		return false;
 	}
 	bool sr_found = false;
 	for (const uint32_t *sr = SUPPORTED_SAMPLERATES; *sr; ++sr) {
-		if (sampleRate == *sr) {
+		if (_sampleRate == *sr) {
 			sr_found = true;
-			m_stream.sampleRate = sampleRate;
-			ss.rate = sampleRate;
+			m_stream.sampleRate = _sampleRate;
+			ss.rate = _sampleRate;
 			break;
 		}
 	}
 	if (!sr_found) {
-		m_errorText = "airtaudio::api::Pulse::probeDeviceOpen: unsupported sample rate.";
+		ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: unsupported sample rate.");
 		return false;
 	}
 	bool sf_found = 0;
 	for (const rtaudio_pa_format_mapping_t *sf = supported_sampleformats;
 	     sf->airtaudio_format && sf->pa_format != PA_SAMPLE_INVALID;
 	     ++sf) {
-		if (format == sf->airtaudio_format) {
+		if (_format == sf->airtaudio_format) {
 			sf_found = true;
 			m_stream.userFormat = sf->airtaudio_format;
 			ss.format = sf->pa_format;
@@ -336,80 +326,77 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t device,
 		}
 	}
 	if (!sf_found) {
-		m_errorText = "airtaudio::api::Pulse::probeDeviceOpen: unsupported sample format.";
+		ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: unsupported sample format.");
 		return false;
 	}
-
 	// Set interleaving parameters.
-	if (options && options->flags & NONINTERLEAVED) {
+	if (_options && _options->flags & NONINTERLEAVED) {
 		m_stream.userInterleaved = false;
 	} else {
 		m_stream.userInterleaved = true;
 	}
-	m_stream.deviceInterleaved[mode] = true;
+	m_stream.deviceInterleaved[_mode] = true;
 	m_stream.nBuffers = 1;
-	m_stream.doByteSwap[mode] = false;
-	m_stream.doConvertBuffer[mode] = channels > 1 && !m_stream.userInterleaved;
-	m_stream.deviceFormat[mode] = m_stream.userFormat;
-	m_stream.nUserChannels[mode] = channels;
-	m_stream.nDeviceChannels[mode] = channels + firstChannel;
-	m_stream.channelOffset[mode] = 0;
-
+	m_stream.doByteSwap[_mode] = false;
+	m_stream.doConvertBuffer[_mode] = _channels > 1 && !m_stream.userInterleaved;
+	m_stream.deviceFormat[_mode] = m_stream.userFormat;
+	m_stream.nUserChannels[_mode] = _channels;
+	m_stream.nDeviceChannels[_mode] = _channels + _firstChannel;
+	m_stream.channelOffset[_mode] = 0;
 	// Allocate necessary internal buffers.
-	bufferBytes = m_stream.nUserChannels[mode] * *bufferSize * formatBytes(m_stream.userFormat);
-	m_stream.userBuffer[mode] = (char *) calloc(bufferBytes, 1);
-	if (m_stream.userBuffer[mode] == NULL) {
-		m_errorText = "airtaudio::api::Pulse::probeDeviceOpen: error allocating user buffer memory.";
+	bufferBytes = m_stream.nUserChannels[_mode] * *_bufferSize * formatBytes(m_stream.userFormat);
+	m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
+	if (m_stream.userBuffer[_mode] == NULL) {
+		ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error allocating user buffer memory.");
 		goto error;
 	}
-	m_stream.bufferSize = *bufferSize;
-
-	if (m_stream.doConvertBuffer[mode]) {
+	m_stream.bufferSize = *_bufferSize;
+	if (m_stream.doConvertBuffer[_mode]) {
 		bool makeBuffer = true;
-		bufferBytes = m_stream.nDeviceChannels[mode] * formatBytes(m_stream.deviceFormat[mode]);
-		if (mode == INPUT) {
+		bufferBytes = m_stream.nDeviceChannels[_mode] * formatBytes(m_stream.deviceFormat[_mode]);
+		if (_mode == INPUT) {
 			if (m_stream.mode == OUTPUT && m_stream.deviceBuffer) {
 				uint64_t bytesOut = m_stream.nDeviceChannels[0] * formatBytes(m_stream.deviceFormat[0]);
 				if (bufferBytes <= bytesOut) makeBuffer = false;
 			}
 		}
 		if (makeBuffer) {
-			bufferBytes *= *bufferSize;
+			bufferBytes *= *_bufferSize;
 			if (m_stream.deviceBuffer) free(m_stream.deviceBuffer);
 			m_stream.deviceBuffer = (char *) calloc(bufferBytes, 1);
 			if (m_stream.deviceBuffer == NULL) {
-				m_errorText = "airtaudio::api::Pulse::probeDeviceOpen: error allocating device buffer memory.";
+				ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error allocating device buffer memory.");
 				goto error;
 			}
 		}
 	}
-	m_stream.device[mode] = device;
+	m_stream.device[_mode] = _device;
 	// Setup the buffer conversion information structure.
-	if (m_stream.doConvertBuffer[mode]) {
-		setConvertInfo(mode, firstChannel);
+	if (m_stream.doConvertBuffer[_mode]) {
+		setConvertInfo(_mode, _firstChannel);
 	}
 	if (!m_stream.apiHandle) {
 		PulseAudioHandle *pah = new PulseAudioHandle;
 		if (!pah) {
-			m_errorText = "airtaudio::api::Pulse::probeDeviceOpen: error allocating memory for handle.";
+			ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error allocating memory for handle.");
 			goto error;
 		}
 		m_stream.apiHandle = pah;
 	}
 	pah = static_cast<PulseAudioHandle *>(m_stream.apiHandle);
 	int32_t error;
-	switch (mode) {
+	switch (_mode) {
 	case INPUT:
 		pah->s_rec = pa_simple_new(NULL, "RtAudio", PA_STREAM_RECORD, NULL, "Record", &ss, NULL, NULL, &error);
 		if (!pah->s_rec) {
-			m_errorText = "airtaudio::api::Pulse::probeDeviceOpen: error connecting input to PulseAudio server.";
+			ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error connecting input to PulseAudio server.");
 			goto error;
 		}
 		break;
 	case OUTPUT:
 		pah->s_play = pa_simple_new(NULL, "RtAudio", PA_STREAM_PLAYBACK, NULL, "Playback", &ss, NULL, NULL, &error);
 		if (!pah->s_play) {
-			m_errorText = "airtaudio::api::Pulse::probeDeviceOpen: error connecting output to PulseAudio server.";
+			ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error connecting output to PulseAudio server.");
 			goto error;
 		}
 		break;
@@ -417,8 +404,8 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t device,
 		goto error;
 	}
 	if (m_stream.mode == UNINITIALIZED) {
-		m_stream.mode = mode;
-	} else if (m_stream.mode == mode) {
+		m_stream.mode = _mode;
+	} else if (m_stream.mode == _mode) {
 		goto error;
 	}else {
 		m_stream.mode = DUPLEX;
@@ -428,13 +415,12 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t device,
 		m_stream.callbackInfo.isRunning = true;
 		pah->thread = new std::thread(pulseaudio_callback, (void *)&m_stream.callbackInfo);
 		if (pah->thread == NULL) {
-			m_errorText = "airtaudio::api::Pulse::probeDeviceOpen: error creating thread.";
+			ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error creating thread.");
 			goto error;
 		}
 	}
 	m_stream.state = STREAM_STOPPED;
 	return true;
-
 error:
 	if (pah && m_stream.callbackInfo.isRunning) {
 		delete pah;

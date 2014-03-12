@@ -9,6 +9,7 @@
 
 #if defined(__LINUX_OSS__)
 #include <airtaudio/Interface.h>
+#include <airtaudio/debug.h>
 
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -616,8 +617,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t device, StreamMode mode, uint
 	return FAILURE;
 }
 
-void airtaudio::api::Oss::closeStream()
-{
+enum airtaudio::errorType airtaudio::api::Oss::closeStream(void) {
 	if (m_stream.state == STREAM_CLOSED) {
 		m_errorText = "airtaudio::api::Oss::closeStream(): no open stream to close!";
 		error(airtaudio::errorWarning);
@@ -664,9 +664,10 @@ void airtaudio::api::Oss::closeStream()
 	m_stream.state = STREAM_CLOSED;
 }
 
-void airtaudio::api::Oss::startStream()
-{
-	verifyStream();
+enum airtaudio::errorType airtaudio::api::Oss::startStream(void) {
+	if (verifyStream() != airtaudio::errorNone) {
+		return airtaudio::errorFail;
+	}
 	if (m_stream.state == STREAM_RUNNING) {
 		m_errorText = "airtaudio::api::Oss::startStream(): the stream is already running!";
 		error(airtaudio::errorWarning);
@@ -686,9 +687,10 @@ void airtaudio::api::Oss::startStream()
 	pthread_cond_signal(&handle->runnable);
 }
 
-void airtaudio::api::Oss::stopStream()
-{
-	verifyStream();
+enum airtaudio::errorType airtaudio::api::Oss::stopStream(void) {
+	if (verifyStream() != airtaudio::errorNone) {
+		return airtaudio::errorFail;
+	}
 	if (m_stream.state == STREAM_STOPPED) {
 		m_errorText = "airtaudio::api::Oss::stopStream(): the stream is already stopped!";
 		error(airtaudio::errorWarning);
@@ -758,9 +760,10 @@ void airtaudio::api::Oss::stopStream()
 	error(airtaudio::errorSystemError);
 }
 
-void airtaudio::api::Oss::abortStream()
-{
-	verifyStream();
+enum airtaudio::errorType airtaudio::api::Oss::abortStream(void) {
+	if (verifyStream() != airtaudio::errorNone) {
+		return airtaudio::errorFail;
+	}
 	if (m_stream.state == STREAM_STOPPED) {
 		m_errorText = "airtaudio::api::Oss::abortStream(): the stream is already stopped!";
 		error(airtaudio::errorWarning);
@@ -804,8 +807,7 @@ void airtaudio::api::Oss::abortStream()
 	*error(airtaudio::errorSystemError);
 }
 
-void airtaudio::api::Oss::callbackEvent()
-{
+void airtaudio::api::Oss::callbackEvent(void) {
 	OssHandle *handle = (OssHandle *) m_stream.apiHandle;
 	if (m_stream.state == STREAM_STOPPED) {
 		m_stream.mutex.lock();

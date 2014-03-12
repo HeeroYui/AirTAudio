@@ -11,6 +11,7 @@ def create(target):
 	myModule = module.Module(__file__, 'airtaudio', 'LIBRARY')
 	
 	myModule.add_src_file([
+		'airtaudio/debug.cpp',
 		'airtaudio/Interface.cpp',
 		'airtaudio/Api.cpp',
 		'airtaudio/api/Alsa.cpp',
@@ -23,6 +24,7 @@ def create(target):
 		'airtaudio/api/Pulse.cpp'
 		])
 	
+	myModule.add_export_flag_CC(['-D__AIRTAUDIO_API_DUMMY_H__'])
 	if target.name=="Windows":
 		# ASIO API on Windows
 		myModule.add_export_flag_CC(['__WINDOWS_ASIO__'])
@@ -39,8 +41,6 @@ def create(target):
 		myModule.add_export_flag_CC(['-D__LINUX_PULSE__'])
 		myModule.add_export_flag_LD("-lpulse-simple")
 		myModule.add_export_flag_LD("-lpulse")
-		#depending libs :
-		myModule.add_export_flag_LD("-lpthread")
 	elif target.name=="MacOs":
 		# MacOsX core
 		myModule.add_export_flag_CC(['__MACOSX_CORE__'])
@@ -52,6 +52,10 @@ def create(target):
 	myModule.add_export_path(tools.get_current_path(__file__))
 	myModule.add_path(tools.get_current_path(__file__)+"/rtaudio/")
 	myModule.add_path(tools.get_current_path(__file__)+"/rtaudio/include/")
+	
+	# TODO : Remove this when debug will be unified ...
+	# name of the dependency
+	myModule.add_module_depend(['ewol'])
 	
 	# add the currrent module at the 
 	return myModule

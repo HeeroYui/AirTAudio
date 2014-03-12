@@ -7,6 +7,8 @@
  */
 
 #if defined(__AIRTAUDIO_DUMMY__)
+#include <airtaudio/api/Dummy.h>
+#include <airtaudio/debug.h>
 
 airtaudio::Api* airtaudio::api::Dummy::Create(void) {
 	return new airtaudio::api::Dummy();
@@ -28,20 +30,20 @@ rtaudio::DeviceInfo airtaudio::api::Dummy::getDeviceInfo(uint32_t _device) {
 	return info;
 }
 
-void airtaudio::api::Dummy::closeStream(void) {
-	
+enum airtaudio::errorType airtaudio::api::Dummy::closeStream(void) {
+	return airtaudio::errorNone;
 }
 
-void airtaudio::api::Dummy::startStream(void) {
-	
+enum airtaudio::errorType airtaudio::api::Dummy::startStream(void) {
+	return airtaudio::errorNone;
 }
 
-void airtaudio::api::Dummy::stopStream(void) {
-	
+enum airtaudio::errorType airtaudio::api::Dummy::stopStream(void) {
+	return airtaudio::errorNone;
 }
 
-void airtaudio::api::Dummy::abortStream(void) {
-	
+enum airtaudio::errorType airtaudio::api::Dummy::abortStream(void) {
+	return airtaudio::errorNone;
 }
 
 bool airtaudio::api::Dummy::probeDeviceOpen(uint32_t _device,

@@ -10,6 +10,7 @@
 #if defined(__WINDOWS_ASIO__) // ASIO API on Windows
 
 #include <airtaudio/Interface.h>
+#include <airtaudio/debug.h>
 
 airtaudio::Api* airtaudio::api::Asio::Create(void) {
 	return new airtaudio::api::Asio();
@@ -183,15 +184,15 @@ rtaudio::DeviceInfo airtaudio::api::Asio::getDeviceInfo(uint32_t device)
 
 	info.nativeFormats = 0;
 	if (channelInfo.type == ASIOSTInt16MSB || channelInfo.type == ASIOSTInt16LSB)
-		info.nativeFormats |= RTAUDIO_SINT16;
+		info.nativeFormats |= SINT16;
 	else if (channelInfo.type == ASIOSTInt32MSB || channelInfo.type == ASIOSTInt32LSB)
-		info.nativeFormats |= RTAUDIO_SINT32;
+		info.nativeFormats |= SINT32;
 	else if (channelInfo.type == ASIOSTFloat32MSB || channelInfo.type == ASIOSTFloat32LSB)
-		info.nativeFormats |= RTAUDIO_FLOAT32;
+		info.nativeFormats |= FLOAT32;
 	else if (channelInfo.type == ASIOSTFloat64MSB || channelInfo.type == ASIOSTFloat64LSB)
-		info.nativeFormats |= RTAUDIO_FLOAT64;
+		info.nativeFormats |= FLOAT64;
 	else if (channelInfo.type == ASIOSTInt24MSB || channelInfo.type == ASIOSTInt24LSB)
-		info.nativeFormats |= RTAUDIO_SINT24;
+		info.nativeFormats |= SINT24;
 
 	if (info.outputChannels > 0)
 		if (getDefaultOutputDevice() == device) info.isDefaultOutput = true;
@@ -579,7 +580,7 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t device, StreamMode mode, uin
 	return FAILURE;
 }
 
-void airtaudio::api::Asio::closeStream()
+enum airtaudio::errorType airtaudio::api::Asio::closeStream()
 {
 	if (m_stream.state == STREAM_CLOSED) {
 		m_errorText = "airtaudio::api::Asio::closeStream(): no open stream to close!";
@@ -621,9 +622,11 @@ void airtaudio::api::Asio::closeStream()
 
 bool stopThreadCalled = false;
 
-void airtaudio::api::Asio::startStream()
+enum airtaudio::errorType airtaudio::api::Asio::startStream()
 {
-	verifyStream();
+	if (verifyStream() != airtaudio::errorNone) {
+		return airtaudio::errorFail;
+	}
 	if (m_stream.state == STREAM_RUNNING) {
 		m_errorText = "airtaudio::api::Asio::startStream(): the stream is already running!";
 		error(airtaudio::errorWarning);
@@ -651,9 +654,11 @@ void airtaudio::api::Asio::startStream()
 	error(airtaudio::errorSystemError);
 }
 
-void airtaudio::api::Asio::stopStream()
+enum airtaudio::errorType airtaudio::api::Asio::stopStream()
 {
-	verifyStream();
+	if (verifyStream() != airtaudio::errorNone) {
+		return airtaudio::errorFail;
+	}
 	if (m_stream.state == STREAM_STOPPED) {
 		m_errorText = "airtaudio::api::Asio::stopStream(): the stream is already stopped!";
 		error(airtaudio::errorWarning);
@@ -680,9 +685,11 @@ void airtaudio::api::Asio::stopStream()
 	error(airtaudio::errorSystemError);
 }
 
-void airtaudio::api::Asio::abortStream()
+enum airtaudio::errorType airtaudio::api::Asio::abortStream()
 {
-	verifyStream();
+	if (verifyStream() != airtaudio::errorNone) {
+		return airtaudio::errorFail;
+	}
 	if (m_stream.state == STREAM_STOPPED) {
 		m_errorText = "airtaudio::api::Asio::abortStream(): the stream is already stopped!";
 		error(airtaudio::errorWarning);

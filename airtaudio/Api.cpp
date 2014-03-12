@@ -7,6 +7,7 @@
  */
 
 #include <airtaudio/Interface.h>
+#include <airtaudio/debug.h>
 #include <iostream>
 #include <cstdlib>
 #include <cstring>
@@ -16,8 +17,20 @@
 // Static variable definitions.
 const uint32_t airtaudio::api::MAX_SAMPLE_RATES = 14;
 const uint32_t airtaudio::api::SAMPLE_RATES[] = {
-	4000, 5512, 8000, 9600, 11025, 16000, 22050,
-	32000, 44100, 48000, 88200, 96000, 176400, 192000
+	4000,
+	5512,
+	8000,
+	9600,
+	11025,
+	16000,
+	22050,
+	32000,
+	44100,
+	48000,
+	88200,
+	96000,
+	176400,
+	192000
 };
 
 
@@ -27,7 +40,6 @@ airtaudio::Api::Api(void) {
 	m_stream.apiHandle = 0;
 	m_stream.userBuffer[0] = 0;
 	m_stream.userBuffer[1] = 0;
-	m_showWarnings = true;
 }
 
 airtaudio::Api::~Api(void) {
@@ -41,50 +53,42 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
                                                      uint32_t *bufferFrames,
                                                      airtaudio::AirTAudioCallback callback,
                                                      void *userData,
-                                                     airtaudio::StreamOptions *options,
-                                                     airtaudio::AirTAudioErrorCallback errorCallback) {
+                                                     airtaudio::StreamOptions *options) {
 	if (m_stream.state != airtaudio::api::STREAM_CLOSED) {
-		m_errorText = "airtaudio::Api::openStream: a stream is already open!";
-		error(airtaudio::errorInvalidUse);
-		return;
+		ATA_ERROR("airtaudio::Api::openStream: a stream is already open!");
+		return airtaudio::errorInvalidUse;
 	}
 	if (oParams && oParams->nChannels < 1) {
-		m_errorText = "airtaudio::Api::openStream: a non-NULL output StreamParameters structure cannot have an nChannels value less than one.";
-		error(airtaudio::errorInvalidUse);
-		return;
+		ATA_ERROR("airtaudio::Api::openStream: a non-NULL output StreamParameters structure cannot have an nChannels value less than one.");
+		return airtaudio::errorInvalidUse;
 	}
 	if (iParams && iParams->nChannels < 1) {
-		m_errorText = "airtaudio::Api::openStream: a non-NULL input StreamParameters structure cannot have an nChannels value less than one.";
-		error(airtaudio::errorInvalidUse);
-		return;
+		ATA_ERROR("airtaudio::Api::openStream: a non-NULL input StreamParameters structure cannot have an nChannels value less than one.");
+		return airtaudio::errorInvalidUse;
 	}
 	if (oParams == NULL && iParams == NULL) {
-		m_errorText = "airtaudio::Api::openStream: input and output StreamParameters structures are both NULL!";
-		error(airtaudio::errorInvalidUse);
-		return;
+		ATA_ERROR("airtaudio::Api::openStream: input and output StreamParameters structures are both NULL!");
+		return airtaudio::errorInvalidUse;
 	}
 	if (formatBytes(format) == 0) {
-		m_errorText = "airtaudio::Api::openStream: 'format' parameter value is undefined.";
-		error(airtaudio::errorInvalidUse);
-		return;
+		ATA_ERROR("airtaudio::Api::openStream: 'format' parameter value is undefined.");
+		return airtaudio::errorInvalidUse;
 	}
 	uint32_t nDevices = getDeviceCount();
 	uint32_t oChannels = 0;
 	if (oParams) {
 		oChannels = oParams->nChannels;
 		if (oParams->deviceId >= nDevices) {
-			m_errorText = "airtaudio::Api::openStream: output device parameter value is invalid.";
-			error(airtaudio::errorInvalidUse);
-			return;
+			ATA_ERROR("airtaudio::Api::openStream: output device parameter value is invalid.");
+			return airtaudio::errorInvalidUse;
 		}
 	}
 	uint32_t iChannels = 0;
 	if (iParams) {
 		iChannels = iParams->nChannels;
 		if (iParams->deviceId >= nDevices) {
-			m_errorText = "airtaudio::Api::openStream: input device parameter value is invalid.";
-			error(airtaudio::errorInvalidUse);
-			return;
+			ATA_ERROR("airtaudio::Api::openStream: input device parameter value is invalid.");
+			return airtaudio::errorInvalidUse;
 		}
 	}
 	clearStreamInfo();
@@ -99,8 +103,8 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
 		                         bufferFrames,
 		                         options);
 		if (result == false) {
-			error(airtaudio::errorSystemError);
-			return;
+			ATA_ERROR("system ERROR");
+			return airtaudio::errorSystemError;
 		}
 	}
 	if (iChannels > 0) {
@@ -116,17 +120,17 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
 			if (oChannels > 0) {
 				closeStream();
 			}
-			error(airtaudio::errorSystemError);
-			return;
+			ATA_ERROR("system error");
+			return airtaudio::errorSystemError;
 		}
 	}
 	m_stream.callbackInfo.callback = (void *) callback;
 	m_stream.callbackInfo.userData = userData;
-	m_stream.callbackInfo.errorCallback = (void *) errorCallback;
 	if (options != NULL) {
 		options->numberOfBuffers = m_stream.nBuffers;
 	}
 	m_stream.state = airtaudio::api::STREAM_STOPPED;
+	return airtaudio::errorNone;
 }
 
 uint32_t airtaudio::Api::getDefaultInputDevice(void) {
@@ -167,19 +171,25 @@ void airtaudio::Api::tickStreamTime(void) {
 }
 
 long airtaudio::Api::getStreamLatency(void) {
-	verifyStream();
+	if (verifyStream() != airtaudio::errorNone) {
+		return 0;
+	}
 	long totalLatency = 0;
-	if (m_stream.mode == airtaudio::api::OUTPUT || m_stream.mode == airtaudio::api::DUPLEX) {
+	if (    m_stream.mode == airtaudio::api::OUTPUT
+	     || m_stream.mode == airtaudio::api::DUPLEX) {
 		totalLatency = m_stream.latency[0];
 	}
-	if (m_stream.mode == airtaudio::api::INPUT || m_stream.mode == airtaudio::api::DUPLEX) {
+	if (    m_stream.mode == airtaudio::api::INPUT
+	     || m_stream.mode == airtaudio::api::DUPLEX) {
 		totalLatency += m_stream.latency[1];
 	}
 	return totalLatency;
 }
 
 double airtaudio::Api::getStreamTime(void) {
-	verifyStream();
+	if (verifyStream() != airtaudio::errorNone) {
+		return 0.0f;
+	}
 #if defined(HAVE_GETTIMEOFDAY)
 	// Return a very accurate estimate of the stream time by
 	// adding in the elapsed time since the last tick.
@@ -199,49 +209,18 @@ double airtaudio::Api::getStreamTime(void) {
 }
 
 uint32_t airtaudio::Api::getStreamSampleRate(void) {
-	verifyStream();
+	if (verifyStream() != airtaudio::errorNone) {
+		return 0;
+	}
 	return m_stream.sampleRate;
 }
 
-// *************************************************** //
-//
-// Protected common (OS-independent) RtAudio methods.
-//
-// *************************************************** //
-// This method can be modified to control the behavior of error
-// message printing.
-void airtaudio::Api::error(airtaudio::errorType _type) {
-	m_errorStream.str(""); // clear the ostringstream
-	airtaudio::AirTAudioErrorCallback errorCallback = (airtaudio::AirTAudioErrorCallback) m_stream.callbackInfo.errorCallback;
-	if (errorCallback) {
-		// abortStream() can generate new error messages. Ignore them. Just keep original one.
-		static bool firstErrorOccured = false;
-		if (firstErrorOccured) {
-			return;
-		}
-		firstErrorOccured = true;
-		const std::string errorMessage = m_errorText;
-		if (_type != airtaudio::errorWarning && m_stream.state != airtaudio::api::STREAM_STOPPED) {
-			m_stream.callbackInfo.isRunning = false; // exit from the thread
-			abortStream();
-		}
-		errorCallback(_type, errorMessage);
-		firstErrorOccured = false;
-		return;
-	}
-	if (_type == airtaudio::errorWarning && m_showWarnings == true) {
-		std::cerr << '\n' << m_errorText << "\n\n";
-	} else if (_type != airtaudio::errorWarning) {
-		//throw(RtError(m_errorText, type));
-		std::cout << m_errorText << std::endl;
-	}
-}
-
-void airtaudio::Api::verifyStream(void) {
+enum airtaudio::errorType airtaudio::Api::verifyStream(void) {
 	if (m_stream.state == airtaudio::api::STREAM_CLOSED) {
-		m_errorText = "airtaudio::Api:: a stream is not open!";
-		error(airtaudio::errorInvalidUse);
+		ATA_ERROR("airtaudio::Api:: a stream is not open!");
+		return airtaudio::errorInvalidUse;
 	}
+	return airtaudio::errorNone;
 }
 
 void airtaudio::Api::clearStreamInfo(void) {
@@ -258,7 +237,6 @@ void airtaudio::Api::clearStreamInfo(void) {
 	m_stream.callbackInfo.callback = 0;
 	m_stream.callbackInfo.userData = 0;
 	m_stream.callbackInfo.isRunning = false;
-	m_stream.callbackInfo.errorCallback = 0;
 	for (int32_t iii=0; iii<2; ++iii) {
 		m_stream.device[iii] = 11111;
 		m_stream.doConvertBuffer[iii] = false;
@@ -294,8 +272,8 @@ uint32_t airtaudio::Api::formatBytes(airtaudio::format _format)
 	} else if (_format == airtaudio::SINT8) {
 		return 1;
 	}
-	m_errorText = "airtaudio::Api::formatBytes: undefined format.";
-	error(airtaudio::errorWarning);
+	ATA_ERROR("airtaudio::Api::formatBytes: undefined format.");
+	// TODO : airtaudio::errorWarning;
 	return 0;
 }
 

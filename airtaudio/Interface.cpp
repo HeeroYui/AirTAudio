@@ -7,6 +7,7 @@
  */
 
 #include <airtaudio/Interface.h>
+#include <airtaudio/debug.h>
 #include <iostream>
 
 std::vector<airtaudio::api::type> airtaudio::Interface::getCompiledApi(void) {
@@ -117,10 +118,9 @@ enum airtaudio::errorType airtaudio::Interface::openStream(
                 uint32_t* _bufferFrames,
                 airtaudio::AirTAudioCallback _callback,
                 void* _userData,
-                airtaudio::StreamOptions* _options,
-                airtaudio::AirTAudioErrorCallback _errorCallback) {
+                airtaudio::StreamOptions* _options) {
 	if (m_rtapi == NULL) {
-		return;
+		return airtaudio::errorInputNull;
 	}
 	return m_rtapi->openStream(_outputParameters,
 	                           _inputParameters,
@@ -129,8 +129,7 @@ enum airtaudio::errorType airtaudio::Interface::openStream(
 	                           _bufferFrames,
 	                           _callback,
 	                           _userData,
-	                           _options,
-	                           _errorCallback);
+	                           _options);
 }
 
 

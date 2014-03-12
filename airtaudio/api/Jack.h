@@ -22,10 +22,10 @@ namespace airtaudio {
 				}
 				uint32_t getDeviceCount(void);
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
-				void closeStream(void);
-				void startStream(void);
-				void stopStream(void);
-				void abortStream(void);
+				enum airtaudio::errorType closeStream(void);
+				enum airtaudio::errorType startStream(void);
+				enum airtaudio::errorType stopStream(void);
+				enum airtaudio::errorType abortStream(void);
 				long getStreamLatency(void);
 				// This function is intended for internal use only.	It must be
 				// public because it is called by the internal callback handler,

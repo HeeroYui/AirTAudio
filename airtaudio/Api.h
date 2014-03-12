@@ -130,8 +130,7 @@ namespace airtaudio {
 			                                     uint32_t *_bufferFrames,
 			                                     airtaudio::AirTAudioCallback _callback,
 			                                     void *_userData,
-			                                     airtaudio::StreamOptions *_options,
-			                                     airtaudio::AirTAudioErrorCallback _errorCallback);
+			                                     airtaudio::StreamOptions *_options);
 			virtual enum airtaudio::errorType closeStream(void);
 			virtual enum airtaudio::errorType startStream(void) = 0;
 			virtual enum airtaudio::errorType stopStream(void) = 0;
@@ -145,14 +144,8 @@ namespace airtaudio {
 			bool isStreamRunning(void) const {
 				return m_stream.state == airtaudio::api::STREAM_RUNNING;
 			}
-			void showWarnings(bool _value) {
-				m_showWarnings = _value;
-			}
 			
 		protected:
-			std::ostringstream m_errorStream;
-			std::string m_errorText;
-			bool m_showWarnings;
 			airtaudio::api::Stream m_stream;
 			
 			/*!
@@ -175,17 +168,13 @@ namespace airtaudio {
 			void tickStreamTime(void);
 			
 			//! Protected common method to clear an RtApiStream structure.
-			void clearStreamInfo();
+			void clearStreamInfo(void);
 			
 			/*!
 				Protected common method that throws an RtError (type =
 				INVALID_USE) if a stream is not open.
 			*/
-			void verifyStream(void);
-			
-			//! Protected common error method to allow global control over error handling.
-			void error(airtaudio::errorType _type);
-			
+			enum airtaudio::errorType verifyStream(void);
 			/**
 			 * @brief Protected method used to perform format, channel number, and/or interleaving
 			 * conversions between the user and device buffers.
