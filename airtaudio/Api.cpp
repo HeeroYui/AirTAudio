@@ -157,7 +157,7 @@ bool airtaudio::Api::probeDeviceOpen(uint32_t /*device*/,
                                      uint32_t * /*bufferSize*/,
                                      airtaudio::StreamOptions * /*options*/) {
 	// MUST be implemented in subclasses!
-	return airtaudio::api::FAILURE;
+	return false;
 }
 
 void airtaudio::Api::tickStreamTime(void) {

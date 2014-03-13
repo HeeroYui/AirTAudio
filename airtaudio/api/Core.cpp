@@ -444,12 +444,12 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	if (nDevices == 0) {
 		// This should not happen because a check is made before this function is called.
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: no devices found!");
-		return FAILURE;
+		return false;
 	}
 	if (_device >= nDevices) {
 		// This should not happen because a check is made before this function is called.
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: device ID is invalid!");
-		return FAILURE;
+		return false;
 	}
 	AudioDeviceID deviceList[ nDevices ];
 	uint32_t dataSize = sizeof(AudioDeviceID) * nDevices;
@@ -466,7 +466,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	                                             (void *) &deviceList);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: OS-X system error getting device IDs.");
-		return FAILURE;
+		return false;
 	}
 	AudioDeviceID id = deviceList[ _device ];
 	// Setup for stream mode.
@@ -485,19 +485,19 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	if (    result != noErr
 	     || dataSize == 0) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting stream configuration info for device (" << _device << ").");
-		return FAILURE;
+		return false;
 	}
 	// Allocate the AudioBufferList.
 	bufferList = (AudioBufferList *) malloc(dataSize);
 	if (bufferList == NULL) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: memory error allocating AudioBufferList.");
-		return FAILURE;
+		return false;
 	}
 	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, bufferList);
 	if (    result != noErr
 	     || dataSize == 0) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting stream configuration for device (" << _device << ").");
-		return FAILURE;
+		return false;
 	}
 	// Search for one or more streams that contain the desired number of
 	// channels. CoreAudio devices can have an arbitrary number of
@@ -520,7 +520,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	if (deviceChannels < (_channels + _firstChannel)) {
 		free(bufferList);
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: the device (" << _device << ") does not support the requested channel count.");
-		return FAILURE;
+		return false;
 	}
 	// Look for a single stream meeting our needs.
 	uint32_t firstStream, streamCount = 1, streamChannels = 0, channelOffset = 0;
@@ -572,7 +572,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &bufferRange);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting buffer size range for device (" << _device << ").");
-		return FAILURE;
+		return false;
 	}
 	if (bufferRange.mMinimum > *_bufferSize) {
 		*_bufferSize = (uint64_t) bufferRange.mMinimum;
@@ -591,7 +591,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	result = AudioObjectSetPropertyData(id, &property, 0, NULL, dataSize, &theSize);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") setting the buffer size for device (" << _device << ").");
-		return FAILURE;
+		return false;
 	}
 	// If attempting to setup a duplex stream, the bufferSize parameter
 	// MUST be the same in both directions!
@@ -600,7 +600,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	     && _mode == INPUT
 	     && *_bufferSize != m_stream.bufferSize) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error setting buffer size for duplex stream on device (" << _device << ").");
-		return FAILURE;
+		return false;
 	}
 	m_stream.bufferSize = *_bufferSize;
 	m_stream.nBuffers = 1;
@@ -613,14 +613,14 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &hog_pid);
 		if (result != noErr) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting 'hog' state!");
-			return FAILURE;
+			return false;
 		}
 		if (hog_pid != getpid()) {
 			hog_pid = getpid();
 			result = AudioObjectSetPropertyData(id, &property, 0, NULL, dataSize, &hog_pid);
 			if (result != noErr) {
 				ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") setting 'hog' state!");
-				return FAILURE;
+				return false;
 			}
 		}
 	}
@@ -631,7 +631,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &nominalRate);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting current sample rate.");
-		return FAILURE;
+		return false;
 	}
 	// Only change the sample rate if off by more than 1 Hz.
 	if (fabs(nominalRate - (double)_sampleRate) > 1.0) {
@@ -641,13 +641,13 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		result = AudioObjectAddPropertyListener(id, &tmp, rateListener, (void *) &reportedRate);
 		if (result != noErr) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") setting sample rate property listener for device (" << _device << ").");
-			return FAILURE;
+			return false;
 		}
 		nominalRate = (double) _sampleRate;
 		result = AudioObjectSetPropertyData(id, &property, 0, NULL, dataSize, &nominalRate);
 		if (result != noErr) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") setting sample rate for device (" << _device << ").");
-			return FAILURE;
+			return false;
 		}
 		// Now wait until the reported nominal rate is what we just set.
 		uint32_t microCounter = 0;
@@ -662,7 +662,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		AudioObjectRemovePropertyListener(id, &tmp, rateListener, (void *) &reportedRate);
 		if (microCounter > 5000000) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: timeout waiting for sample rate update for device (" << _device << ").");
-			return FAILURE;
+			return false;
 		}
 	}
 	// Now set the stream format for all streams.	Also, check the
@@ -673,7 +673,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &description);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting stream format for device (" << _device << ").");
-		return FAILURE;
+		return false;
 	}
 	// Set the sample rate and data format id.	However, only make the
 	// change if the sample rate is not within 1.0 of the desired
@@ -691,7 +691,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		result = AudioObjectSetPropertyData(id, &property, 0, NULL, dataSize, &description);
 		if (result != noErr) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") setting sample rate or data format for device (" << _device << ").");
-			return FAILURE;
+			return false;
 		}
 	}
 	// Now check the physical format.
@@ -699,7 +699,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	result = AudioObjectGetPropertyData(id, &property, 0, NULL,	&dataSize, &description);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting stream physical format for device (" << _device << ").");
-		return FAILURE;
+		return false;
 	}
 	//std::cout << "Current physical stream format:" << std::endl;
 	//std::cout << "	 mBitsPerChan = " << description.mBitsPerChannel << std::endl;
@@ -751,7 +751,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		}
 		if (!setPhysicalFormat) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") setting physical data format for device (" << _device << ").");
-			return FAILURE;
+			return false;
 		}
 	} // done setting virtual/physical formats.
 	// Get the stream / device latency.
@@ -901,7 +901,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	// Setup the device property listener for over/underload.
 	property.mSelector = kAudioDeviceProcessorOverload;
 	result = AudioObjectAddPropertyListener(id, &property, xrunListener, (void *) handle);
-	return SUCCESS;
+	return true;
 error:
 	if (handle) {
 		delete handle;
@@ -918,7 +918,7 @@ error:
 		m_stream.deviceBuffer = 0;
 	}
 	m_stream.state = STREAM_CLOSED;
-	return FAILURE;
+	return false;
 }
 
 enum airtaudio::errorType airtaudio::api::Core::closeStream(void) {
@@ -1077,11 +1077,11 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
                                          const AudioBufferList *_outBufferList) {
 	if (    m_stream.state == STREAM_STOPPED
 	     || m_stream.state == STREAM_STOPPING) {
-		return SUCCESS;
+		return true;
 	}
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::api::Core::callbackEvent(): the stream is closed ... this shouldn't happen!");
-		return FAILURE;
+		return false;
 	}
 	CallbackInfo *info = (CallbackInfo *) &m_stream.callbackInfo;
 	CoreHandle *handle = (CoreHandle *) m_stream.apiHandle;
@@ -1094,7 +1094,7 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 			// external call to stopStream()
 			handle->condition.notify_one();
 		}
-		return SUCCESS;
+		return true;
 	}
 	AudioDeviceID outputDevice = handle->id[0];
 	// Invoke user callback to get fresh output data UNLESS we are
@@ -1124,7 +1124,7 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 			m_stream.state = STREAM_STOPPING;
 			handle->drainCounter = 2;
 			abortStream();
-			return SUCCESS;
+			return true;
 		} else if (cbReturnValue == 1) {
 			handle->drainCounter = 1;
 			handle->internalDrain = true;
@@ -1319,7 +1319,7 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 unlock:
 	//m_stream.mutex.unlock();
 	RtApi::tickStreamTime();
-	return SUCCESS;
+	return true;
 }
 
 const char* airtaudio::api::Core::getErrorCode(OSStatus _code) {

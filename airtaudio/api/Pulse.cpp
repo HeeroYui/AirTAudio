@@ -386,22 +386,22 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t _device,
 	pah = static_cast<PulseAudioHandle *>(m_stream.apiHandle);
 	int32_t error;
 	switch (_mode) {
-	case INPUT:
-		pah->s_rec = pa_simple_new(NULL, "RtAudio", PA_STREAM_RECORD, NULL, "Record", &ss, NULL, NULL, &error);
-		if (!pah->s_rec) {
-			ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error connecting input to PulseAudio server.");
+		case INPUT:
+			pah->s_rec = pa_simple_new(NULL, "RtAudio", PA_STREAM_RECORD, NULL, "Record", &ss, NULL, NULL, &error);
+			if (!pah->s_rec) {
+				ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error connecting input to PulseAudio server.");
+				goto error;
+			}
+			break;
+		case OUTPUT:
+			pah->s_play = pa_simple_new(NULL, "RtAudio", PA_STREAM_PLAYBACK, NULL, "Playback", &ss, NULL, NULL, &error);
+			if (!pah->s_play) {
+				ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error connecting output to PulseAudio server.");
+				goto error;
+			}
+			break;
+		default:
 			goto error;
-		}
-		break;
-	case OUTPUT:
-		pah->s_play = pa_simple_new(NULL, "RtAudio", PA_STREAM_PLAYBACK, NULL, "Playback", &ss, NULL, NULL, &error);
-		if (!pah->s_play) {
-			ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error connecting output to PulseAudio server.");
-			goto error;
-		}
-		break;
-	default:
-		goto error;
 	}
 	if (m_stream.mode == UNINITIALIZED) {
 		m_stream.mode = _mode;
@@ -436,7 +436,7 @@ error:
 		free(m_stream.deviceBuffer);
 		m_stream.deviceBuffer = 0;
 	}
-	return FAILURE;
+	return false;
 }
 
 #endif

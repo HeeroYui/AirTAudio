@@ -275,7 +275,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 		}
 		if (client == 0) {
 			ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: Jack server not found or connection error!");
-			return FAILURE;
+			return false;
 		}
 	} else {
 		// The handle must have been created on an earlier pass.
@@ -306,7 +306,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	}
 	if (_device >= nDevices) {
 		ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: device ID is invalid!");
-		return FAILURE;
+		return false;
 	}
 	// Count the available ports containing the client name as device
 	// channels.	Jack "input ports" equal RtAudio output channels.
@@ -323,14 +323,14 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	// Compare the jack ports for specified client to the requested number of channels.
 	if (nChannels < (_channels + _firstChannel)) {
 		ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: requested number of channels (" << _channels << ") + offset (" << _firstChannel << ") not found for specified device (" << _device << ":" << deviceName << ").");
-		return FAILURE;
+		return false;
 	}
 	// Check the jack server sample rate.
 	uint32_t jackRate = jack_get_sample_rate(client);
 	if (_sampleRate != jackRate) {
 		jack_client_close(client);
 		ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: the requested sample rate (" << _sampleRate << ") is different than the JACK server rate (" << jackRate << ").");
-		return FAILURE;
+		return false;
 	}
 	m_stream.sampleRate = jackRate;
 	// Get the latency of the JACK port.
@@ -463,7 +463,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	if (m_stream.doConvertBuffer[_mode]) {
 		setConvertInfo(_mode, 0);
 	}
-	return SUCCESS;
+	return true;
 error:
 	if (handle) {
 		jack_client_close(handle->client);
@@ -486,7 +486,7 @@ error:
 		free(m_stream.deviceBuffer);
 		m_stream.deviceBuffer = NULL;
 	}
-	return FAILURE;
+	return false;
 }
 
 enum airtaudio::errorType airtaudio::api::Jack::closeStream(void) {
@@ -646,15 +646,15 @@ static void jackStopStream(void *_ptr) {
 bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 	if (    m_stream.state == STREAM_STOPPED
 	     || m_stream.state == STREAM_STOPPING) {
-		return SUCCESS;
+		return true;
 	}
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("RtApiCore::callbackEvent(): the stream is closed ... this shouldn't happen!");
-		return FAILURE;
+		return false;
 	}
 	if (m_stream.bufferSize != _nframes) {
 		ATA_ERROR("RtApiCore::callbackEvent(): the JACK buffer size has changed ... cannot process!");
-		return FAILURE;
+		return false;
 	}
 	CallbackInfo *info = (CallbackInfo *) &m_stream.callbackInfo;
 	JackHandle *handle = (JackHandle *) m_stream.apiHandle;
@@ -666,7 +666,7 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 		} else {
 			handle->condition.notify_one();
 		}
-		return SUCCESS;
+		return true;
 	}
 	// Invoke user callback first, to get fresh output data.
 	if (handle->drainCounter == 0) {
@@ -691,7 +691,7 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 			m_stream.state = STREAM_STOPPING;
 			handle->drainCounter = 2;
 			new std::thread(jackStopStream, info);
-			return SUCCESS;
+			return true;
 		}
 		else if (cbReturnValue == 1) {
 			handle->drainCounter = 1;
@@ -741,7 +741,7 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 	}
 unlock:
 	airtaudio::Api::tickStreamTime();
-	return SUCCESS;
+	return true;
 }
 
 #endif

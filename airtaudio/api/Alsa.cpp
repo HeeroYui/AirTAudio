@@ -382,7 +382,7 @@ bool airtaudio::api::Alsa::probeDeviceOpen(uint32_t _device,
 			result = snd_ctl_open(&chandle, name, SND_CTL_NONBLOCK);
 			if (result < 0) {
 				ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: control open, card = " << card << ", " << snd_strerror(result) << ".");
-				return FAILURE;
+				return false;
 			}
 			subdevice = -1;
 			while(1) {
@@ -410,12 +410,12 @@ bool airtaudio::api::Alsa::probeDeviceOpen(uint32_t _device,
 		if (nDevices == 0) {
 			// This should not happen because a check is made before this function is called.
 			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: no devices found!");
-			return FAILURE;
+			return false;
 		}
 		if (_device >= nDevices) {
 			// This should not happen because a check is made before this function is called.
 			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: device ID is invalid!");
-			return FAILURE;
+			return false;
 		}
 	}
 
@@ -444,7 +444,7 @@ foundDevice:
 		} else {
 			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: pcm device (" << name << ") won't open for input.");
 		}
-		return FAILURE;
+		return false;
 	}
 	// Fill the parameter structure.
 	snd_pcm_hw_params_t *hw_params;
@@ -453,7 +453,7 @@ foundDevice:
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error getting pcm device (" << name << ") parameters, " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	// Set access ... check user preference.
 	if (    _options != NULL
@@ -479,7 +479,7 @@ foundDevice:
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting pcm device (" << name << ") access, " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	// Determine how to set the device format.
 	m_stream.userFormat = _format;
@@ -535,14 +535,14 @@ foundDevice:
 	// If we get here, no supported format was found.
 	snd_pcm_close(phandle);
 	ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: pcm device " << _device << " data format not supported by RtAudio.");
-	return FAILURE;
+	return false;
 
 setFormat:
 	result = snd_pcm_hw_params_set_format(phandle, hw_params, deviceFormat);
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting pcm device (" << name << ") data format, " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	// Determine whether byte-swaping is necessary.
 	m_stream.doByteSwap[_mode] = false;
@@ -553,7 +553,7 @@ setFormat:
 		} else if (result < 0) {
 			snd_pcm_close(phandle);
 			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error getting pcm device (" << name << ") endian-ness, " << snd_strerror(result) << ".");
-			return FAILURE;
+			return false;
 		}
 	}
 	// Set the sample rate.
@@ -561,7 +561,7 @@ setFormat:
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting sample rate on device (" << name << "), " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	// Determine the number of channels for this device.	We support a possible
 	// minimum device channel number > than the value requested by the user.
@@ -573,13 +573,13 @@ setFormat:
 	     || deviceChannels < _channels + _firstChannel) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: requested channel parameters not supported by device (" << name << "), " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	result = snd_pcm_hw_params_get_channels_min(hw_params, &value);
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error getting minimum channels for device (" << name << "), " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	deviceChannels = value;
 	if (deviceChannels < _channels + _firstChannel) {
@@ -591,7 +591,7 @@ setFormat:
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting channels for device (" << name << "), " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	// Set the buffer (or period) size.
 	int32_t dir = 0;
@@ -600,7 +600,7 @@ setFormat:
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting period size for device (" << name << "), " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	*_bufferSize = periodSize;
 	// Set the buffer number, which in ALSA is referred to as the "period".
@@ -612,14 +612,14 @@ setFormat:
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting periods for device (" << name << "), " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	// If attempting to setup a duplex stream, the bufferSize parameter
 	// MUST be the same in both directions!
 	if (m_stream.mode == OUTPUT && _mode == INPUT && *_bufferSize != m_stream.bufferSize) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: system error setting buffer size for duplex stream on device (" << name << ").");
-		return FAILURE;
+		return false;
 	}
 	m_stream.bufferSize = *_bufferSize;
 	// Install the hardware configuration
@@ -627,7 +627,7 @@ setFormat:
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error installing hardware configuration on device (" << name << "), " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	// Set the software configuration to fill buffers with zeros and prevent device stopping on xruns.
 	snd_pcm_sw_params_t *sw_params = NULL;
@@ -648,7 +648,7 @@ setFormat:
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error installing software configuration on device (" << name << "), " << snd_strerror(result) << ".");
-		return FAILURE;
+		return false;
 	}
 	// Set flags for buffer conversion
 	m_stream.doConvertBuffer[_mode] = false;
@@ -743,7 +743,7 @@ setFormat:
 			goto error;
 		}
 	}
-	return SUCCESS;
+	return true;
 error:
 	if (apiInfo != NULL) {
 		if (apiInfo->handles[0]) {
@@ -770,7 +770,7 @@ error:
 		m_stream.deviceBuffer = 0;
 	}
 	m_stream.state = STREAM_CLOSED;
-	return FAILURE;
+	return false;
 }
 
 enum airtaudio::errorType airtaudio::api::Alsa::closeStream(void) {

@@ -36,11 +36,6 @@ namespace airtaudio {
 		extern const uint32_t MAX_SAMPLE_RATES;
 		extern const uint32_t SAMPLE_RATES[];
 		
-		enum {
-			FAILURE,
-			SUCCESS
-		};
-		
 		enum StreamState {
 			STREAM_STOPPED,
 			STREAM_STOPPING,
@@ -152,8 +147,8 @@ namespace airtaudio {
 				Protected, api-specific method that attempts to open a device
 				with the given parameters.	This function MUST be implemented by
 				all subclasses.	If an error is encountered during the probe, a
-				"warning" message is reported and FAILURE is returned. A
-				successful probe is indicated by a return value of SUCCESS.
+				"warning" message is reported and false is returned. A
+				successful probe is indicated by a return value of true.
 			*/
 			virtual bool probeDeviceOpen(uint32_t _device,
 			                             airtaudio::api::StreamMode _mode,

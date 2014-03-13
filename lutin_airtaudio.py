@@ -15,6 +15,7 @@ def create(target):
 		'airtaudio/Interface.cpp',
 		'airtaudio/Api.cpp',
 		'airtaudio/api/Alsa.cpp',
+		'airtaudio/api/Android.cpp',
 		'airtaudio/api/Asio.cpp',
 		'airtaudio/api/Core.cpp',
 		'airtaudio/api/Ds.cpp',
@@ -46,6 +47,9 @@ def create(target):
 		myModule.add_export_flag_CC(['__MACOSX_CORE__'])
 		myModule.add_export_flag_LD("-framework CoreAudio")
 		myModule.add_export_flag_LD("-framework CoreMIDI")
+	elif target.name=="Android":
+		# MacOsX core
+		myModule.add_export_flag_CC(['__ANDROID_JAVA__'])
 	else:
 		debug.warning("unknow target for RTAudio : " + target.name);
 	

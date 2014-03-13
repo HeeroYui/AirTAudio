@@ -16,6 +16,7 @@
 #include <airtaudio/CallbackInfo.h>
 #include <airtaudio/Api.h>
 #include <airtaudio/api/Alsa.h>
+#include <airtaudio/api/Android.h>
 #include <airtaudio/api/Asio.h>
 #include <airtaudio/api/Core.h>
 #include <airtaudio/api/Ds.h>
