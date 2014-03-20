@@ -10,6 +10,8 @@
 #define __AIRTAUDIO_API_H__
 
 #include <sstream>
+#include <etk/types.h>
+#include <etk/Stream.h>
 
 namespace airtaudio {
 	namespace api {
@@ -174,7 +176,7 @@ namespace airtaudio {
 			 * @brief Protected method used to perform format, channel number, and/or interleaving
 			 * conversions between the user and device buffers.
 			 */
-			void convertBuffer(char *_outBuffer, char *_inBuffer, airtaudio::api::ConvertInfo &_info);
+			void convertBuffer(char *_outBuffer, char *_inBuffer, airtaudio::api::ConvertInfo& _info);
 			
 			//! Protected common method used to perform byte-swapping on buffers.
 			void byteSwapBuffer(char *_buffer, uint32_t _samples, airtaudio::format _format);
@@ -186,5 +188,9 @@ namespace airtaudio {
 			void setConvertInfo(airtaudio::api::StreamMode _mode, uint32_t _firstChannel);
 	};
 };
+/**
+ * @brief Debug operator To display the curent element in a Human redeable information
+ */
+etk::CCout& operator <<(etk::CCout& _os, const airtaudio::api::type& _obj);
 
 #endif

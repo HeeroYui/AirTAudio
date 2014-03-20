@@ -6,6 +6,7 @@
  * @license like MIT (see license file)
  */
 
+//#include <etk/types.h>
 #include <airtaudio/Interface.h>
 #include <airtaudio/debug.h>
 #include <iostream>
@@ -13,6 +14,27 @@
 #include <cstring>
 #include <climits>
 
+
+
+etk::CCout& operator <<(etk::CCout& _os, const airtaudio::api::type& _obj){
+	switch (_obj) {
+		default:
+		case airtaudio::api::UNSPECIFIED: _os << "UNSPECIFIED"; break;
+		case airtaudio::api::LINUX_ALSA: _os << "LINUX_ALSA"; break;
+		case airtaudio::api::LINUX_PULSE: _os << "LINUX_PULSE"; break;
+		case airtaudio::api::LINUX_OSS: _os << "LINUX_OSS"; break;
+		case airtaudio::api::UNIX_JACK: _os << "UNIX_JACK"; break;
+		case airtaudio::api::MACOSX_CORE: _os << "MACOSX_CORE"; break;
+		case airtaudio::api::WINDOWS_ASIO: _os << "WINDOWS_ASIO"; break;
+		case airtaudio::api::WINDOWS_DS: _os << "WINDOWS_DS"; break;
+		case airtaudio::api::RTAUDIO_DUMMY: _os << "RTAUDIO_DUMMY"; break;
+		case airtaudio::api::ANDROID_JAVA: _os << "ANDROID_JAVA"; break;
+		case airtaudio::api::USER_INTERFACE_1: _os << "USER_INTERFACE_1"; break;
+		case airtaudio::api::USER_INTERFACE_2: _os << "USER_INTERFACE_2"; break;
+		case airtaudio::api::USER_INTERFACE_3: _os << "USER_INTERFACE_3"; break;
+		case airtaudio::api::USER_INTERFACE_4: _os << "USER_INTERFACE_4"; break;
+	}
+}
 
 // Static variable definitions.
 const uint32_t airtaudio::api::MAX_SAMPLE_RATES = 14;

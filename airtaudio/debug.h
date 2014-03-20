@@ -3,7 +3,7 @@
  * 
  * @copyright 2011, Edouard DUPIN, all right reserved
  * 
- * @license BSD v3 (see license file)
+ * @license BSD 3 clauses (see license file)
  */
 
 #ifndef __EAUDIOFX_DEBUG_H__

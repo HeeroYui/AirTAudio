@@ -12,6 +12,7 @@ def create(target):
 	
 	myModule.add_src_file([
 		'airtaudio/debug.cpp',
+		'airtaudio/base.cpp',
 		'airtaudio/Interface.cpp',
 		'airtaudio/Api.cpp',
 		'airtaudio/api/Alsa.cpp',
@@ -36,20 +37,20 @@ def create(target):
 		myModule.add_export_flag_CC(['-D__LINUX_ALSA__'])
 		myModule.add_export_flag_LD("-lasound")
 		# Linux Jack API
-		myModule.add_export_flag_CC(['-D__UNIX_JACK__'])
-		myModule.add_export_flag_LD("-ljack")
+		#myModule.add_export_flag_CC(['-D__UNIX_JACK__'])
+		#myModule.add_export_flag_LD("-ljack")
 		# Linux PulseAudio API
-		myModule.add_export_flag_CC(['-D__LINUX_PULSE__'])
-		myModule.add_export_flag_LD("-lpulse-simple")
-		myModule.add_export_flag_LD("-lpulse")
+		#myModule.add_export_flag_CC(['-D__LINUX_PULSE__'])
+		#myModule.add_export_flag_LD("-lpulse-simple")
+		#myModule.add_export_flag_LD("-lpulse")
 	elif target.name=="MacOs":
 		# MacOsX core
-		myModule.add_export_flag_CC(['__MACOSX_CORE__'])
+		myModule.add_export_flag_CC(['-D__MACOSX_CORE__'])
 		myModule.add_export_flag_LD("-framework CoreAudio")
 		myModule.add_export_flag_LD("-framework CoreMIDI")
 	elif target.name=="Android":
 		# MacOsX core
-		myModule.add_export_flag_CC(['__ANDROID_JAVA__'])
+		myModule.add_export_flag_CC(['-D__ANDROID_JAVA__'])
 	else:
 		debug.warning("unknow target for RTAudio : " + target.name);
 	

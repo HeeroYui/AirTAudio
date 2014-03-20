@@ -40,6 +40,12 @@ namespace airtaudio {
 				                     airtaudio::format _format,
 				                     uint32_t *_bufferSize,
 				                     airtaudio::StreamOptions *_options);
+			private:
+				void callBackEvent(void* _data,
+				                   int32_t _frameRate);
+				static void androidCallBackEvent(void* _data,
+				                                 int32_t _frameRate,
+				                                 void* _userData);
 		};
 	};
 };

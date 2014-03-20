@@ -21,6 +21,7 @@
 #if defined(HAVE_GETTIMEOFDAY)
 	#include <sys/time.h>
 #endif
+//#include <etk/Stream.h>
 
 namespace airtaudio {
 	//! Defined RtError types.
@@ -35,6 +36,10 @@ namespace airtaudio {
 	// airtaudio version
 	static const std::string VERSION("4.0.12");
 	
+	/**
+	 * @brief Debug operator To display the curent element in a Human redeable information
+	 */
+	//etk::CCout& operator <<(etk::CCout& _os, enum errorType _obj);
 	/**
 	 * @typedef typedef uint64_t format;
 	 * @brief airtaudio data format type.
@@ -59,6 +64,11 @@ namespace airtaudio {
 	static const format SINT32 = 0x8;	 // 32-bit signed integer.
 	static const format FLOAT32 = 0x10; // Normalized between plus/minus 1.0.
 	static const format FLOAT64 = 0x20; // Normalized between plus/minus 1.0.
+	
+	/**
+	 * @brief Debug operator To display the curent element in a Human redeable information
+	 */
+	//etk::CCout& operator <<(etk::CCout& _os, const airtaudio::format& _obj);
 	
 	/**
 	 * @typedef typedef uint64_t streamFlags;
@@ -111,6 +121,11 @@ namespace airtaudio {
 	static const streamFlags ALSA_USE_DEFAULT = 0x10; // Use the "default" PCM device (ALSA only).
 	
 	/**
+	 * @brief Debug operator To display the curent element in a Human redeable information
+	 */
+	//etk::CCout& operator <<(etk::CCout& _os, const airtaudio::streamFlags& _obj);
+	
+	/**
 	 * @typedef typedef uint64_t rtaudio::streamStatus;
 	 * @brief RtAudio stream status (over- or underflow) flags.
 	 * 
@@ -125,6 +140,11 @@ namespace airtaudio {
 	typedef uint32_t streamStatus;
 	static const streamStatus INPUT_OVERFLOW = 0x1; // Input data was discarded because of an overflow condition at the driver.
 	static const streamStatus OUTPUT_UNDERFLOW = 0x2; // The output buffer ran low, likely causing a gap in the output sound.
+	
+	/**
+	 * @brief Debug operator To display the curent element in a Human redeable information
+	 */
+	//etk::CCout& operator <<(etk::CCout& _os, const airtaudio::streamStatus& _obj);
 	
 	/**
 	 * @brief RtAudio callback function prototype.

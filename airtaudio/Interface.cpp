@@ -6,6 +6,7 @@
  * @license like MIT (see license file)
  */
 
+//#include <etk/types.h>
 #include <airtaudio/Interface.h>
 #include <airtaudio/debug.h>
 #include <iostream>
@@ -28,7 +29,9 @@ void airtaudio::Interface::openRtApi(airtaudio::api::type _api) {
 		m_rtapi = NULL;
 	}
 	for (auto &it :m_apiAvaillable) {
+		ATA_ERROR("try open " << it.first);
 		if (_api == it.first) {
+			ATA_ERROR("    ==> call it");
 			m_rtapi = it.second();
 			if (m_rtapi != NULL) {
 				return;
@@ -36,6 +39,7 @@ void airtaudio::Interface::openRtApi(airtaudio::api::type _api) {
 		}
 	}
 	// TODO : An eror occured ...
+	ATA_ERROR("Error in open API ...");
 }
 
 
@@ -62,6 +66,9 @@ airtaudio::Interface::Interface(void) :
 #if defined(__MACOSX_CORE__)
 	addInterface(airtaudio::api::MACOSX_CORE, airtaudio::api::Core::Create);
 #endif
+#if defined(__ANDROID_JAVA__)
+	addInterface(airtaudio::api::ANDROID_JAVA, airtaudio::api::Android::Create);
+#endif
 #if defined(__AIRTAUDIO_DUMMY__)
 	addInterface(airtaudio::api::RTAUDIO_DUMMY, airtaudio::api::Dummy::Create);
 #endif
@@ -72,11 +79,13 @@ void airtaudio::Interface::addInterface(airtaudio::api::type _api, Api* (*_callb
 }
 
 enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type _api) {
+	ATA_INFO("Instanciate API ...");
 	if (m_rtapi != NULL) {
-		std::cerr << "\nInterface already started ...!\n" << std::endl;
+		ATA_WARNING("Interface already started ...!");
 		return airtaudio::errorNone;
 	}
 	if (_api != airtaudio::api::UNSPECIFIED) {
+		ATA_ERROR("API specified ...");
 		// Attempt to open the specified API.
 		openRtApi(_api);
 		if (m_rtapi != NULL) {
@@ -84,26 +93,35 @@ enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type
 		}
 		// No compiled support for specified API value.	Issue a debug
 		// warning and continue as if no API was specified.
-		std::cerr << "\nRtAudio: no compiled support for specified API argument!\n" << std::endl;
+		ATA_ERROR("RtAudio: no compiled support for specified API argument!");
 		return airtaudio::errorFail;
 	}
+	ATA_INFO("Auto choice API :");
 	// Iterate through the compiled APIs and return as soon as we find
 	// one with at least one device or we reach the end of the list.
 	std::vector<airtaudio::api::type> apis = getCompiledApi();
+	ATA_INFO(" find : " << apis.size() << " apis.");
 	for (auto &it : apis) {
+		ATA_INFO("try open ...");
 		openRtApi(it);
+		if(m_rtapi == NULL) {
+			ATA_ERROR("    ==> can not create ...");
+			continue;
+		}
 		if (m_rtapi->getDeviceCount() != 0) {
+			ATA_INFO("    ==> api open");
 			break;
 		}
 	}
 	if (m_rtapi != NULL) {
 		return airtaudio::errorNone;
 	}
-	std::cout << "\nRtAudio: no compiled API support found ... critical error!!\n\n";
+	ATA_ERROR("RtAudio: no compiled API support found ... critical error!!");
 	return airtaudio::errorFail;
 }
 
 airtaudio::Interface::~Interface(void) {
+	ATA_INFO("Remove interface");
 	if (m_rtapi != NULL) {
 		delete m_rtapi;
 		m_rtapi = NULL;
