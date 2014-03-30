@@ -34,15 +34,15 @@ def create(target):
 		#myModule.add_export_flag_CC(['__WINDOWS_DS__'])
 	elif target.name=="Linux":
 		# Linux Alsa API
-		myModule.add_export_flag_CC(['-D__LINUX_ALSA__'])
-		myModule.add_export_flag_LD("-lasound")
+		#myModule.add_export_flag_CC(['-D__LINUX_ALSA__'])
+		#myModule.add_export_flag_LD("-lasound")
 		# Linux Jack API
 		#myModule.add_export_flag_CC(['-D__UNIX_JACK__'])
 		#myModule.add_export_flag_LD("-ljack")
 		# Linux PulseAudio API
-		#myModule.add_export_flag_CC(['-D__LINUX_PULSE__'])
-		#myModule.add_export_flag_LD("-lpulse-simple")
-		#myModule.add_export_flag_LD("-lpulse")
+		myModule.add_export_flag_CC(['-D__LINUX_PULSE__'])
+		myModule.add_export_flag_LD("-lpulse-simple")
+		myModule.add_export_flag_LD("-lpulse")
 	elif target.name=="MacOs":
 		# MacOsX core
 		myModule.add_export_flag_CC(['-D__MACOSX_CORE__'])
