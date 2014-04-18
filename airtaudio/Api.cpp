@@ -34,6 +34,7 @@ etk::CCout& operator <<(etk::CCout& _os, const airtaudio::api::type& _obj){
 		case airtaudio::api::USER_INTERFACE_3: _os << "USER_INTERFACE_3"; break;
 		case airtaudio::api::USER_INTERFACE_4: _os << "USER_INTERFACE_4"; break;
 	}
+	return _os;
 }
 
 // Static variable definitions.
