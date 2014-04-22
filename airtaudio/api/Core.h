@@ -6,11 +6,14 @@
  * @license like MIT (see license file)
  */
 
-#if !defined(__AIRTAUDIO_API_CORE_H__) && defined(__MACOSX_CORE__)
+#if !defined(__AIRTAUDIO_API_CORE_H__) && (defined(__MACOSX_CORE__) || defined(__IOS_CORE__))
 #define __AIRTAUDIO_API_CORE_H__
 
-#include <CoreAudio/AudioHardware.h>
-
+#if defined(__IOS_CORE__)
+	#include <CoreAudio/CoreAudioTypes.h>
+#else
+	#include <CoreAudio/AudioHardware.h>
+#endif
 namespace airtaudio {
 	namespace api {
 		class Core: public airtaudio::Api {

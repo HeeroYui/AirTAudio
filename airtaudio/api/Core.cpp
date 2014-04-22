@@ -13,7 +13,7 @@
 //
 // *************************************************** //
 
-#if defined(__MACOSX_CORE__)
+#if defined(__MACOSX_CORE__) || defined(__IOS_CORE__)
 
 #include <airtaudio/Interface.h>
 #include <airtaudio/debug.h>
@@ -151,7 +151,7 @@ uint32_t airtaudio::api::Core::getDefaultInputDevice(void) {
 	}
 	for (uint32_t iii=0; iii<nDevices; iii++) {
 		if (id == deviceList[iii]) {
-			return i;
+			return iii;
 		}
 	}
 	ATA_ERROR("airtaudio::api::Core::getDefaultInputDevice: No default device found!");
@@ -202,8 +202,8 @@ uint32_t airtaudio::api::Core::getDefaultOutputDevice(void) {
 	return 0;
 }
 
-rtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
-	rtaudio::DeviceInfo info;
+airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
+	airtaudio::DeviceInfo info;
 	info.probed = false;
 	// Get device ID
 	uint32_t nDevices = getDeviceCount();
@@ -212,7 +212,7 @@ rtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 		return info;
 	}
 	if (_device >= nDevices) {
-		m_errorText = "airtaudio::api::Core::getDeviceInfo: device ID is invalid!";
+		ATA_ERROR("airtaudio::api::Core::getDeviceInfo: device ID is invalid!");
 		return info;
 	}
 	AudioDeviceID deviceList[ nDevices ];
@@ -272,7 +272,7 @@ rtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 	dataSize = 0;
 	result = AudioObjectGetPropertyDataSize(id, &property, 0, NULL, &dataSize);
 	if (result != noErr || dataSize == 0) {
-		ATA_ERROR("airtaudio::api::Core::getDeviceInfo: system error (" << getErrorCode(result) << ") getting output stream configuration info for device (" << device << ").");
+		ATA_ERROR("airtaudio::api::Core::getDeviceInfo: system error (" << getErrorCode(result) << ") getting output stream configuration info for device (" << _device << ").");
 		return info;
 	}
 	// Allocate the AudioBufferList.
@@ -390,8 +390,8 @@ static OSStatus callbackHandler(AudioDeviceID _inDevice,
                                 AudioBufferList* _outOutputData,
                                 const AudioTimeStamp* _inOutputTime,
                                 void* _infoPointer) {
-	CallbackInfo* info = (CallbackInfo*)_infoPointer;
-	RtApiCore* object = (RtApiCore*)info->object;
+	airtaudio::CallbackInfo* info = (airtaudio::CallbackInfo*)_infoPointer;
+	airtaudio::api::Core* object = (airtaudio::api::Core*)info->object;
 	if (object->callbackEvent(_inDevice, _inInputData, _outOutputData) == false) {
 		return kAudioHardwareUnspecifiedError;
 	} else {
@@ -551,7 +551,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		}
 		firstStream = iStream;
 		channelOffset = offsetCounter;
-		Int32 channelCounter = _channels + offsetCounter - streamChannels;
+		int32_t channelCounter = _channels + offsetCounter - streamChannels;
 		if (streamChannels > 1) {
 			monoMode = false;
 		}
@@ -580,7 +580,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		*_bufferSize = (uint64_t) bufferRange.mMaximum;
 	}
 	if (    _options != NULL
-	     && _options->flags & RTAUDIO_MINIMIZE_LATENCY) {
+	     && _options->flags & MINIMIZE_LATENCY) {
 		*_bufferSize = (uint64_t) bufferRange.mMinimum;
 	}
 	// Set the buffer size.	For multiple streams, I'm assuming we only
@@ -606,7 +606,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	m_stream.nBuffers = 1;
 	// Try to set "hog" mode ... it's not clear to me this is working.
 	if (    _options != NULL
-	     && _options->flags & RTAUDIO_HOG_DEVICE) {
+	     && _options->flags & HOG_DEVICE) {
 		pid_t hog_pid;
 		dataSize = sizeof(hog_pid);
 		property.mSelector = kAudioDevicePropertyHogMode;
@@ -764,7 +764,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 			m_stream.latency[ _mode ] = latency;
 		} else {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting device latency for device (" << _device << ").");
-			error(airtaudio::errorWarning);
+			return false;
 		}
 	}
 	// Byte-swapping: According to AudioHardware.h, the stream data will
@@ -784,7 +784,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	m_stream.nUserChannels[_mode] = _channels;
 	m_stream.channelOffset[_mode] = channelOffset;	// offset within a CoreAudio stream
 	if (    _options != NULL
-	     && _options->flags & RTAUDIO_NONINTERLEAVED) {
+	     && _options->flags & NONINTERLEAVED) {
 		m_stream.userInterleaved = false;
 	} else {
 		m_stream.userInterleaved = true;
@@ -813,9 +813,9 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	CoreHandle *handle = 0;
 	if (m_stream.apiHandle == 0) {
 		handle = new CoreHandle;
-		if (handle == NULL);
+		if (handle == NULL) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: error allocating CoreHandle memory.");
-			goto error;
+			return false;
 		}
 		m_stream.apiHandle = (void *) handle;
 	} else {
@@ -984,7 +984,6 @@ enum airtaudio::errorType airtaudio::api::Core::startStream(void) {
 		result = AudioDeviceStart(handle->id[0], callbackHandler);
 		if (result != noErr) {
 			ATA_ERROR("airtaudio::api::Core::startStream: system error (" << getErrorCode(result) << ") starting callback procedure on device (" << m_stream.device[0] << ").");
-			m_errorText = m_errorStream.str();
 			goto unlock;
 		}
 	}
@@ -993,8 +992,7 @@ enum airtaudio::errorType airtaudio::api::Core::startStream(void) {
 	          && m_stream.device[0] != m_stream.device[1])) {
 		result = AudioDeviceStart(handle->id[1], callbackHandler);
 		if (result != noErr) {
-			m_errorStream << "airtaudio::api::Core::startStream: system error starting input callback procedure on device (" << m_stream.device[1] << ").";
-			m_errorText = m_errorStream.str();
+			ATA_ERROR("airtaudio::api::Core::startStream: system error starting input callback procedure on device (" << m_stream.device[1] << ").");
 			goto unlock;
 		}
 	}
@@ -1067,8 +1065,8 @@ enum airtaudio::errorType airtaudio::api::Core::abortStream(void) {
 // callbackEvent() function probably should return before the AudioDeviceStop()
 // function is called.
 static void coreStopStream(void *_ptr) {
-	CallbackInfo* info = (CallbackInfo*)_ptr;
-	RtApiCore* object = (RtApiCore*)info->object;
+	airtaudio::CallbackInfo* info = (airtaudio::CallbackInfo*)_ptr;
+	airtaudio::api::Core* object = (airtaudio::api::Core*)info->object;
 	object->stopStream();
 }
 
@@ -1103,15 +1101,15 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 	if (handle->drainCounter == 0 && (m_stream.mode != DUPLEX || _deviceId == outputDevice)) {
 		airtaudio::AirTAudioCallback callback = (airtaudio::AirTAudioCallback) info->callback;
 		double streamTime = getStreamTime();
-		rtaudio::streamStatus status = 0;
+		airtaudio::streamStatus status = 0;
 		if (    m_stream.mode != INPUT
 		     && handle->xrun[0] == true) {
-			status |= RTAUDIO_OUTPUT_UNDERFLOW;
+			status |= OUTPUT_UNDERFLOW;
 			handle->xrun[0] = false;
 		}
 		if (    m_stream.mode != OUTPUT
 		     && handle->xrun[1] == true) {
-			status |= RTAUDIO_INPUT_OVERFLOW;
+			status |= INPUT_OVERFLOW;
 			handle->xrun[1] = false;
 		}
 		int32_t cbReturnValue = callback(m_stream.userBuffer[0],
@@ -1318,7 +1316,7 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 
 unlock:
 	//m_stream.mutex.unlock();
-	RtApi::tickStreamTime();
+	airtaudio::Api::tickStreamTime();
 	return true;
 }
 

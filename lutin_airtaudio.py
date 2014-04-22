@@ -47,7 +47,11 @@ def create(target):
 		# MacOsX core
 		myModule.add_export_flag_CC(['-D__MACOSX_CORE__'])
 		myModule.add_export_flag_LD("-framework CoreAudio")
-		myModule.add_export_flag_LD("-framework CoreMIDI")
+	elif target.name=="IOs":
+		# IOsX core
+		#myModule.add_export_flag_CC(['-D__IOS_CORE__'])
+		#myModule.add_export_flag_LD("-framework CoreAudio")
+		pass
 	elif target.name=="Android":
 		# MacOsX core
 		myModule.add_export_flag_CC(['-D__ANDROID_JAVA__'])
