@@ -39,7 +39,7 @@ namespace airtaudio {
 	/**
 	 * @brief Debug operator To display the curent element in a Human redeable information
 	 */
-	//etk::CCout& operator <<(etk::CCout& _os, enum errorType _obj);
+	//std::ostream& operator <<(std::ostream& _os, enum errorType _obj);
 	/**
 	 * @typedef typedef uint64_t format;
 	 * @brief airtaudio data format type.
@@ -68,7 +68,7 @@ namespace airtaudio {
 	/**
 	 * @brief Debug operator To display the curent element in a Human redeable information
 	 */
-	//etk::CCout& operator <<(etk::CCout& _os, const airtaudio::format& _obj);
+	//std::ostream& operator <<(std::ostream& _os, const airtaudio::format& _obj);
 	
 	/**
 	 * @typedef typedef uint64_t streamFlags;
@@ -123,7 +123,7 @@ namespace airtaudio {
 	/**
 	 * @brief Debug operator To display the curent element in a Human redeable information
 	 */
-	//etk::CCout& operator <<(etk::CCout& _os, const airtaudio::streamFlags& _obj);
+	//std::ostream& operator <<(std::ostream& _os, const airtaudio::streamFlags& _obj);
 	
 	/**
 	 * @typedef typedef uint64_t rtaudio::streamStatus;
@@ -144,7 +144,7 @@ namespace airtaudio {
 	/**
 	 * @brief Debug operator To display the curent element in a Human redeable information
 	 */
-	//etk::CCout& operator <<(etk::CCout& _os, const airtaudio::streamStatus& _obj);
+	//std::ostream& operator <<(std::ostream& _os, const airtaudio::streamStatus& _obj);
 	
 	/**
 	 * @brief RtAudio callback function prototype.

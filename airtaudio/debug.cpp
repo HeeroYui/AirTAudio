@@ -8,5 +8,7 @@
 
 #include <airtaudio/debug.h>
 
-const char * airtaudioLibName = "airtaudio";
-
+int32_t airtaudio::getLogId(void) {
+	static int32_t g_val = etk::log::registerInstance("airtaudio");
+	return g_val;
+}

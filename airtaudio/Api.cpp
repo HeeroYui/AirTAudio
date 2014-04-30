@@ -16,7 +16,7 @@
 
 
 
-etk::CCout& operator <<(etk::CCout& _os, const airtaudio::api::type& _obj){
+std::ostream& operator <<(std::ostream& _os, const airtaudio::api::type& _obj){
 	switch (_obj) {
 		default:
 		case airtaudio::api::UNSPECIFIED: _os << "UNSPECIFIED"; break;

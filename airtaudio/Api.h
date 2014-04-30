@@ -191,6 +191,6 @@ namespace airtaudio {
 /**
  * @brief Debug operator To display the curent element in a Human redeable information
  */
-etk::CCout& operator <<(etk::CCout& _os, const airtaudio::api::type& _obj);
+std::ostream& operator <<(std::ostream& _os, const airtaudio::api::type& _obj);
 
 #endif

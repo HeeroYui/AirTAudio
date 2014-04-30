@@ -8,7 +8,7 @@
 #if 0
 #include <airtaudio/base.h>
 
-etk::CCout& airtaudio::operator <<(etk::CCout& _os, enum errorType _obj) {
+std::ostream& airtaudio::operator <<(std::ostream& _os, enum errorType _obj) {
 	switch(_obj) {
 		case errorNone:
 			_os << "errorNone";
@@ -35,7 +35,7 @@ etk::CCout& airtaudio::operator <<(etk::CCout& _os, enum errorType _obj) {
 	return _os;
 }
 
-etk::CCout& airtaudio::operator <<(etk::CCout& _os, const airtaudio::format& _obj) {
+std::ostream& airtaudio::operator <<(std::ostream& _os, const airtaudio::format& _obj) {
 	switch(_obj) {
 		case SINT8:
 			_os << "SINT8";
@@ -62,7 +62,7 @@ etk::CCout& airtaudio::operator <<(etk::CCout& _os, const airtaudio::format& _ob
 	return _os;
 }
 
-etk::CCout& airtaudio::operator <<(etk::CCout& _os, const airtaudio::streamFlags& _obj) {
+std::ostream& airtaudio::operator <<(std::ostream& _os, const airtaudio::streamFlags& _obj) {
 	switch(_obj) {
 		case NONINTERLEAVED:
 			_os << "NONINTERLEAVED";
@@ -86,7 +86,7 @@ etk::CCout& airtaudio::operator <<(etk::CCout& _os, const airtaudio::streamFlags
 	return _os;
 }
 
-etk::CCout& airtaudio::operator <<(etk::CCout& _os, const airtaudio::streamStatus& _obj) {
+std::ostream& airtaudio::operator <<(std::ostream& _os, const airtaudio::streamStatus& _obj) {
 	switch(_obj) {
 		case INPUT_OVERFLOW:
 			_os << "INPUT_OVERFLOW";

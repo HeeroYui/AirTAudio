@@ -9,20 +9,44 @@
 #ifndef __EAUDIOFX_DEBUG_H__
 #define __EAUDIOFX_DEBUG_H__
 
-#include <etk/types.h>
-#include <etk/debugGeneric.h>
+#include <etk/log.h>
 
-extern const char * airtaudioLibName;
+namespace airtaudio {
+	int32_t getLogId(void);
+};
+// TODO : Review this problem of multiple intanciation of "std::stringbuf sb"
+#define ATA_BASE(info,data) \
+	do { \
+		if (info <= etk::log::getLevel(airtaudio::getLogId())) { \
+			std::stringbuf sb; \
+			std::ostream tmpStream(&sb); \
+			tmpStream << data; \
+			etk::log::logStream(airtaudio::getLogId(), info, __LINE__, __class__, __func__, tmpStream); \
+		} \
+	} while(0)
 
-#define ATA_CRITICAL(data)    ETK_CRITICAL(airtaudioLibName, data)
-#define ATA_WARNING(data)     ETK_WARNING(airtaudioLibName, data)
-#define ATA_ERROR(data)       ETK_ERROR(airtaudioLibName, data)
-#define ATA_INFO(data)        ETK_INFO(airtaudioLibName, data)
-#define ATA_DEBUG(data)       ETK_DEBUG(airtaudioLibName, data)
-#define ATA_VERBOSE(data)     ETK_VERBOSE(airtaudioLibName, data)
-#define ATA_ASSERT(cond,data) ETK_ASSERT(airtaudioLibName, cond, data)
-#define ATA_CHECK_INOUT(cond) ETK_CHECK_INOUT(airtaudioLibName, cond)
-#define ATA_TODO(cond)        ETK_TODO(airtaudioLibName, cond)
+#define ATA_CRITICAL(data)      ATA_BASE(1, data)
+#define ATA_ERROR(data)         ATA_BASE(2, data)
+#define ATA_WARNING(data)       ATA_BASE(3, data)
+#ifdef DEBUG
+	#define ATA_INFO(data)          ATA_BASE(4, data)
+	#define ATA_DEBUG(data)         ATA_BASE(5, data)
+	#define ATA_VERBOSE(data)       ATA_BASE(6, data)
+	#define ATA_TODO(data)          ATA_BASE(4, "TODO : " << data)
+#else
+	#define ATA_INFO(data)          do { } while(false)
+	#define ATA_DEBUG(data)         do { } while(false)
+	#define ATA_VERBOSE(data)       do { } while(false)
+	#define ATA_TODO(data)          do { } while(false)
+#endif
+
+#define ATA_ASSERT(cond,data) \
+	do { \
+		if (!(cond)) { \
+			ATA_CRITICAL(data); \
+			assert(!#cond); \
+		} \
+	} while (0)
 
 #endif
 
