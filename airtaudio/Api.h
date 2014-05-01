@@ -10,8 +10,7 @@
 #define __AIRTAUDIO_API_H__
 
 #include <sstream>
-#include <etk/types.h>
-#include <etk/Stream.h>
+#include <airtaudio/debug.h>
 
 namespace airtaudio {
 	namespace api {
