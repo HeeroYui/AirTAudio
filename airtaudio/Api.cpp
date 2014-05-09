@@ -25,6 +25,7 @@ std::ostream& operator <<(std::ostream& _os, const airtaudio::api::type& _obj){
 		case airtaudio::api::LINUX_OSS: _os << "LINUX_OSS"; break;
 		case airtaudio::api::UNIX_JACK: _os << "UNIX_JACK"; break;
 		case airtaudio::api::MACOSX_CORE: _os << "MACOSX_CORE"; break;
+		case airtaudio::api::IOS_CORE: _os << "IOS_CORE"; break;
 		case airtaudio::api::WINDOWS_ASIO: _os << "WINDOWS_ASIO"; break;
 		case airtaudio::api::WINDOWS_DS: _os << "WINDOWS_DS"; break;
 		case airtaudio::api::RTAUDIO_DUMMY: _os << "RTAUDIO_DUMMY"; break;

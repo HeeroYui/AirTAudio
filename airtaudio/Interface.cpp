@@ -64,7 +64,10 @@ airtaudio::Interface::Interface(void) :
 	addInterface(airtaudio::api::WINDOWS_DS, airtaudio::api::Ds::Create);
 #endif
 #if defined(__MACOSX_CORE__)
-	addInterface(airtaudio::api::MACOSX_CORE, airtaudio::api::Core::Create);
+	  addInterface(airtaudio::api::MACOSX_CORE, airtaudio::api::Core::Create);
+#endif
+#if defined(__IOS_CORE__)
+	  addInterface(airtaudio::api::IOS_CORE, airtaudio::api::CoreIos::Create);
 #endif
 #if defined(__ANDROID_JAVA__)
 	addInterface(airtaudio::api::ANDROID_JAVA, airtaudio::api::Android::Create);

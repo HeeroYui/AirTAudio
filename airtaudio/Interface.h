@@ -19,6 +19,7 @@
 #include <airtaudio/api/Android.h>
 #include <airtaudio/api/Asio.h>
 #include <airtaudio/api/Core.h>
+#include <airtaudio/api/CoreIos.h>
 #include <airtaudio/api/Ds.h>
 #include <airtaudio/api/Dummy.h>
 #include <airtaudio/api/Jack.h>
