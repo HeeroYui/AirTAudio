@@ -19,307 +19,19 @@ airtaudio::Api* airtaudio::api::CoreIos::Create(void) {
 	return new airtaudio::api::CoreIos();
 }
 
-
-// ============================================================================================================
-
-@interface IosAudioController : NSObject {
-	AudioComponentInstance audioUnit;
-	AudioBuffer tempBuffer; // this will hold the latest data from the microphone
-}
-
-@property (readonly) AudioComponentInstance audioUnit;
-@property (readonly) AudioBuffer tempBuffer;
-
-- (void) start;
-- (void) stop;
-- (void) processAudio: (AudioBufferList*) bufferList;
-
-@end
-
-
-// ============================================================================================================
-
 #define kOutputBus 0
 #define kInputBus 1
-
-IosAudioController* iosAudio;
-
-void checkStatus(int status){
-	if (status) {
-		printf("Status not 0! %d\n", status);
-		//		exit(1);
-	}
-}
-
-/**
- This callback is called when new audio data from the microphone is
- available.
- */
-static OSStatus recordingCallback(void *inRefCon, 
-                                  AudioUnitRenderActionFlags *ioActionFlags, 
-                                  const AudioTimeStamp *inTimeStamp, 
-                                  UInt32 inBusNumber, 
-                                  UInt32 inNumberFrames, 
-                                  AudioBufferList *ioData) {
-	// Because of the way our audio format (setup below) is chosen:
-	// we only need 1 buffer, since it is mono
-	// Samples are 16 bits = 2 bytes.
-	// 1 frame includes only 1 sample
-	
-	AudioBuffer buffer;
-	
-	buffer.mNumberChannels = 1;
-	buffer.mDataByteSize = inNumberFrames * 2;
-	buffer.mData = malloc( inNumberFrames * 2 );
-	
-	// Put buffer in a AudioBufferList
-	AudioBufferList bufferList;
-	bufferList.mNumberBuffers = 1;
-	bufferList.mBuffers[0] = buffer;
-	
-    // Then:
-    // Obtain recorded samples
-	
-    OSStatus status;
-	
-    status = AudioUnitRender([iosAudio audioUnit], 
-                             ioActionFlags, 
-                             inTimeStamp, 
-                             inBusNumber, 
-                             inNumberFrames, 
-                             &bufferList);
-	checkStatus(status);
-	
-    // Now, we have the samples we just read sitting in buffers in bufferList
-	// Process the new data
-	[iosAudio processAudio:&bufferList];
-	
-	// release the malloc'ed data in the buffer we created earlier
-	free(bufferList.mBuffers[0].mData);
-	
-    return noErr;
-}
-
-/**
- This callback is called when the audioUnit needs new data to play through the
- speakers. If you don't have any, just don't write anything in the buffers
- */
-static OSStatus playbackCallback(void *inRefCon, 
-								 AudioUnitRenderActionFlags *ioActionFlags, 
-								 const AudioTimeStamp *inTimeStamp, 
-								 UInt32 inBusNumber, 
-								 UInt32 inNumberFrames, 
-								 AudioBufferList *ioData) {    
-    // Notes: ioData contains buffers (may be more than one!)
-    // Fill them up as much as you can. Remember to set the size value in each buffer to match how
-    // much data is in the buffer.
-	
-	for (int i=0; i < ioData->mNumberBuffers; i++) { // in practice we will only ever have 1 buffer, since audio format is mono
-		AudioBuffer buffer = ioData->mBuffers[i];
-		
-		//		NSLog(@"  Buffer %d has %d channels and wants %d bytes of data.", i, buffer.mNumberChannels, buffer.mDataByteSize);
-		
-		// copy temporary buffer data to output buffer
-		UInt32 size = std::min(buffer.mDataByteSize, [iosAudio tempBuffer].mDataByteSize); // dont copy more data then we have, or then fits
-		memcpy(buffer.mData, [iosAudio tempBuffer].mData, size);
-		buffer.mDataByteSize = size; // indicate how much data we wrote in the buffer
-		
-		// uncomment to hear random noise
-		/*
-		 UInt16 *frameBuffer = buffer.mData;
-		 for (int j = 0; j < inNumberFrames; j++) {
-		 frameBuffer[j] = rand();
-		 }
-		 */
-		
-	}
-	
-    return noErr;
-}
-
-@implementation IosAudioController
-
-@synthesize audioUnit, tempBuffer;
-
-/**
- Initialize the audioUnit and allocate our own temporary buffer.
- The temporary buffer will hold the latest data coming in from the microphone,
- and will be copied to the output when this is requested.
- */
-- (id) init {
-	self = [super init];
-	
-	OSStatus status;
-	
-	// Describe audio component
-	AudioComponentDescription desc;
-	desc.componentType = kAudioUnitType_Output;
-	desc.componentSubType = kAudioUnitSubType_RemoteIO;
-	desc.componentFlags = 0;
-	desc.componentFlagsMask = 0;
-	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
-	
-	// Get component
-	AudioComponent inputComponent = AudioComponentFindNext(NULL, &desc);
-	
-	// Get audio units
-	status = AudioComponentInstanceNew(inputComponent, &audioUnit);
-	checkStatus(status);
-	
-	// Enable IO for recording
-	UInt32 flag = 1;
-	status = AudioUnitSetProperty(audioUnit, 
-								  kAudioOutputUnitProperty_EnableIO, 
-								  kAudioUnitScope_Input, 
-								  kInputBus,
-								  &flag, 
-								  sizeof(flag));
-	checkStatus(status);
-	
-	// Enable IO for playback
-	status = AudioUnitSetProperty(audioUnit, 
-								  kAudioOutputUnitProperty_EnableIO, 
-								  kAudioUnitScope_Output, 
-								  kOutputBus,
-								  &flag, 
-								  sizeof(flag));
-	checkStatus(status);
-	
-	// Describe format
-	AudioStreamBasicDescription audioFormat;
-	audioFormat.mSampleRate			= 44100.00;
-	audioFormat.mFormatID			= kAudioFormatLinearPCM;
-	audioFormat.mFormatFlags		= kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
-	audioFormat.mFramesPerPacket	= 1;
-	audioFormat.mChannelsPerFrame	= 1;
-	audioFormat.mBitsPerChannel		= 16;
-	audioFormat.mBytesPerPacket		= 2;
-	audioFormat.mBytesPerFrame		= 2;
-	
-	// Apply format
-	status = AudioUnitSetProperty(audioUnit, 
-								  kAudioUnitProperty_StreamFormat, 
-								  kAudioUnitScope_Output, 
-								  kInputBus, 
-								  &audioFormat, 
-								  sizeof(audioFormat));
-	checkStatus(status);
-	status = AudioUnitSetProperty(audioUnit, 
-								  kAudioUnitProperty_StreamFormat, 
-								  kAudioUnitScope_Input, 
-								  kOutputBus, 
-								  &audioFormat, 
-								  sizeof(audioFormat));
-	checkStatus(status);
-	
-	
-	// Set input callback
-	AURenderCallbackStruct callbackStruct;
-	callbackStruct.inputProc = recordingCallback;
-	callbackStruct.inputProcRefCon = self;
-	status = AudioUnitSetProperty(audioUnit, 
-								  kAudioOutputUnitProperty_SetInputCallback, 
-								  kAudioUnitScope_Global, 
-								  kInputBus, 
-								  &callbackStruct, 
-								  sizeof(callbackStruct));
-	checkStatus(status);
-	
-	// Set output callback
-	callbackStruct.inputProc = playbackCallback;
-	callbackStruct.inputProcRefCon = self;
-	status = AudioUnitSetProperty(audioUnit, 
-								  kAudioUnitProperty_SetRenderCallback, 
-								  kAudioUnitScope_Global, 
-								  kOutputBus,
-								  &callbackStruct, 
-								  sizeof(callbackStruct));
-	checkStatus(status);
-	
-	// Disable buffer allocation for the recorder (optional - do this if we want to pass in our own)
-	flag = 0;
-	status = AudioUnitSetProperty(audioUnit, 
-								  kAudioUnitProperty_ShouldAllocateBuffer,
-								  kAudioUnitScope_Output, 
-								  kInputBus,
-								  &flag, 
-								  sizeof(flag));
-	
-	// Allocate our own buffers (1 channel, 16 bits per sample, thus 16 bits per frame, thus 2 bytes per frame).
-	// Practice learns the buffers used contain 512 frames, if this changes it will be fixed in processAudio.
-	tempBuffer.mNumberChannels = 1;
-	tempBuffer.mDataByteSize = 512 * 2;
-	tempBuffer.mData = malloc( 512 * 2 );
-	
-	// Initialise
-	status = AudioUnitInitialize(audioUnit);
-	checkStatus(status);
-	
-	return self;
-}
-
-/**
- Start the audioUnit. This means data will be provided from
- the microphone, and requested for feeding to the speakers, by
- use of the provided callbacks.
- */
-- (void) start {
-	ATA_INFO("Might start the stream ...");
-	OSStatus status = AudioOutputUnitStart(audioUnit);
-	checkStatus(status);
-}
-
-/**
- Stop the audioUnit
- */
-- (void) stop {
-	ATA_INFO("Might stop the stream ...");
-	OSStatus status = AudioOutputUnitStop(audioUnit);
-	checkStatus(status);
-}
-
-/**
- Change this funtion to decide what is done with incoming
- audio data from the microphone.
- Right now we copy it to our own temporary buffer.
- */
-- (void) processAudio: (AudioBufferList*) bufferList{
-	AudioBuffer sourceBuffer = bufferList->mBuffers[0];
-	
-	// fix tempBuffer size if it's the wrong size
-	if (tempBuffer.mDataByteSize != sourceBuffer.mDataByteSize) {
-		free(tempBuffer.mData);
-		tempBuffer.mDataByteSize = sourceBuffer.mDataByteSize;
-		tempBuffer.mData = malloc(sourceBuffer.mDataByteSize);
-	}
-	
-	// copy incoming audio data to temporary buffer
-	memcpy(tempBuffer.mData, bufferList->mBuffers[0].mData, bufferList->mBuffers[0].mDataByteSize);
-}
-
-/**
- Clean up.
- */
-- (void) dealloc {
-	[super	dealloc];
-	AudioUnitUninitialize(audioUnit);
-	free(tempBuffer.mData);
-}
-@end
-
-
-// ============================================================================================================
-
-
-
-
 
 namespace airtaudio {
 	namespace api {
 		class CoreIosPrivate {
+			public:
+				AudioComponentInstance audioUnit;
 		};
 	};
 };
+
+
 
 airtaudio::api::CoreIos::CoreIos(void) :
   m_private(new airtaudio::api::CoreIosPrivate) {
@@ -353,6 +65,7 @@ airtaudio::api::CoreIos::CoreIos(void) :
 
 airtaudio::api::CoreIos::~CoreIos(void) {
 	ATA_INFO("Destroy CoreIOs interface");
+	AudioUnitUninitialize(m_private->audioUnit);
 	delete m_private;
 	m_private = NULL;
 }
@@ -375,30 +88,41 @@ enum airtaudio::errorType airtaudio::api::CoreIos::closeStream(void) {
 
 enum airtaudio::errorType airtaudio::api::CoreIos::startStream(void) {
 	ATA_INFO("Start Stream");
+	OSStatus status = AudioOutputUnitStart(m_private->audioUnit);
 	// Can not close the stream now...
 	return airtaudio::errorNone;
 }
 
 enum airtaudio::errorType airtaudio::api::CoreIos::stopStream(void) {
 	ATA_INFO("Stop stream");
-	//ewol::Context& tmpContext = ewol::getContext();
-	//tmpContext.audioCloseDevice(0);
+	OSStatus status = AudioOutputUnitStop(m_private->audioUnit);
 	// Can not close the stream now...
 	return airtaudio::errorNone;
 }
 
 enum airtaudio::errorType airtaudio::api::CoreIos::abortStream(void) {
 	ATA_INFO("Abort Stream");
-	[iosAudio stop];
-	//ewol::Context& tmpContext = ewol::getContext();
-	//tmpContext.audioCloseDevice(0);
+	OSStatus status = AudioOutputUnitStop(m_private->audioUnit);
 	// Can not close the stream now...
 	return airtaudio::errorNone;
 }
 
 void airtaudio::api::CoreIos::callBackEvent(void* _data,
                                             int32_t _frameRate) {
-	/*
+	
+	#if 0
+	static double value=0;
+	int16_t* vals = (int16_t*)_data;
+	for (int32_t iii=0; iii<_frameRate; ++iii) {
+		*vals++ = (int16_t)(sin(value) * 32760.0);
+		*vals++ = (int16_t)(sin(value) * 32760.0);
+		value += 0.09;
+		if (value >= M_PI*2.0) {
+			value -= M_PI*2.0;
+		}
+	}
+	return;
+	#endif
 	int32_t doStopStream = 0;
 	airtaudio::AirTAudioCallback callback = (airtaudio::AirTAudioCallback) m_stream.callbackInfo.callback;
 	double streamTime = getStreamTime();
@@ -424,21 +148,29 @@ void airtaudio::api::CoreIos::callBackEvent(void* _data,
 		return;
 	}
 	airtaudio::Api::tickStreamTime();
-	*/
 }
 
-void airtaudio::api::CoreIos::androidCallBackEvent(void* _data,
-                                                   int32_t _frameRate,
-                                                   void* _userData) {
-	/*
+static OSStatus playbackCallback(void *_userData, 
+								 AudioUnitRenderActionFlags *ioActionFlags, 
+								 const AudioTimeStamp *inTimeStamp, 
+								 uint32_t inBusNumber, 
+								 uint32_t inNumberFrames, 
+								 AudioBufferList *ioData) {
 	if (_userData == NULL) {
-		ATA_INFO("callback event ... NULL pointer");
-		return;
+		ATA_ERROR("callback event ... NULL pointer");
+		return -1;
 	}
-	airtaudio::api::Android* myClass = static_cast<airtaudio::api::Android*>(_userData);
-	myClass->callBackEvent(_data, _frameRate/2);
-	*/
+	airtaudio::api::CoreIos* myClass = static_cast<airtaudio::api::CoreIos*>(_userData);
+	// get all requested buffer :
+	for (int32_t iii=0; iii < ioData->mNumberBuffers; iii++) {
+		AudioBuffer buffer = ioData->mBuffers[iii];
+		int32_t numberFrame =  buffer.mDataByteSize/2/*stereo*/ /sizeof(int16_t);
+		ATA_VERBOSE("request data size: " << numberFrame << " busNumber=" << inBusNumber);
+		myClass->callBackEvent(buffer.mData, numberFrame);
+	}
+    return noErr;
 }
+
 
 bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
                                               airtaudio::api::StreamMode _mode,
@@ -454,22 +186,15 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
 		return false;
 	}
 	bool ret = true;
-	iosAudio = [[IosAudioController alloc] init];
-	[iosAudio start];
-	/*
+	
+	// configure Airtaudio internal configuration:
 	m_stream.userFormat = _format;
 	m_stream.nUserChannels[_mode] = _channels;
-	ewol::Context& tmpContext = ewol::getContext();
-	if (_format == SINT8) {
-		ret = tmpContext.audioOpenDevice(_device, _sampleRate, _channels, 0, androidCallBackEvent, this);
-	} else {
-		ret = tmpContext.audioOpenDevice(_device, _sampleRate, _channels, 1, androidCallBackEvent, this);
-	}
-	m_stream.bufferSize = 256;
+	m_stream.bufferSize = 8192;
 	m_stream.sampleRate = _sampleRate;
 	m_stream.doByteSwap[_mode] = false; // for endienness ...
 	
-	// TODO : For now, we write it in hard ==> to bu update later ...
+	// TODO : For now, we write it in hard ==> to be update later ...
 	m_stream.deviceFormat[_mode] = SINT16;
 	m_stream.nDeviceChannels[_mode] = 2;
 	m_stream.deviceInterleaved[_mode] =	true;
@@ -482,7 +207,7 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
 		m_stream.doConvertBuffer[_mode] = true;
 	}
 	if (    m_stream.userInterleaved != m_stream.deviceInterleaved[_mode]
-	     && m_stream.nUserChannels[_mode] > 1) {
+		&& m_stream.nUserChannels[_mode] > 1) {
 		m_stream.doConvertBuffer[_mode] = true;
 	}
 	if (m_stream.doConvertBuffer[_mode] == true) {
@@ -500,7 +225,81 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
 	if (ret == false) {
 		ATA_ERROR("Can not open device.");
 	}
-	*/
+	
+	// Configure IOs interface:
+	OSStatus status;
+	
+	// Describe audio component
+	AudioComponentDescription desc;
+	desc.componentType = kAudioUnitType_Output;
+	desc.componentSubType = kAudioUnitSubType_RemoteIO;
+	desc.componentFlags = 0;
+	desc.componentFlagsMask = 0;
+	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
+	
+	// Get component
+	AudioComponent inputComponent = AudioComponentFindNext(NULL, &desc);
+	
+	// Get audio units
+	status = AudioComponentInstanceNew(inputComponent, &m_private->audioUnit);
+	if (status != 0) {
+		ATA_ERROR("can not create an audio intance...");
+	}
+	
+	uint32_t flag = 1;
+	// Enable IO for playback
+	status = AudioUnitSetProperty(m_private->audioUnit, 
+								  kAudioOutputUnitProperty_EnableIO, 
+								  kAudioUnitScope_Output, 
+								  kOutputBus,
+								  &flag, 
+								  sizeof(flag));
+	if (status != 0) {
+		ATA_ERROR("can not request audio autorisation...");
+	}
+	
+	// Describe format
+	AudioStreamBasicDescription audioFormat;
+	audioFormat.mSampleRate = 48000.00;
+	audioFormat.mFormatID = kAudioFormatLinearPCM;
+	audioFormat.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked;
+	audioFormat.mFramesPerPacket = 1; //
+	audioFormat.mChannelsPerFrame = 2; // stereo
+	audioFormat.mBitsPerChannel = sizeof(short) * 8;
+	audioFormat.mBytesPerPacket = sizeof(short) * audioFormat.mChannelsPerFrame;
+	audioFormat.mBytesPerFrame = sizeof(short) * audioFormat.mChannelsPerFrame;
+	audioFormat.mReserved = 0;
+	// Apply format
+	status = AudioUnitSetProperty(m_private->audioUnit, 
+								  kAudioUnitProperty_StreamFormat, 
+								  kAudioUnitScope_Input, 
+								  kOutputBus, 
+								  &audioFormat, 
+								  sizeof(audioFormat));
+	if (status != 0) {
+		ATA_ERROR("can not set stream properties...");
+	}
+	
+	
+	// Set output callback
+	AURenderCallbackStruct callbackStruct;
+	callbackStruct.inputProc = playbackCallback;
+	callbackStruct.inputProcRefCon = this;
+	status = AudioUnitSetProperty(m_private->audioUnit, 
+								  kAudioUnitProperty_SetRenderCallback, 
+								  kAudioUnitScope_Global, 
+								  kOutputBus,
+								  &callbackStruct, 
+								  sizeof(callbackStruct));
+	if (status != 0) {
+		ATA_ERROR("can not set Callback...");
+	}
+	
+	// Initialise
+	status = AudioUnitInitialize(m_private->audioUnit);
+	if (status != 0) {
+		ATA_ERROR("can not initialize...");
+	}
 	return ret;
 }
 
