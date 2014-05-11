@@ -46,7 +46,7 @@ def create(target):
 		myModule.add_export_flag_CC(['-D__LINUX_PULSE__'])
 		myModule.add_export_flag_LD("-lpulse-simple")
 		myModule.add_export_flag_LD("-lpulse")
-		myModule.add_export_flag_CC(['-D__LINUX_OSS__'])
+		#myModule.add_export_flag_CC(['-D__LINUX_OSS__'])
 		# ...
 		myModule.add_module_depend(['etk'])
 	elif target.name=="MacOs":
