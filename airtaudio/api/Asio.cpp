@@ -12,7 +12,7 @@
 #include <airtaudio/Interface.h>
 #include <airtaudio/debug.h>
 
-airtaudio::Api* airtaudio::api::Asio::Create(void) {
+airtaudio::Api* airtaudio::api::Asio::Create() {
 	return new airtaudio::api::Asio();
 }
 
@@ -50,7 +50,7 @@ struct AsioHandle {
 	bool internalDrain; // Indicates if stop is initiated from callback or not.
 	ASIOBufferInfo *bufferInfos;
 	HANDLE condition;
-	AsioHandle(void) :
+	AsioHandle() :
 	  drainCounter(0),
 	  internalDrain(false),
 	  bufferInfos(0) {
@@ -63,7 +63,7 @@ static const char* getAsioErrorString(ASIOError _result);
 static void sampleRateChanged(ASIOSampleRate _sRate);
 static long asioMessages(long _selector, long _value, void* _message, double* _opt);
 
-airtaudio::api::Asio::Asio(void) {
+airtaudio::api::Asio::Asio() {
 	// ASIO cannot run on a multi-threaded appartment. You can call
 	// CoInitialize beforehand, but it must be for appartment threading
 	// (in which case, CoInitilialize will return S_FALSE here).
@@ -79,7 +79,7 @@ airtaudio::api::Asio::Asio(void) {
 	driverInfo.sysRef = GetForegroundWindow();
 }
 
-airtaudio::api::Asio::~Asio(void) {
+airtaudio::api::Asio::~Asio() {
 	if (m_stream.state != STREAM_CLOSED) {
 		closeStream();
 	}
@@ -88,7 +88,7 @@ airtaudio::api::Asio::~Asio(void) {
 	}
 }
 
-uint32_t airtaudio::api::Asio::getDeviceCount(void) {
+uint32_t airtaudio::api::Asio::getDeviceCount() {
 	return (uint32_t) drivers.asioGetNumDev();
 }
 
@@ -200,7 +200,7 @@ static void bufferSwitch(long _index, ASIOBool _processNow) {
 	object->callbackEvent(_index);
 }
 
-void airtaudio::api::Asio::saveDeviceInfo(void) {
+void airtaudio::api::Asio::saveDeviceInfo() {
 	m_devices.clear();
 	uint32_t nDevices = getDeviceCount();
 	m_devices.resize(nDevices);
@@ -563,7 +563,7 @@ error:
 	return false;
 }
 
-enum airtaudio::errorType airtaudio::api::Asio::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Asio::closeStream() {
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::api::Asio::closeStream(): no open stream to close!");
 		return airtaudio::errorWarning;
@@ -600,7 +600,7 @@ enum airtaudio::errorType airtaudio::api::Asio::closeStream(void) {
 
 bool stopThreadCalled = false;
 
-enum airtaudio::errorType airtaudio::api::Asio::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Asio::startStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -627,7 +627,7 @@ unlock:
 	return airtaudio::errorSystemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Asio::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Asio::stopStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -653,7 +653,7 @@ enum airtaudio::errorType airtaudio::api::Asio::stopStream(void) {
 	return airtaudio::errorSystemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Asio::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Asio::abortStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}

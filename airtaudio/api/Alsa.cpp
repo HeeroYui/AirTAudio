@@ -15,7 +15,7 @@
 #include <airtaudio/debug.h>
 #include <limits.h>
 
-airtaudio::Api* airtaudio::api::Alsa::Create(void) {
+airtaudio::Api* airtaudio::api::Alsa::Create() {
 	return new airtaudio::api::Alsa();
 }
 
@@ -29,7 +29,7 @@ struct AlsaHandle {
 	std::condition_variable runnable_cv;
 	bool runnable;
 
-	AlsaHandle(void) :
+	AlsaHandle() :
 	  synchronized(false),
 	  runnable(false) {
 		xrun[0] = false;
@@ -39,17 +39,17 @@ struct AlsaHandle {
 
 static void alsaCallbackHandler(void * _ptr);
 
-airtaudio::api::Alsa::Alsa(void) {
+airtaudio::api::Alsa::Alsa() {
 	// Nothing to do here.
 }
 
-airtaudio::api::Alsa::~Alsa(void) {
+airtaudio::api::Alsa::~Alsa() {
 	if (m_stream.state != STREAM_CLOSED) {
 		closeStream();
 	}
 }
 
-uint32_t airtaudio::api::Alsa::getDeviceCount(void) {
+uint32_t airtaudio::api::Alsa::getDeviceCount() {
 	unsigned nDevices = 0;
 	int32_t result, subdevice, card;
 	char name[64];
@@ -349,7 +349,7 @@ probeParameters:
 	return info;
 }
 
-void airtaudio::api::Alsa::saveDeviceInfo(void) {
+void airtaudio::api::Alsa::saveDeviceInfo() {
 	m_devices.clear();
 	uint32_t nDevices = getDeviceCount();
 	m_devices.resize(nDevices);
@@ -773,7 +773,7 @@ error:
 	return false;
 }
 
-enum airtaudio::errorType airtaudio::api::Alsa::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Alsa::closeStream() {
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::api::Alsa::closeStream(): no open stream to close!");
 		return airtaudio::errorWarning;
@@ -826,7 +826,7 @@ enum airtaudio::errorType airtaudio::api::Alsa::closeStream(void) {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Alsa::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Alsa::startStream() {
 	// This method calls snd_pcm_prepare if the device isn't already in that state.
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
@@ -872,7 +872,7 @@ unlock:
 	return airtaudio::errorSystemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Alsa::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Alsa::stopStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -913,7 +913,7 @@ unlock:
 	return airtaudio::errorSystemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Alsa::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Alsa::abortStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -950,7 +950,7 @@ unlock:
 	return airtaudio::errorSystemError;
 }
 
-void airtaudio::api::Alsa::callbackEvent(void) {
+void airtaudio::api::Alsa::callbackEvent() {
 	AlsaHandle *apiInfo = (AlsaHandle *) m_stream.apiHandle;
 	if (m_stream.state == STREAM_STOPPED) {
 		std::unique_lock<std::mutex> lck(m_stream.mutex);

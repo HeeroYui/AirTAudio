@@ -25,7 +25,7 @@ namespace airtaudio {
 			std::vector<uint32_t> sampleRates; //!< Supported sample rates (queried from list of standard rates).
 			airtaudio::format nativeFormats; //!< Bit mask of supported data formats.
 			// Default constructor.
-			DeviceInfo(void) :
+			DeviceInfo() :
 			  probed(false),
 			  outputChannels(0),
 			  inputChannels(0),

@@ -19,7 +19,7 @@
 #include <errno.h>
 #include <math.h>
 
-airtaudio::Api* airtaudio::api::Oss::Create(void) {
+airtaudio::Api* airtaudio::api::Oss::Create() {
 	return new airtaudio::api::Oss();
 }
 
@@ -32,7 +32,7 @@ struct OssHandle {
 	bool xrun[2];
 	bool triggered;
 	std::condition_variable runnable;
-	OssHandle(void):
+	OssHandle():
 	  triggered(false) {
 		id[0] = 0;
 		id[1] = 0;
@@ -41,17 +41,17 @@ struct OssHandle {
 	}
 };
 
-airtaudio::api::Oss::Oss(void) {
+airtaudio::api::Oss::Oss() {
 	// Nothing to do here.
 }
 
-airtaudio::api::Oss::~Oss(void) {
+airtaudio::api::Oss::~Oss() {
 	if (m_stream.state != STREAM_CLOSED) {
 		closeStream();
 	}
 }
 
-uint32_t airtaudio::api::Oss::getDeviceCount(void) {
+uint32_t airtaudio::api::Oss::getDeviceCount() {
 	int32_t mixerfd = open("/dev/mixer", O_RDWR, 0);
 	if (mixerfd == -1) {
 		ATA_ERROR("airtaudio::api::Oss::getDeviceCount: error opening '/dev/mixer'.");
@@ -546,7 +546,7 @@ error:
 	return false;
 }
 
-enum airtaudio::errorType airtaudio::api::Oss::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Oss::closeStream() {
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::api::Oss::closeStream(): no open stream to close!");
 		return airtaudio::errorWarning;
@@ -592,7 +592,7 @@ enum airtaudio::errorType airtaudio::api::Oss::closeStream(void) {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Oss::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Oss::startStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -609,7 +609,7 @@ enum airtaudio::errorType airtaudio::api::Oss::startStream(void) {
 	handle->runnable.notify_one();
 }
 
-enum airtaudio::errorType airtaudio::api::Oss::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Oss::stopStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -673,7 +673,7 @@ unlock:
 	return airtaudio::errorSystemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Oss::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Oss::abortStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -713,7 +713,7 @@ unlock:
 	return airtaudio::errorSystemError;
 }
 
-void airtaudio::api::Oss::callbackEvent(void) {
+void airtaudio::api::Oss::callbackEvent() {
 	OssHandle *handle = (OssHandle *) m_stream.apiHandle;
 	if (m_stream.state == STREAM_STOPPED) {
 		std::unique_lock<std::mutex> lck(m_stream.mutex);

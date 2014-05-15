@@ -27,7 +27,7 @@ namespace airtaudio {
 			int32_t priority;
 			
 			// Default constructor.
-			CallbackInfo(void) :
+			CallbackInfo() :
 			  object(0),
 			  callback(0),
 			  userData(0),

@@ -13,24 +13,24 @@ namespace airtaudio {
 	namespace api {
 		class Oss: public airtaudio::Api {
 			public:
-				static airtaudio::Api* Create(void);
+				static airtaudio::Api* Create();
 			public:
-				Oss(void);
-				~Oss(void);
-				airtaudio::api::type getCurrentApi(void) {
+				Oss();
+				~Oss();
+				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::LINUX_OSS;
 				}
-				uint32_t getDeviceCount(void);
+				uint32_t getDeviceCount();
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
-				enum airtaudio::errorType closeStream(void);
-				enum airtaudio::errorType startStream(void);
-				enum airtaudio::errorType stopStream(void);
-				enum airtaudio::errorType abortStream(void);
+				enum airtaudio::errorType closeStream();
+				enum airtaudio::errorType startStream();
+				enum airtaudio::errorType stopStream();
+				enum airtaudio::errorType abortStream();
 				// This function is intended for internal use only.	It must be
 				// public because it is called by the internal callback handler,
 				// which is not a member of RtAudio. External use of this function
 				// will most likely produce highly undesireable results!
-				void callbackEvent(void);
+				void callbackEvent();
 			private:
 				bool probeDeviceOpen(uint32_t _device,
 				                     airtaudio::api::StreamMode _mode,

@@ -15,7 +15,7 @@
 #include <airtaudio/debug.h>
 #include <string.h>
 
-airtaudio::Api* airtaudio::api::Jack::Create(void) {
+airtaudio::Api* airtaudio::api::Jack::Create() {
 	return new airtaudio::api::Jack();
 }
 
@@ -64,7 +64,7 @@ struct JackHandle {
 	int32_t drainCounter; // Tracks callback counts when draining
 	bool internalDrain; // Indicates if stop is initiated from callback or not.
 
-	JackHandle(void) :
+	JackHandle() :
 	  client(0),
 	  drainCounter(0),
 	  internalDrain(false) {
@@ -75,17 +75,17 @@ struct JackHandle {
 	}
 };
 
-airtaudio::api::Jack::Jack(void) {
+airtaudio::api::Jack::Jack() {
 	// Nothing to do here.
 }
 
-airtaudio::api::Jack::~Jack(void) {
+airtaudio::api::Jack::~Jack() {
 	if (m_stream.state != STREAM_CLOSED) {
 		closeStream();
 	}
 }
 
-uint32_t airtaudio::api::Jack::getDeviceCount(void) {
+uint32_t airtaudio::api::Jack::getDeviceCount() {
 	// See if we can become a jack client.
 	jack_options_t options = (jack_options_t) (JackNoStartServer); //JackNullOption;
 	jack_status_t *status = NULL;
@@ -489,7 +489,7 @@ error:
 	return false;
 }
 
-enum airtaudio::errorType airtaudio::api::Jack::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Jack::closeStream() {
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::api::Jack::closeStream(): no open stream to close!");
 		return airtaudio::errorWarning;
@@ -526,7 +526,7 @@ enum airtaudio::errorType airtaudio::api::Jack::closeStream(void) {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Jack::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Jack::startStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -597,7 +597,7 @@ unlock:
 	return airtaudio::errorSystemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Jack::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Jack::stopStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -619,7 +619,7 @@ enum airtaudio::errorType airtaudio::api::Jack::stopStream(void) {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Jack::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Jack::abortStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}

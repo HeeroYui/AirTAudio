@@ -14,7 +14,7 @@ class int24_t {
 	protected:
 		uint8_t c3[3];
 	public:
-		int24_t(void) {}
+		int24_t() {}
 		int24_t& operator = (const int32_t& i) {
 			c3[0] = (i & 0x000000ff);
 			c3[1] = (i & 0x0000ff00) >> 8;
@@ -38,7 +38,7 @@ class int24_t {
 			*this = (int32_t)c;
 		}
 		
-		int32_t asInt(void) {
+		int32_t asInt() {
 			int32_t i = c3[0] | (c3[1] << 8) | (c3[2] << 16);
 			if (i & 0x800000) {
 				i |= ~0xffffff;

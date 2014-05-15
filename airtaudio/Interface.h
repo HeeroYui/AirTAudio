@@ -38,14 +38,14 @@ namespace airtaudio {
 	 */
 	class Interface {
 		protected:
-			std::vector<std::pair<airtaudio::api::type, Api* (*)(void)>> m_apiAvaillable;
+			std::vector<std::pair<airtaudio::api::type, Api* (*)()>> m_apiAvaillable;
 		protected:
 			airtaudio::Api *m_rtapi;
 		public:
 			/**
 			 * @brief A static function to determine the current airtaudio version.
 			 */
-			static std::string getVersion(void) {
+			static std::string getVersion() {
 				return airtaudio::VERSION;
 			}
 			/**
@@ -55,25 +55,25 @@ namespace airtaudio {
 			 * the enumerated list values. Note that there can be more than one
 			 * API compiled for certain operating systems.
 			 */
-			std::vector<airtaudio::api::type> getCompiledApi(void);
+			std::vector<airtaudio::api::type> getCompiledApi();
 			/**
 			 * @brief The class constructor.
 			 * @note the creating of the basic instance is done by Instanciate
 			 */
-			Interface(void);
+			Interface();
 			/**
 			 * @brief The destructor.
 			 * 
 			 * If a stream is running or open, it will be stopped and closed
 			 * automatically.
 			 */
-			~Interface(void);
+			~Interface();
 			/**
 			 * @brief Add an interface of the Possible List.
 			 * @param[in] _api Type of the interface.
 			 * @param[in] _callbackCreate API creation callback.
 			 */
-			void addInterface(airtaudio::api::type _api, Api* (*_callbackCreate)(void));
+			void addInterface(airtaudio::api::type _api, Api* (*_callbackCreate)());
 			/**
 			 * @brief Create an interface instance
 			 */
@@ -81,7 +81,7 @@ namespace airtaudio {
 			/**
 			 * @return the audio API specifier for the current instance of airtaudio.
 			 */
-			airtaudio::api::type getCurrentApi(void) {
+			airtaudio::api::type getCurrentApi() {
 				if (m_rtapi == NULL) {
 					return airtaudio::api::UNSPECIFIED;
 				}
@@ -94,7 +94,7 @@ namespace airtaudio {
 			 * is called, thus supporting devices connected \e after instantiation. If
 			 * a system error occurs during processing, a warning will be issued. 
 			 */
-			uint32_t getDeviceCount(void) {
+			uint32_t getDeviceCount() {
 				if (m_rtapi == NULL) {
 					return 0;
 				}
@@ -126,7 +126,7 @@ namespace airtaudio {
 			 * client's responsibility to verify that a device is available
 			 * before attempting to open a stream.
 			 */
-			uint32_t getDefaultOutputDevice(void) {
+			uint32_t getDefaultOutputDevice() {
 				if (m_rtapi == NULL) {
 					return 0;
 				}
@@ -141,7 +141,7 @@ namespace airtaudio {
 			 * client's responsibility to verify that a device is available
 			 * before attempting to open a stream.
 			 */
-			uint32_t getDefaultInputDevice(void) {
+			uint32_t getDefaultInputDevice() {
 				if (m_rtapi == NULL) {
 					return 0;
 				}
@@ -202,7 +202,7 @@ namespace airtaudio {
 			 * If a stream is not open, this function issues a warning and
 			 * returns (no exception is thrown).
 			 */
-			enum airtaudio::errorType closeStream(void) {
+			enum airtaudio::errorType closeStream() {
 				if (m_rtapi == NULL) {
 					return airtaudio::errorInputNull;
 				}
@@ -216,7 +216,7 @@ namespace airtaudio {
 			 * stream is not open.	A warning is issued if the stream is already
 			 * running.
 			 */
-			enum airtaudio::errorType startStream(void) {
+			enum airtaudio::errorType startStream() {
 				if (m_rtapi == NULL) {
 					return airtaudio::errorInputNull;
 				}
@@ -230,7 +230,7 @@ namespace airtaudio {
 			 * stream is not open.	A warning is issued if the stream is already
 			 * stopped.
 			*/
-			enum airtaudio::errorType stopStream(void) {
+			enum airtaudio::errorType stopStream() {
 				if (m_rtapi == NULL) {
 					return airtaudio::errorInputNull;
 				}
@@ -243,7 +243,7 @@ namespace airtaudio {
 			 * stream is not open.	A warning is issued if the stream is already
 			 * stopped.
 			 */
-			enum airtaudio::errorType abortStream(void) {
+			enum airtaudio::errorType abortStream() {
 				if (m_rtapi == NULL) {
 					return airtaudio::errorInputNull;
 				}
@@ -252,7 +252,7 @@ namespace airtaudio {
 			/**
 			 * @return true if a stream is open and false if not.
 			 */
-			bool isStreamOpen(void) const {
+			bool isStreamOpen() const {
 				if (m_rtapi == NULL) {
 					return false;
 				}
@@ -261,7 +261,7 @@ namespace airtaudio {
 			/**
 			 * @return true if the stream is running and false if it is stopped or not open.
 			 */
-			bool isStreamRunning(void) const {
+			bool isStreamRunning() const {
 				if (m_rtapi == NULL) {
 					return false;
 				}
@@ -271,7 +271,7 @@ namespace airtaudio {
 			 * @brief If a stream is not open, an RtError (type = INVALID_USE) will be thrown.
 			 * @return the number of elapsed seconds since the stream was started.
 			 */
-			double getStreamTime(void) {
+			double getStreamTime() {
 				if (m_rtapi == NULL) {
 					return 0.0;
 				}
@@ -286,7 +286,7 @@ namespace airtaudio {
 			 * report latency, the return value will be zero.
 			 * @return The internal stream latency in sample frames.
 			 */
-			long getStreamLatency(void) {
+			long getStreamLatency() {
 				if (m_rtapi == NULL) {
 					return 0;
 				}
@@ -298,7 +298,7 @@ namespace airtaudio {
 			 * open, an RtError (type = INVALID_USE) will be thrown.
 			 * @return Returns actual sample rate in use by the stream.
 			 */
-			uint32_t getStreamSampleRate(void) {
+			uint32_t getStreamSampleRate() {
 				if (m_rtapi == NULL) {
 					return 0;
 				}

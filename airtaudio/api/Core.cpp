@@ -18,7 +18,7 @@
 #include <airtaudio/Interface.h>
 #include <airtaudio/debug.h>
 
-airtaudio::Api* airtaudio::api::Core::Create(void) {
+airtaudio::Api* airtaudio::api::Core::Create() {
 	return new airtaudio::api::Core();
 }
 
@@ -52,7 +52,7 @@ struct CoreHandle {
 	std::condition_variable condition;
 	int32_t drainCounter; // Tracks callback counts when draining
 	bool internalDrain; // Indicates if stop is initiated from callback or not.
-	CoreHandle(void) :
+	CoreHandle() :
 	  deviceBuffer(0),
 	  drainCounter(0),
 	  internalDrain(false) {
@@ -65,7 +65,7 @@ struct CoreHandle {
 	}
 };
 
-airtaudio::api::Core::Core(void) {
+airtaudio::api::Core::Core() {
 #if defined(AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER)
 	// This is a largely undocumented but absolutely necessary
 	// requirement starting with OS-X 10.6.	If not called, queries and
@@ -89,7 +89,7 @@ airtaudio::api::Core::Core(void) {
 #endif
 }
 
-airtaudio::api::Core::~Core(void) {
+airtaudio::api::Core::~Core() {
 	// The subclass destructor gets called before the base class
 	// destructor, so close an existing stream before deallocating
 	// apiDeviceId memory.
@@ -98,7 +98,7 @@ airtaudio::api::Core::~Core(void) {
 	}
 }
 
-uint32_t airtaudio::api::Core::getDeviceCount(void) {
+uint32_t airtaudio::api::Core::getDeviceCount() {
 	// Find out how many audio devices there are, if any.
 	uint32_t dataSize;
 	AudioObjectPropertyAddress propertyAddress = {
@@ -114,7 +114,7 @@ uint32_t airtaudio::api::Core::getDeviceCount(void) {
 	return dataSize / sizeof(AudioDeviceID);
 }
 
-uint32_t airtaudio::api::Core::getDefaultInputDevice(void) {
+uint32_t airtaudio::api::Core::getDefaultInputDevice() {
 	uint32_t nDevices = getDeviceCount();
 	if (nDevices <= 1) {
 		return 0;
@@ -158,7 +158,7 @@ uint32_t airtaudio::api::Core::getDefaultInputDevice(void) {
 	return 0;
 }
 
-uint32_t airtaudio::api::Core::getDefaultOutputDevice(void) {
+uint32_t airtaudio::api::Core::getDefaultOutputDevice() {
 	uint32_t nDevices = getDeviceCount();
 	if (nDevices <= 1) {
 		return 0;
@@ -921,7 +921,7 @@ error:
 	return false;
 }
 
-enum airtaudio::errorType airtaudio::api::Core::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Core::closeStream() {
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::api::Core::closeStream(): no open stream to close!");
 		return airtaudio::errorWarning;
@@ -969,7 +969,7 @@ enum airtaudio::errorType airtaudio::api::Core::closeStream(void) {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Core::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Core::startStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -1006,7 +1006,7 @@ unlock:
 	return airtaudio::errorSystemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Core::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Core::stopStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -1046,7 +1046,7 @@ unlock:
 	return airtaudio::errorSystemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Core::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Core::abortStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}

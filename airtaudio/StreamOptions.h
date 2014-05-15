@@ -76,7 +76,7 @@ namespace airtaudio {
 			std::string streamName; //!< A stream name (currently used only in Jack).
 			int32_t priority; //!< Scheduling priority of callback thread (only used with flag RTAUDIO_SCHEDULE_REALTIME).
 			// Default constructor.
-			StreamOptions(void) :
+			StreamOptions() :
 			  flags(0),
 			  numberOfBuffers(0),
 			  priority(0) {}

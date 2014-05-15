@@ -10,39 +10,39 @@
 #include <airtaudio/api/Dummy.h>
 #include <airtaudio/debug.h>
 
-airtaudio::Api* airtaudio::api::Dummy::Create(void) {
+airtaudio::Api* airtaudio::api::Dummy::Create() {
 	return new airtaudio::api::Dummy();
 }
 
 
-airtaudio::api::Dummy::Dummy(void) {
+airtaudio::api::Dummy::Dummy() {
 	m_errorText = "airtaudio::api::Dummy: This class provides no functionality.";
 	error(airtaudio::errorWarning);
 }
 
-uint32_t airtaudio::api::Dummy::getDeviceCount(void) {
+uint32_t airtaudio::api::Dummy::getDeviceCount() {
 	return 0;
 }
 
 rtaudio::DeviceInfo airtaudio::api::Dummy::getDeviceInfo(uint32_t _device) {
-	(void)_device;
+	()_device;
 	rtaudio::DeviceInfo info;
 	return info;
 }
 
-enum airtaudio::errorType airtaudio::api::Dummy::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Dummy::closeStream() {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Dummy::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Dummy::startStream() {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Dummy::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Dummy::stopStream() {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Dummy::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Dummy::abortStream() {
 	return airtaudio::errorNone;
 }
 

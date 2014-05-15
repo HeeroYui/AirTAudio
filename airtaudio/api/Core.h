@@ -15,22 +15,22 @@ namespace airtaudio {
 	namespace api {
 		class Core: public airtaudio::Api {
 			public:
-				static airtaudio::Api* Create(void);
+				static airtaudio::Api* Create();
 			public:
 				Core();
 				~Core();
-				airtaudio::api::type getCurrentApi(void) {
+				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::MACOSX_CORE;
 				}
-				uint32_t getDeviceCount(void);
+				uint32_t getDeviceCount();
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
-				uint32_t getDefaultOutputDevice(void);
-				uint32_t getDefaultInputDevice(void);
-				enum airtaudio::errorType closeStream(void);
-				enum airtaudio::errorType startStream(void);
-				enum airtaudio::errorType stopStream(void);
-				enum airtaudio::errorType abortStream(void);
-				long getStreamLatency(void);
+				uint32_t getDefaultOutputDevice();
+				uint32_t getDefaultInputDevice();
+				enum airtaudio::errorType closeStream();
+				enum airtaudio::errorType startStream();
+				enum airtaudio::errorType stopStream();
+				enum airtaudio::errorType abortStream();
+				long getStreamLatency();
 				// This function is intended for internal use only.	It must be
 				// public because it is called by the internal callback handler,
 				// which is not a member of RtAudio.	External use of this function

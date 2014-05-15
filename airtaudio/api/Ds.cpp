@@ -11,7 +11,7 @@
 #include <airtaudio/Interface.h>
 #include <airtaudio/debug.h>
 
-airtaudio::Api* airtaudio::api::Ds::Create(void) {
+airtaudio::Api* airtaudio::api::Ds::Create() {
 	return new airtaudio::api::Ds();
 }
 
@@ -67,7 +67,7 @@ struct DsHandle {
 	DWORD dsPointerLeadTime[2]; // the number of bytes ahead of the safe pointer to lead by.
 	HANDLE condition;
 
-	DsHandle(void) :
+	DsHandle() :
 	  drainCounter(0),
 	  internalDrain(false) {
 		id[0] = 0;
@@ -97,7 +97,7 @@ struct DsDevice {
 	bool validId[2];
 	bool found;
 	std::string name;
-	DsDevice(void) :
+	DsDevice() :
 	  found(false) {
 		validId[0] = false;
 		validId[1] = false;
@@ -109,7 +109,7 @@ struct DsProbeData {
 	std::vector<struct DsDevice>* dsDevices;
 };
 
-airtaudio::api::Ds::Ds(void) {
+airtaudio::api::Ds::Ds() {
 	// Dsound will run both-threaded. If CoInitialize fails, then just
 	// accept whatever the mainline chose for a threading model.
 	m_coInitialized = false;
@@ -119,7 +119,7 @@ airtaudio::api::Ds::Ds(void) {
 	}
 }
 
-airtaudio::api::Ds::~Ds(void) {
+airtaudio::api::Ds::~Ds() {
 	if (m_coInitialized) {
 		CoUninitialize(); // balanced call.
 	}
@@ -129,17 +129,17 @@ airtaudio::api::Ds::~Ds(void) {
 }
 
 // The DirectSound default output is always the first device.
-uint32_t airtaudio::api::Ds::getDefaultOutputDevice(void) {
+uint32_t airtaudio::api::Ds::getDefaultOutputDevice() {
 	return 0;
 }
 
 // The DirectSound default input is always the first input device,
 // which is the first capture device enumerated.
-uint32_t airtaudio::api::Ds::getDefaultInputDevice(void) {
+uint32_t airtaudio::api::Ds::getDefaultInputDevice() {
 	return 0;
 }
 
-uint32_t airtaudio::api::Ds::getDeviceCount(void) {
+uint32_t airtaudio::api::Ds::getDeviceCount() {
 	// Set query flag for previously found devices to false, so that we
 	// can check for any devices that have disappeared.
 	for (uint32_t i=0; i<dsDevices.size(); i++) {
@@ -848,7 +848,7 @@ error:
 	return false;
 }
 
-enum airtaudio::errorType airtaudio::api::Ds::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Ds::closeStream() {
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::api::Ds::closeStream(): no open stream to close!");
 		return airtaudio::errorWarning;
@@ -895,7 +895,7 @@ enum airtaudio::errorType airtaudio::api::Ds::closeStream(void) {
 	m_stream.state = STREAM_CLOSED;
 }
 
-enum airtaudio::errorType airtaudio::api::Ds::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Ds::startStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -944,7 +944,7 @@ unlock:
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Ds::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Ds::stopStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -1025,7 +1025,7 @@ unlock:
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Ds::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Ds::abortStream() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return airtaudio::errorFail;
 	}
@@ -1038,7 +1038,7 @@ enum airtaudio::errorType airtaudio::api::Ds::abortStream(void) {
 	return stopStream();
 }
 
-void airtaudio::api::Ds::callbackEvent(void) {
+void airtaudio::api::Ds::callbackEvent() {
 	if (m_stream.state == STREAM_STOPPED || m_stream.state == STREAM_STOPPING) {
 		Sleep(50); // sleep 50 milliseconds
 		return;

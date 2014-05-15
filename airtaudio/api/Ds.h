@@ -13,27 +13,27 @@ namespace airtaudio {
 	namespace api {
 		class Ds: public airtaudio::Api {
 			public:
-				static airtaudio::Api* Create(void);
+				static airtaudio::Api* Create();
 			public:
-				Ds(void);
-				~Ds(void);
-				airtaudio::api::type getCurrentApi(void) {
+				Ds();
+				~Ds();
+				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::WINDOWS_DS;
 				}
-				uint32_t getDeviceCount(void);
-				uint32_t getDefaultOutputDevice(void);
-				uint32_t getDefaultInputDevice(void);
+				uint32_t getDeviceCount();
+				uint32_t getDefaultOutputDevice();
+				uint32_t getDefaultInputDevice();
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
-				enum airtaudio::errorType closeStream(void);
-				enum airtaudio::errorType startStream(void);
-				enum airtaudio::errorType stopStream(void);
-				enum airtaudio::errorType abortStream(void);
-				long getStreamLatency(void);
+				enum airtaudio::errorType closeStream();
+				enum airtaudio::errorType startStream();
+				enum airtaudio::errorType stopStream();
+				enum airtaudio::errorType abortStream();
+				long getStreamLatency();
 				// This function is intended for internal use only.	It must be
 				// public because it is called by the internal callback handler,
 				// which is not a member of RtAudio.	External use of this function
 				// will most likely produce highly undesireable results!
-				void callbackEvent(void);
+				void callbackEvent();
 			private:
 				bool m_coInitialized;
 				bool m_buffersRolling;

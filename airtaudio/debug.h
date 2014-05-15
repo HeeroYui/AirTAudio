@@ -12,7 +12,7 @@
 #include <etk/log.h>
 
 namespace airtaudio {
-	int32_t getLogId(void);
+	int32_t getLogId();
 };
 // TODO : Review this problem of multiple intanciation of "std::stringbuf sb"
 #define ATA_BASE(info,data) \

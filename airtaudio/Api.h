@@ -92,7 +92,7 @@ namespace airtaudio {
 				struct timeval lastTickTimestamp;
 				#endif
 				
-				Stream(void) :
+				Stream() :
 				  apiHandle(0),
 				  deviceBuffer(0) {
 					device[0] = 11111;
@@ -113,13 +113,13 @@ namespace airtaudio {
 	 */
 	class Api {
 		public:
-			Api(void);
-			virtual ~Api(void);
-			virtual airtaudio::api::type getCurrentApi(void) = 0;
-			virtual uint32_t getDeviceCount(void) = 0;
+			Api();
+			virtual ~Api();
+			virtual airtaudio::api::type getCurrentApi() = 0;
+			virtual uint32_t getDeviceCount() = 0;
 			virtual airtaudio::DeviceInfo getDeviceInfo(uint32_t _device) = 0;
-			virtual uint32_t getDefaultInputDevice(void);
-			virtual uint32_t getDefaultOutputDevice(void);
+			virtual uint32_t getDefaultInputDevice();
+			virtual uint32_t getDefaultOutputDevice();
 			enum airtaudio::errorType openStream(airtaudio::StreamParameters *_outputParameters,
 			                                     airtaudio::StreamParameters *_inputParameters,
 			                                     airtaudio::format _format,
@@ -128,17 +128,17 @@ namespace airtaudio {
 			                                     airtaudio::AirTAudioCallback _callback,
 			                                     void *_userData,
 			                                     airtaudio::StreamOptions *_options);
-			virtual enum airtaudio::errorType closeStream(void);
-			virtual enum airtaudio::errorType startStream(void) = 0;
-			virtual enum airtaudio::errorType stopStream(void) = 0;
-			virtual enum airtaudio::errorType abortStream(void) = 0;
-			long getStreamLatency(void);
-			uint32_t getStreamSampleRate(void);
-			virtual double getStreamTime(void);
-			bool isStreamOpen(void) const {
+			virtual enum airtaudio::errorType closeStream();
+			virtual enum airtaudio::errorType startStream() = 0;
+			virtual enum airtaudio::errorType stopStream() = 0;
+			virtual enum airtaudio::errorType abortStream() = 0;
+			long getStreamLatency();
+			uint32_t getStreamSampleRate();
+			virtual double getStreamTime();
+			bool isStreamOpen() const {
 				return m_stream.state != airtaudio::api::STREAM_CLOSED;
 			}
-			bool isStreamRunning(void) const {
+			bool isStreamRunning() const {
 				return m_stream.state == airtaudio::api::STREAM_RUNNING;
 			}
 			
@@ -162,16 +162,16 @@ namespace airtaudio {
 			                             airtaudio::StreamOptions *_options);
 			
 			//! A protected function used to increment the stream time.
-			void tickStreamTime(void);
+			void tickStreamTime();
 			
 			//! Protected common method to clear an RtApiStream structure.
-			void clearStreamInfo(void);
+			void clearStreamInfo();
 			
 			/*!
 				Protected common method that throws an RtError (type =
 				INVALID_USE) if a stream is not open.
 			*/
-			enum airtaudio::errorType verifyStream(void);
+			enum airtaudio::errorType verifyStream();
 			/**
 			 * @brief Protected method used to perform format, channel number, and/or interleaving
 			 * conversions between the user and device buffers.

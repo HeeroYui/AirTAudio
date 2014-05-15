@@ -19,7 +19,7 @@ namespace airtaudio {
 			uint32_t nChannels; //!< Number of channels.
 			uint32_t firstChannel; //!< First channel index on device (default = 0).
 			// Default constructor.
-			StreamParameters(void) :
+			StreamParameters() :
 			  deviceId(0),
 			  nChannels(0),
 			  firstChannel(0) { }

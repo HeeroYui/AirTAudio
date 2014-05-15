@@ -12,13 +12,13 @@
 #include <airtaudio/debug.h>
 #include <limits.h>
 
-airtaudio::Api* airtaudio::api::Android::Create(void) {
+airtaudio::Api* airtaudio::api::Android::Create() {
 	ATA_INFO("Create Android device ... ");
 	return new airtaudio::api::Android();
 }
 
 
-airtaudio::api::Android::Android(void) {
+airtaudio::api::Android::Android() {
 	ATA_INFO("new Android");
 	// On android, we set a static device ...
 	ATA_INFO("get context");
@@ -75,11 +75,11 @@ airtaudio::api::Android::Android(void) {
 	ATA_INFO("Create Android interface (end)");
 }
 
-airtaudio::api::Android::~Android(void) {
+airtaudio::api::Android::~Android() {
 	ATA_INFO("Destroy Android interface");
 }
 
-uint32_t airtaudio::api::Android::getDeviceCount(void) {
+uint32_t airtaudio::api::Android::getDeviceCount() {
 	//ATA_INFO("Get device count:"<< m_devices.size());
 	return m_devices.size();
 }
@@ -89,19 +89,19 @@ airtaudio::DeviceInfo airtaudio::api::Android::getDeviceInfo(uint32_t _device) {
 	return m_devices[_device];
 }
 
-enum airtaudio::errorType airtaudio::api::Android::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Android::closeStream() {
 	ATA_INFO("Clese Stream");
 	// Can not close the stream now...
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Android::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Android::startStream() {
 	ATA_INFO("Start Stream");
 	// Can not close the stream now...
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Android::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Android::stopStream() {
 	ATA_INFO("Stop stream");
 	ewol::Context& tmpContext = ewol::getContext();
 	tmpContext.audioCloseDevice(0);
@@ -109,7 +109,7 @@ enum airtaudio::errorType airtaudio::api::Android::stopStream(void) {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Android::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Android::abortStream() {
 	ATA_INFO("Abort Stream");
 	ewol::Context& tmpContext = ewol::getContext();
 	tmpContext.audioCloseDevice(0);

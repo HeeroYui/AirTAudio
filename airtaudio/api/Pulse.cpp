@@ -20,7 +20,7 @@
 #include <pulse/simple.h>
 #include <cstdio>
 
-airtaudio::Api* airtaudio::api::Pulse::Create(void) {
+airtaudio::Api* airtaudio::api::Pulse::Create() {
 	return new airtaudio::api::Pulse();
 }
 
@@ -53,7 +53,7 @@ struct PulseAudioHandle {
 	std::thread* thread;
 	std::condition_variable runnable_cv;
 	bool runnable;
-	PulseAudioHandle(void) :
+	PulseAudioHandle() :
 	  s_play(0),
 	  s_rec(0),
 	  runnable(false) {
@@ -61,13 +61,13 @@ struct PulseAudioHandle {
 	}
 };
 
-airtaudio::api::Pulse::~Pulse(void) {
+airtaudio::api::Pulse::~Pulse() {
 	if (m_stream.state != STREAM_CLOSED) {
 		closeStream();
 	}
 }
 
-uint32_t airtaudio::api::Pulse::getDeviceCount(void) {
+uint32_t airtaudio::api::Pulse::getDeviceCount() {
 	return 1;
 }
 
@@ -96,7 +96,7 @@ static void pulseaudio_callback(void* _user) {
 	}
 }
 
-enum airtaudio::errorType airtaudio::api::Pulse::closeStream(void) {
+enum airtaudio::errorType airtaudio::api::Pulse::closeStream() {
 	PulseAudioHandle *pah = static_cast<PulseAudioHandle *>(m_stream.apiHandle);
 	m_stream.callbackInfo.isRunning = false;
 	if (pah) {
@@ -130,7 +130,7 @@ enum airtaudio::errorType airtaudio::api::Pulse::closeStream(void) {
 	return airtaudio::errorNone;
 }
 
-void airtaudio::api::Pulse::callbackEvent(void) {
+void airtaudio::api::Pulse::callbackEvent() {
 	PulseAudioHandle *pah = static_cast<PulseAudioHandle *>(m_stream.apiHandle);
 	if (m_stream.state == STREAM_STOPPED) {
 		std::unique_lock<std::mutex> lck(m_stream.mutex);
@@ -208,7 +208,7 @@ unlock:
 	return;
 }
 
-enum airtaudio::errorType airtaudio::api::Pulse::startStream(void) {
+enum airtaudio::errorType airtaudio::api::Pulse::startStream() {
 	PulseAudioHandle *pah = static_cast<PulseAudioHandle *>(m_stream.apiHandle);
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::api::Pulse::startStream(): the stream is not open!");
@@ -226,7 +226,7 @@ enum airtaudio::errorType airtaudio::api::Pulse::startStream(void) {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Pulse::stopStream(void) {
+enum airtaudio::errorType airtaudio::api::Pulse::stopStream() {
 	PulseAudioHandle *pah = static_cast<PulseAudioHandle *>(m_stream.apiHandle);
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::api::Pulse::stopStream(): the stream is not open!");
@@ -251,7 +251,7 @@ enum airtaudio::errorType airtaudio::api::Pulse::stopStream(void) {
 	return airtaudio::errorNone;
 }
 
-enum airtaudio::errorType airtaudio::api::Pulse::abortStream(void) {
+enum airtaudio::errorType airtaudio::api::Pulse::abortStream() {
 	PulseAudioHandle *pah = static_cast<PulseAudioHandle*>(m_stream.apiHandle);
 	if (m_stream.state == STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::api::Pulse::abortStream(): the stream is not open!");

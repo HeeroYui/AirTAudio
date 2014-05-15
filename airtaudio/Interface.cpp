@@ -11,7 +11,7 @@
 #include <airtaudio/debug.h>
 #include <iostream>
 
-std::vector<airtaudio::api::type> airtaudio::Interface::getCompiledApi(void) {
+std::vector<airtaudio::api::type> airtaudio::Interface::getCompiledApi() {
 	std::vector<airtaudio::api::type> apis;
 	// The order here will control the order of RtAudio's API search in
 	// the constructor.
@@ -43,7 +43,7 @@ void airtaudio::Interface::openRtApi(airtaudio::api::type _api) {
 }
 
 
-airtaudio::Interface::Interface(void) :
+airtaudio::Interface::Interface() :
   m_rtapi(NULL) {
 #if defined(__UNIX_JACK__)
 	addInterface(airtaudio::api::UNIX_JACK, airtaudio::api::Jack::Create);
@@ -77,8 +77,8 @@ airtaudio::Interface::Interface(void) :
 #endif
 }
 
-void airtaudio::Interface::addInterface(airtaudio::api::type _api, Api* (*_callbackCreate)(void)) {
-	m_apiAvaillable.push_back(std::pair<airtaudio::api::type, Api* (*)(void)>(_api, _callbackCreate));
+void airtaudio::Interface::addInterface(airtaudio::api::type _api, Api* (*_callbackCreate)()) {
+	m_apiAvaillable.push_back(std::pair<airtaudio::api::type, Api* (*)()>(_api, _callbackCreate));
 }
 
 enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type _api) {
@@ -123,7 +123,7 @@ enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type
 	return airtaudio::errorFail;
 }
 
-airtaudio::Interface::~Interface(void) {
+airtaudio::Interface::~Interface() {
 	ATA_INFO("Remove interface");
 	if (m_rtapi != NULL) {
 		delete m_rtapi;

@@ -58,7 +58,7 @@ const uint32_t airtaudio::api::SAMPLE_RATES[] = {
 };
 
 
-airtaudio::Api::Api(void) {
+airtaudio::Api::Api() {
 	m_stream.state = airtaudio::api::STREAM_CLOSED;
 	m_stream.mode = airtaudio::api::UNINITIALIZED;
 	m_stream.apiHandle = 0;
@@ -66,7 +66,7 @@ airtaudio::Api::Api(void) {
 	m_stream.userBuffer[1] = 0;
 }
 
-airtaudio::Api::~Api(void) {
+airtaudio::Api::~Api() {
 	
 }
 
@@ -157,17 +157,17 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
 	return airtaudio::errorNone;
 }
 
-uint32_t airtaudio::Api::getDefaultInputDevice(void) {
+uint32_t airtaudio::Api::getDefaultInputDevice() {
 	// Should be implemented in subclasses if possible.
 	return 0;
 }
 
-uint32_t airtaudio::Api::getDefaultOutputDevice(void) {
+uint32_t airtaudio::Api::getDefaultOutputDevice() {
 	// Should be implemented in subclasses if possible.
 	return 0;
 }
 
-enum airtaudio::errorType airtaudio::Api::closeStream(void) {
+enum airtaudio::errorType airtaudio::Api::closeStream() {
 	// MUST be implemented in subclasses!
 	return airtaudio::errorNone;
 }
@@ -184,7 +184,7 @@ bool airtaudio::Api::probeDeviceOpen(uint32_t /*device*/,
 	return false;
 }
 
-void airtaudio::Api::tickStreamTime(void) {
+void airtaudio::Api::tickStreamTime() {
 	// Subclasses that do not provide their own implementation of
 	// getStreamTime should call this function once per buffer I/O to
 	// provide basic stream time support.
@@ -194,7 +194,7 @@ void airtaudio::Api::tickStreamTime(void) {
 #endif
 }
 
-long airtaudio::Api::getStreamLatency(void) {
+long airtaudio::Api::getStreamLatency() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return 0;
 	}
@@ -210,7 +210,7 @@ long airtaudio::Api::getStreamLatency(void) {
 	return totalLatency;
 }
 
-double airtaudio::Api::getStreamTime(void) {
+double airtaudio::Api::getStreamTime() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return 0.0f;
 	}
@@ -232,14 +232,14 @@ double airtaudio::Api::getStreamTime(void) {
 #endif
 }
 
-uint32_t airtaudio::Api::getStreamSampleRate(void) {
+uint32_t airtaudio::Api::getStreamSampleRate() {
 	if (verifyStream() != airtaudio::errorNone) {
 		return 0;
 	}
 	return m_stream.sampleRate;
 }
 
-enum airtaudio::errorType airtaudio::Api::verifyStream(void) {
+enum airtaudio::errorType airtaudio::Api::verifyStream() {
 	if (m_stream.state == airtaudio::api::STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::Api:: a stream is not open!");
 		return airtaudio::errorInvalidUse;
@@ -247,7 +247,7 @@ enum airtaudio::errorType airtaudio::Api::verifyStream(void) {
 	return airtaudio::errorNone;
 }
 
-void airtaudio::Api::clearStreamInfo(void) {
+void airtaudio::Api::clearStreamInfo() {
 	m_stream.mode = airtaudio::api::UNINITIALIZED;
 	m_stream.state = airtaudio::api::STREAM_CLOSED;
 	m_stream.sampleRate = 0;

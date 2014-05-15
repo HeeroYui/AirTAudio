@@ -15,18 +15,18 @@ namespace airtaudio {
 	namespace api {
 		class Dummy: public airtaudio::Api {
 			public:
-				static airtaudio::Api* Create(void);
+				static airtaudio::Api* Create();
 			public:
-				Dummy(void);
-				airtaudio::api::type getCurrentApi(void) {
+				Dummy();
+				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::RTAUDIO_DUMMY;
 				}
-				uint32_t getDeviceCount(void);
+				uint32_t getDeviceCount();
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
-				enum airtaudio::errorType closeStream(void);
-				enum airtaudio::errorType startStream(void);
-				enum airtaudio::errorType stopStream(void);
-				enum airtaudio::errorType abortStream(void);
+				enum airtaudio::errorType closeStream();
+				enum airtaudio::errorType startStream();
+				enum airtaudio::errorType stopStream();
+				enum airtaudio::errorType abortStream();
 			private:
 				bool probeDeviceOpen(uint32_t _device,
 				                     airtaudio::api::StreamMode _mode,
