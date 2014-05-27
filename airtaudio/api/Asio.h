@@ -16,7 +16,7 @@ namespace airtaudio {
 				static airtaudio::Api* Create();
 			public:
 				Asio();
-				~Asio();
+				virtual ~Asio();
 				airtaudio::api::type getCurrentApi() {
 					return airtaudio::WINDOWS_ASIO;
 				}

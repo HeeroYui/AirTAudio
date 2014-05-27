@@ -67,7 +67,7 @@ namespace airtaudio {
 			 * If a stream is running or open, it will be stopped and closed
 			 * automatically.
 			 */
-			~Interface();
+			virtual ~Interface();
 			/**
 			 * @brief Add an interface of the Possible List.
 			 * @param[in] _api Type of the interface.

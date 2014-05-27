@@ -16,7 +16,7 @@ namespace airtaudio {
 				static airtaudio::Api* Create();
 			public:
 				Jack();
-				~Jack();
+				virtual ~Jack();
 				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::UNIX_JACK;
 				}

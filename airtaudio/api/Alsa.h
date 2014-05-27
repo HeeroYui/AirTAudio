@@ -16,7 +16,7 @@ namespace airtaudio {
 				static airtaudio::Api* Create();
 			public:
 				Alsa();
-				~Alsa();
+				virtual ~Alsa();
 				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::LINUX_ALSA;
 				}

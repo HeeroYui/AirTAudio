@@ -15,7 +15,7 @@ namespace airtaudio {
 			public:
 				static airtaudio::Api* Create();
 			public:
-				~Pulse();
+				virtual ~Pulse();
 				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::LINUX_PULSE;
 				}

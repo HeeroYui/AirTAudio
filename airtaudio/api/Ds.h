@@ -16,7 +16,7 @@ namespace airtaudio {
 				static airtaudio::Api* Create();
 			public:
 				Ds();
-				~Ds();
+				virtual ~Ds();
 				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::WINDOWS_DS;
 				}

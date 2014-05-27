@@ -16,7 +16,7 @@ namespace airtaudio {
 				static airtaudio::Api* Create();
 			public:
 				Oss();
-				~Oss();
+				virtual ~Oss();
 				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::LINUX_OSS;
 				}

@@ -14,7 +14,7 @@ namespace airtaudio {
 				static airtaudio::Api* Create();
 			public:
 				Android();
-				~Android();
+				virtual ~Android();
 				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::ANDROID_JAVA;
 				}

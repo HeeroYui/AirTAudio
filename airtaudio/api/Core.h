@@ -18,7 +18,7 @@ namespace airtaudio {
 				static airtaudio::Api* Create();
 			public:
 				Core();
-				~Core();
+				virtual ~Core();
 				airtaudio::api::type getCurrentApi() {
 					return airtaudio::api::MACOSX_CORE;
 				}
