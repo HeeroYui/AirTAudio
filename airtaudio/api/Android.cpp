@@ -29,12 +29,12 @@ airtaudio::api::Android::Android() {
 	for (int32_t iii=0; iii<deviceCount; ++iii) {
 		std::string property = tmpContext.audioGetDeviceProperty(iii);
 		ATA_ERROR("Get devices property : " << property);
-		std::vector<std::string> listProperty = std::split(property, ':');
+		std::vector<std::string> listProperty = etk::split(property, ':');
 		airtaudio::DeviceInfo tmp;
 		tmp.name = listProperty[0];
-		std::vector<std::string> listFreq = std::split(listProperty[2], ',');
+		std::vector<std::string> listFreq = etk::split(listProperty[2], ',');
 		for(size_t fff=0; fff<listFreq.size(); ++fff) {
-			tmp.sampleRates.push_back(std::stoi(listFreq[fff]));
+			tmp.sampleRates.push_back(etk::string_to_int32_t(listFreq[fff]));
 		}
 		tmp.outputChannels = 0;
 		tmp.inputChannels = 0;
@@ -42,18 +42,18 @@ airtaudio::api::Android::Android() {
 		if (listProperty[1] == "out") {
 			tmp.isDefaultOutput = true;
 			tmp.isDefaultInput = false;
-			tmp.outputChannels = std::stoi(listProperty[3]);
+			tmp.outputChannels = etk::string_to_int32_t(listProperty[3]);
 		} else if (listProperty[1] == "in") {
 			tmp.isDefaultOutput = false;
 			tmp.isDefaultInput = true;
-			tmp.inputChannels = std::stoi(listProperty[3]);
+			tmp.inputChannels = etk::string_to_int32_t(listProperty[3]);
 		} else {
 			/* duplex */
 			tmp.isDefaultOutput = true;
 			tmp.isDefaultInput = true;
-			tmp.duplexChannels = std::stoi(listProperty[3]);
+			tmp.duplexChannels = etk::string_to_int32_t(listProperty[3]);
 		}
-		std::vector<std::string> listFormat = std::split(listProperty[4], ',');
+		std::vector<std::string> listFormat = etk::split(listProperty[4], ',');
 		tmp.nativeFormats = 0;
 		for(size_t fff=0; fff<listFormat.size(); ++fff) {
 			if (listFormat[fff] == "float") {

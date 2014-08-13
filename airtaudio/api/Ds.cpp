@@ -377,7 +377,7 @@ probeInput:
 		}
 		if (found == false) info.sampleRates.push_back(rates[i]);
 	}
-	std::sort(info.sampleRates.begin(), info.sampleRates.end());
+	etk::sort(info.sampleRates.begin(), info.sampleRates.end());
 	// If device opens for both playback and capture, we determine the channels.
 	if (info.outputChannels > 0 && info.inputChannels > 0) {
 		info.duplexChannels = (info.outputChannels > info.inputChannels) ? info.inputChannels : info.outputChannels;
