@@ -456,7 +456,7 @@ foundDevice:
 		return false;
 	}
 	// Set access ... check user preference.
-	if (    _options != NULL
+	if (    _options != nullptr
 	     && _options->flags & airtaudio::NONINTERLEAVED) {
 		m_stream.userInterleaved = false;
 		result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
@@ -630,7 +630,7 @@ setFormat:
 		return false;
 	}
 	// Set the software configuration to fill buffers with zeros and prevent device stopping on xruns.
-	snd_pcm_sw_params_t *sw_params = NULL;
+	snd_pcm_sw_params_t *sw_params = nullptr;
 	snd_pcm_sw_params_alloca(&sw_params);
 	snd_pcm_sw_params_current(phandle, sw_params);
 	snd_pcm_sw_params_set_start_threshold(phandle, sw_params, *_bufferSize);
@@ -666,7 +666,7 @@ setFormat:
 	AlsaHandle *apiInfo = 0;
 	if (m_stream.apiHandle == 0) {
 		apiInfo = (AlsaHandle *) new AlsaHandle;
-		if (apiInfo == NULL) {
+		if (apiInfo == nullptr) {
 			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error allocating AlsaHandle memory.");
 			goto error;
 		}
@@ -682,7 +682,7 @@ setFormat:
 	uint64_t bufferBytes;
 	bufferBytes = m_stream.nUserChannels[_mode] * *_bufferSize * formatBytes(m_stream.userFormat);
 	m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
-	if (m_stream.userBuffer[_mode] == NULL) {
+	if (m_stream.userBuffer[_mode] == nullptr) {
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error allocating user buffer memory.");
 		goto error;
 	}
@@ -701,10 +701,10 @@ setFormat:
 			bufferBytes *= *_bufferSize;
 			if (m_stream.deviceBuffer) {
 				free(m_stream.deviceBuffer);
-				m_stream.deviceBuffer = NULL;
+				m_stream.deviceBuffer = nullptr;
 			}
 			m_stream.deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_stream.deviceBuffer == NULL) {
+			if (m_stream.deviceBuffer == nullptr) {
 				ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error allocating device buffer memory.");
 				goto error;
 			}
@@ -737,7 +737,7 @@ setFormat:
 		m_stream.callbackInfo.object = (void *) this;
 		m_stream.callbackInfo.isRunning = true;
 		m_stream.callbackInfo.thread = new std::thread(alsaCallbackHandler, &m_stream.callbackInfo);
-		if (m_stream.callbackInfo.thread == NULL) {
+		if (m_stream.callbackInfo.thread == nullptr) {
 			m_stream.callbackInfo.isRunning = false;
 			ATA_ERROR("airtaudio::api::Alsa::error creating callback thread!");
 			goto error;
@@ -745,7 +745,7 @@ setFormat:
 	}
 	return true;
 error:
-	if (apiInfo != NULL) {
+	if (apiInfo != nullptr) {
 		if (apiInfo->handles[0]) {
 			snd_pcm_close(apiInfo->handles[0]);
 		}
@@ -753,7 +753,7 @@ error:
 			snd_pcm_close(apiInfo->handles[1]);
 		}
 		delete apiInfo;
-		apiInfo = NULL;
+		apiInfo = nullptr;
 		m_stream.apiHandle = 0;
 	}
 	if (phandle) {
@@ -786,7 +786,7 @@ enum airtaudio::errorType airtaudio::api::Alsa::closeStream() {
 		apiInfo->runnable_cv.notify_one();
 	}
 	m_stream.mutex.unlock();
-	if (m_stream.callbackInfo.thread != NULL) {
+	if (m_stream.callbackInfo.thread != nullptr) {
 		m_stream.callbackInfo.thread->join();
 	}
 	if (m_stream.state == STREAM_RUNNING) {
@@ -800,7 +800,7 @@ enum airtaudio::errorType airtaudio::api::Alsa::closeStream() {
 			snd_pcm_drop(apiInfo->handles[1]);
 		}
 	}
-	if (apiInfo != NULL) {
+	if (apiInfo != nullptr) {
 		if (apiInfo->handles[0]) {
 			snd_pcm_close(apiInfo->handles[0]);
 		}
@@ -808,11 +808,11 @@ enum airtaudio::errorType airtaudio::api::Alsa::closeStream() {
 			snd_pcm_close(apiInfo->handles[1]);
 		}
 		delete apiInfo;
-		apiInfo = NULL;
+		apiInfo = nullptr;
 		m_stream.apiHandle = 0;
 	}
 	for (int32_t iii=0; iii<2; ++iii) {
-		if (m_stream.userBuffer[iii] != NULL) {
+		if (m_stream.userBuffer[iii] != nullptr) {
 			free(m_stream.userBuffer[iii]);
 			m_stream.userBuffer[iii] = 0;
 		}
@@ -969,7 +969,6 @@ void airtaudio::api::Alsa::callbackEvent() {
 		return; // TODO : notify appl: airtaudio::errorWarning;
 	}
 	int32_t doStopStream = 0;
-	airtaudio::AirTAudioCallback callback = (airtaudio::AirTAudioCallback) m_stream.callbackInfo.callback;
 	double streamTime = getStreamTime();
 	airtaudio::streamStatus status = 0;
 	if (m_stream.mode != INPUT && apiInfo->xrun[0] == true) {
@@ -980,12 +979,11 @@ void airtaudio::api::Alsa::callbackEvent() {
 		status |= airtaudio::INPUT_OVERFLOW;
 		apiInfo->xrun[1] = false;
 	}
-	doStopStream = callback(m_stream.userBuffer[0],
-	                        m_stream.userBuffer[1],
-	                        m_stream.bufferSize,
-	                        streamTime,
-	                        status,
-	                        m_stream.callbackInfo.userData);
+	doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[0],
+	                                              m_stream.userBuffer[1],
+	                                              m_stream.bufferSize,
+	                                              streamTime,
+	                                              status);
 	if (doStopStream == 2) {
 		abortStream();
 		return;

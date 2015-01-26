@@ -10,6 +10,8 @@
 #define __AIRTAUDIO_CALLBACK_INFO_H__
 
 #include <thread>
+#include <functional>
+#include <airtaudio/base.h>
 
 namespace airtaudio {
 	// This global structure type is used to pass callback information
@@ -19,8 +21,7 @@ namespace airtaudio {
 		public:
 			void* object; // Used as a "this" pointer.
 			std::thread* thread;
-			void* callback;
-			void* userData;
+			airtaudio::AirTAudioCallback callback;
 			void* apiInfo; // void pointer for API specific callback information
 			bool isRunning;
 			bool doRealtime;
@@ -28,10 +29,9 @@ namespace airtaudio {
 			
 			// Default constructor.
 			CallbackInfo() :
-			  object(0),
-			  callback(0),
-			  userData(0),
-			  apiInfo(0),
+			  object(nullptr),
+			  callback(nullptr),
+			  apiInfo(nullptr),
 			  isRunning(false),
 			  doRealtime(false) {
 				

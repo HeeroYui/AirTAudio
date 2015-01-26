@@ -248,7 +248,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		}
 	}
 	// Set exclusive access if specified.
-	if (    _options != NULL
+	if (    _options != nullptr
 	     && _options->flags & RTAUDIO_HOG_DEVICE) {
 		flags |= O_EXCL;
 	}
@@ -266,7 +266,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	// For duplex operation, specifically set this mode (this doesn't seem to work).
 	/*
 		if (flags | O_RDWR) {
-			result = ioctl(fd, SNDCTL_DSP_SETDUPLEX, NULL);
+			result = ioctl(fd, SNDCTL_DSP_SETDUPLEX, nullptr);
 			if (result == -1) {
 				m_errorStream << "airtaudio::api::Oss::probeDeviceOpen: error setting duplex mode for device (" << ainfo.name << ").";
 				m_errorText = m_errorStream.str();
@@ -391,10 +391,10 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		ossBufferBytes = 16;
 	}
 	int32_t buffers = 0;
-	if (_options != NULL) {
+	if (_options != nullptr) {
 		buffers = _options->numberOfBuffers;
 	}
-	if (    _options != NULL
+	if (    _options != nullptr
 	     && _options->flags & RTAUDIO_MINIMIZE_LATENCY) {
 		buffers = 2;
 	}
@@ -455,7 +455,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	// Allocate the stream handles if necessary and then save.
 	if (m_stream.apiHandle == 0) {
 		handle = new OssHandle;
-		if handle == NULL) {
+		if handle == nullptr) {
 			ATA_ERROR("airtaudio::api::Oss::probeDeviceOpen: error allocating OssHandle memory.");
 			goto error;
 		}
@@ -468,7 +468,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	uint64_t bufferBytes;
 	bufferBytes = m_stream.nUserChannels[_mode] * *_bufferSize * formatBytes(m_stream.userFormat);
 	m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
-	if (m_stream.userBuffer[_mode] == NULL) {
+	if (m_stream.userBuffer[_mode] == nullptr) {
 		ATA_ERROR("airtaudio::api::Oss::probeDeviceOpen: error allocating user buffer memory.");
 		goto error;
 	}
@@ -490,7 +490,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 				free(m_stream.deviceBuffer);
 			}
 			m_stream.deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_stream.deviceBuffer == NULL) {
+			if (m_stream.deviceBuffer == nullptr) {
 				ATA_ERROR("airtaudio::api::Oss::probeDeviceOpen: error allocating device buffer memory.");
 				goto error;
 			}
@@ -515,7 +515,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		m_stream.callbackInfo.object = (void *) this;
 		m_stream.callbackInfo.isRunning = true;
 		m_stream.callbackInfo.thread = new std::thread(ossCallbackHandler, &m_stream.callbackInfo);
-		if (m_stream.callbackInfo.thread == NULL) {
+		if (m_stream.callbackInfo.thread == nullptr) {
 			m_stream.callbackInfo.isRunning = false;
 			ATA_ERROR("airtaudio::api::Oss::error creating callback thread!");
 			goto error;
@@ -728,7 +728,6 @@ void airtaudio::api::Oss::callbackEvent() {
 	}
 	// Invoke user callback to get fresh output data.
 	int32_t doStopStream = 0;
-	airtaudio::AirTAudioCallback callback = (airtaudio::AirTAudioCallback) m_stream.callbackInfo.callback;
 	double streamTime = getStreamTime();
 	rtaudio::streamStatus status = 0;
 	if (    m_stream.mode != INPUT
@@ -741,12 +740,11 @@ void airtaudio::api::Oss::callbackEvent() {
 		status |= RTAUDIO_INPUT_OVERFLOW;
 		handle->xrun[1] = false;
 	}
-	doStopStream = callback(m_stream.userBuffer[0],
-	                        m_stream.userBuffer[1],
-	                        m_stream.bufferSize,
-	                        streamTime,
-	                        status,
-	                        m_stream.callbackInfo.userData);
+	doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[0],
+	                                              m_stream.userBuffer[1],
+	                                              m_stream.bufferSize,
+	                                              streamTime,
+	                                              status);
 	if (doStopStream == 2) {
 		this->abortStream();
 		return;

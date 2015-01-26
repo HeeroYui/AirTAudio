@@ -126,7 +126,6 @@ namespace airtaudio {
 			                                     uint32_t _sampleRate,
 			                                     uint32_t *_bufferFrames,
 			                                     airtaudio::AirTAudioCallback _callback,
-			                                     void *_userData,
 			                                     airtaudio::StreamOptions *_options);
 			virtual enum airtaudio::errorType closeStream();
 			virtual enum airtaudio::errorType startStream() = 0;

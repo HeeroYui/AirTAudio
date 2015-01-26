@@ -120,24 +120,21 @@ enum airtaudio::errorType airtaudio::api::Android::abortStream() {
 void airtaudio::api::Android::callBackEvent(void* _data,
                                             int32_t _frameRate) {
 	int32_t doStopStream = 0;
-	airtaudio::AirTAudioCallback callback = (airtaudio::AirTAudioCallback) m_stream.callbackInfo.callback;
 	double streamTime = getStreamTime();
 	airtaudio::streamStatus status = 0;
 	if (m_stream.doConvertBuffer[OUTPUT] == true) {
-		doStopStream = callback(m_stream.userBuffer[OUTPUT],
-		                        NULL,
-		                        _frameRate,
-		                        streamTime,
-		                        status,
-		                        m_stream.callbackInfo.userData);
+		doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[OUTPUT],
+		                                              nullptr,
+		                                              _frameRate,
+		                                              streamTime,
+		                                              status);
 		convertBuffer((char*)_data, (char*)m_stream.userBuffer[OUTPUT], m_stream.convertInfo[OUTPUT]);
 	} else {
-		doStopStream = callback(_data,
-		                        NULL,
-		                        _frameRate,
-		                        streamTime,
-		                        status,
-		                        m_stream.callbackInfo.userData);
+		doStopStream = m_stream.callbackInfo.callback(_data,
+		                                              nullptr,
+		                                              _frameRate,
+		                                              streamTime,
+		                                              status);
 	}
 	if (doStopStream == 2) {
 		abortStream();
@@ -149,8 +146,8 @@ void airtaudio::api::Android::callBackEvent(void* _data,
 void airtaudio::api::Android::androidCallBackEvent(void* _data,
                                                    int32_t _frameRate,
                                                    void* _userData) {
-	if (_userData == NULL) {
-		ATA_INFO("callback event ... NULL pointer");
+	if (_userData == nullptr) {
+		ATA_INFO("callback event ... nullptr pointer");
 		return;
 	}
 	airtaudio::api::Android* myClass = static_cast<airtaudio::api::Android*>(_userData);
@@ -203,7 +200,7 @@ bool airtaudio::api::Android::probeDeviceOpen(uint32_t _device,
 		// Allocate necessary internal buffers.
 		uint64_t bufferBytes = m_stream.nUserChannels[_mode] * m_stream.bufferSize * formatBytes(m_stream.userFormat);
 		m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
-		if (m_stream.userBuffer[_mode] == NULL) {
+		if (m_stream.userBuffer[_mode] == nullptr) {
 			ATA_ERROR("airtaudio::api::Android::probeDeviceOpen: error allocating user buffer memory.");
 		}
 		setConvertInfo(_mode, _firstChannel);

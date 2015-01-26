@@ -6,8 +6,8 @@
  * @license BSD 3 clauses (see license file)
  */
 
-#ifndef __EAUDIOFX_DEBUG_H__
-#define __EAUDIOFX_DEBUG_H__
+#ifndef __AIRTAUDIO_DEBUG_H__
+#define __AIRTAUDIO_DEBUG_H__
 
 #include <etk/log.h>
 

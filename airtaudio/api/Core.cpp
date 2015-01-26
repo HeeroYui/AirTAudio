@@ -71,7 +71,7 @@ airtaudio::api::Core::Core() {
 	// requirement starting with OS-X 10.6.	If not called, queries and
 	// updates to various audio device properties are not handled
 	// correctly.
-	CFRunLoopRef theRunLoop = NULL;
+	CFRunLoopRef theRunLoop = nullptr;
 	AudioObjectPropertyAddress property = {
 		kAudioHardwarePropertyRunLoop,
 		kAudioObjectPropertyScopeGlobal,
@@ -80,7 +80,7 @@ airtaudio::api::Core::Core() {
 	OSStatus result = AudioObjectSetPropertyData(kAudioObjectSystemObject,
 	                                             &property,
 	                                             0,
-	                                             NULL,
+	                                             nullptr,
 	                                             sizeof(CFRunLoopRef),
 	                                             &theRunLoop);
 	if (result != noErr) {
@@ -106,7 +106,7 @@ uint32_t airtaudio::api::Core::getDeviceCount() {
 		kAudioObjectPropertyScopeGlobal,
 		kAudioObjectPropertyElementMaster
 	};
-	OSStatus result = AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &propertyAddress, 0, NULL, &dataSize);
+	OSStatus result = AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &propertyAddress, 0, nullptr, &dataSize);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::getDeviceCount: OS-X error getting device info!");
 		return 0;
@@ -129,7 +129,7 @@ uint32_t airtaudio::api::Core::getDefaultInputDevice() {
 	OSStatus result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                             &property,
 	                                             0,
-	                                             NULL,
+	                                             nullptr,
 	                                             &dataSize,
 	                                             &id);
 	if (result != noErr) {
@@ -142,7 +142,7 @@ uint32_t airtaudio::api::Core::getDefaultInputDevice() {
 	result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                    &property,
 	                                    0,
-	                                    NULL,
+	                                    nullptr,
 	                                    &dataSize,
 	                                    (void*)&deviceList);
 	if (result != noErr) {
@@ -173,7 +173,7 @@ uint32_t airtaudio::api::Core::getDefaultOutputDevice() {
 	OSStatus result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                             &property,
 	                                             0,
-	                                             NULL,
+	                                             nullptr,
 	                                             &dataSize,
 	                                             &id);
 	if (result != noErr) {
@@ -186,7 +186,7 @@ uint32_t airtaudio::api::Core::getDefaultOutputDevice() {
 	result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                    &property,
 	                                    0,
-	                                    NULL,
+	                                    nullptr,
 	                                    &dataSize,
 	                                    (void*)&deviceList);
 	if (result != noErr) {
@@ -225,7 +225,7 @@ airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 	OSStatus result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                             &property,
 	                                             0,
-	                                             NULL,
+	                                             nullptr,
 	                                             &dataSize,
 	                                             (void*)&deviceList);
 	if (result != noErr) {
@@ -238,7 +238,7 @@ airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 	CFStringRef cfname;
 	dataSize = sizeof(CFStringRef);
 	property.mSelector = kAudioObjectPropertyManufacturer;
-	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &cfname);
+	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &cfname);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceInfo: system error (" << getErrorCode(result) << ") getting device manufacturer.");
 		return info;
@@ -252,7 +252,7 @@ airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 	CFRelease(cfname);
 	free(mname);
 	property.mSelector = kAudioObjectPropertyName;
-	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &cfname);
+	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &cfname);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceInfo: system error (" << getErrorCode(result) << ") getting device name.");
 		return info;
@@ -270,18 +270,18 @@ airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 	property.mScope = kAudioDevicePropertyScopeOutput;
 	//	property.mElement = kAudioObjectPropertyElementWildcard;
 	dataSize = 0;
-	result = AudioObjectGetPropertyDataSize(id, &property, 0, NULL, &dataSize);
+	result = AudioObjectGetPropertyDataSize(id, &property, 0, nullptr, &dataSize);
 	if (result != noErr || dataSize == 0) {
 		ATA_ERROR("airtaudio::api::Core::getDeviceInfo: system error (" << getErrorCode(result) << ") getting output stream configuration info for device (" << _device << ").");
 		return info;
 	}
 	// Allocate the AudioBufferList.
 	bufferList = (AudioBufferList *) malloc(dataSize);
-	if (bufferList == NULL) {
+	if (bufferList == nullptr) {
 		ATA_ERROR("airtaudio::api::Core::getDeviceInfo: memory error allocating output AudioBufferList.");
 		return info;
 	}
-	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, bufferList);
+	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, bufferList);
 	if (    result != noErr
 	     || dataSize == 0) {
 		free(bufferList);
@@ -296,7 +296,7 @@ airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 	free(bufferList);
 	// Get the input stream "configuration".
 	property.mScope = kAudioDevicePropertyScopeInput;
-	result = AudioObjectGetPropertyDataSize(id, &property, 0, NULL, &dataSize);
+	result = AudioObjectGetPropertyDataSize(id, &property, 0, nullptr, &dataSize);
 	if (    result != noErr
 	     || dataSize == 0) {
 		ATA_ERROR("airtaudio::api::Core::getDeviceInfo: system error (" << getErrorCode(result) << ") getting input stream configuration info for device (" << _device << ").");
@@ -304,11 +304,11 @@ airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 	}
 	// Allocate the AudioBufferList.
 	bufferList = (AudioBufferList *) malloc(dataSize);
-	if (bufferList == NULL) {
+	if (bufferList == nullptr) {
 		ATA_ERROR("airtaudio::api::Core::getDeviceInfo: memory error allocating input AudioBufferList.");
 		return info;
 	}
-	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, bufferList);
+	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, bufferList);
 	if (result != noErr || dataSize == 0) {
 		free(bufferList);
 		ATA_ERROR("airtaudio::api::Core::getDeviceInfo: system error (" << getErrorCode(result) << ") getting input stream configuration for device (" << _device << ").");
@@ -333,7 +333,7 @@ airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 	// Determine the supported sample rates.
 	property.mSelector = kAudioDevicePropertyAvailableNominalSampleRates;
 	if (isInput == false) property.mScope = kAudioDevicePropertyScopeOutput;
-	result = AudioObjectGetPropertyDataSize(id, &property, 0, NULL, &dataSize);
+	result = AudioObjectGetPropertyDataSize(id, &property, 0, nullptr, &dataSize);
 	if (    result != kAudioHardwareNoError
 	     || dataSize == 0) {
 		ATA_ERROR("airtaudio::api::Core::getDeviceInfo: system error (" << getErrorCode(result) << ") getting sample rate info.");
@@ -341,7 +341,7 @@ airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 	}
 	uint32_t nRanges = dataSize / sizeof(AudioValueRange);
 	AudioValueRange rangeList[ nRanges ];
-	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &rangeList);
+	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &rangeList);
 	if (result != kAudioHardwareNoError) {
 		ATA_ERROR("airtaudio::api::Core::getDeviceInfo: system error (" << getErrorCode(result) << ") getting sample rates.");
 		return info;
@@ -427,7 +427,7 @@ static OSStatus rateListener(AudioObjectID _inDevice,
 		kAudioObjectPropertyScopeGlobal,
 		kAudioObjectPropertyElementMaster
 	};
-	AudioObjectGetPropertyData(_inDevice, &property, 0, NULL, &dataSize, rate);
+	AudioObjectGetPropertyData(_inDevice, &property, 0, nullptr, &dataSize, rate);
 	return kAudioHardwareNoError;
 }
 
@@ -461,7 +461,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	OSStatus result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                             &property,
 	                                             0,
-	                                             NULL,
+	                                             nullptr,
 	                                             &dataSize,
 	                                             (void *) &deviceList);
 	if (result != noErr) {
@@ -481,7 +481,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	AudioBufferList	*bufferList = nil;
 	dataSize = 0;
 	property.mSelector = kAudioDevicePropertyStreamConfiguration;
-	result = AudioObjectGetPropertyDataSize(id, &property, 0, NULL, &dataSize);
+	result = AudioObjectGetPropertyDataSize(id, &property, 0, nullptr, &dataSize);
 	if (    result != noErr
 	     || dataSize == 0) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting stream configuration info for device (" << _device << ").");
@@ -489,11 +489,11 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	}
 	// Allocate the AudioBufferList.
 	bufferList = (AudioBufferList *) malloc(dataSize);
-	if (bufferList == NULL) {
+	if (bufferList == nullptr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: memory error allocating AudioBufferList.");
 		return false;
 	}
-	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, bufferList);
+	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, bufferList);
 	if (    result != noErr
 	     || dataSize == 0) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting stream configuration for device (" << _device << ").");
@@ -569,7 +569,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	AudioValueRange	bufferRange;
 	dataSize = sizeof(AudioValueRange);
 	property.mSelector = kAudioDevicePropertyBufferFrameSizeRange;
-	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &bufferRange);
+	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &bufferRange);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting buffer size range for device (" << _device << ").");
 		return false;
@@ -579,7 +579,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	} else if (bufferRange.mMaximum < *_bufferSize) {
 		*_bufferSize = (uint64_t) bufferRange.mMaximum;
 	}
-	if (    _options != NULL
+	if (    _options != nullptr
 	     && _options->flags & MINIMIZE_LATENCY) {
 		*_bufferSize = (uint64_t) bufferRange.mMinimum;
 	}
@@ -588,7 +588,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	uint32_t theSize = (uint32_t) *_bufferSize;
 	dataSize = sizeof(uint32_t);
 	property.mSelector = kAudioDevicePropertyBufferFrameSize;
-	result = AudioObjectSetPropertyData(id, &property, 0, NULL, dataSize, &theSize);
+	result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &theSize);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") setting the buffer size for device (" << _device << ").");
 		return false;
@@ -605,19 +605,19 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	m_stream.bufferSize = *_bufferSize;
 	m_stream.nBuffers = 1;
 	// Try to set "hog" mode ... it's not clear to me this is working.
-	if (    _options != NULL
+	if (    _options != nullptr
 	     && _options->flags & HOG_DEVICE) {
 		pid_t hog_pid;
 		dataSize = sizeof(hog_pid);
 		property.mSelector = kAudioDevicePropertyHogMode;
-		result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &hog_pid);
+		result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &hog_pid);
 		if (result != noErr) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting 'hog' state!");
 			return false;
 		}
 		if (hog_pid != getpid()) {
 			hog_pid = getpid();
-			result = AudioObjectSetPropertyData(id, &property, 0, NULL, dataSize, &hog_pid);
+			result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &hog_pid);
 			if (result != noErr) {
 				ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") setting 'hog' state!");
 				return false;
@@ -628,7 +628,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	double nominalRate;
 	dataSize = sizeof(double);
 	property.mSelector = kAudioDevicePropertyNominalSampleRate;
-	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &nominalRate);
+	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &nominalRate);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting current sample rate.");
 		return false;
@@ -644,7 +644,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 			return false;
 		}
 		nominalRate = (double) _sampleRate;
-		result = AudioObjectSetPropertyData(id, &property, 0, NULL, dataSize, &nominalRate);
+		result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &nominalRate);
 		if (result != noErr) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") setting sample rate for device (" << _device << ").");
 			return false;
@@ -670,7 +670,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	AudioStreamBasicDescription	description;
 	dataSize = sizeof(AudioStreamBasicDescription);
 	property.mSelector = kAudioStreamPropertyVirtualFormat;
-	result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &description);
+	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &description);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting stream format for device (" << _device << ").");
 		return false;
@@ -688,7 +688,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		updateFormat = true;
 	}
 	if (updateFormat) {
-		result = AudioObjectSetPropertyData(id, &property, 0, NULL, dataSize, &description);
+		result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &description);
 		if (result != noErr) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") setting sample rate or data format for device (" << _device << ").");
 			return false;
@@ -696,7 +696,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	}
 	// Now check the physical format.
 	property.mSelector = kAudioStreamPropertyPhysicalFormat;
-	result = AudioObjectGetPropertyData(id, &property, 0, NULL,	&dataSize, &description);
+	result = AudioObjectGetPropertyData(id, &property, 0, nullptr,	&dataSize, &description);
 	if (result != noErr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: system error (" << getErrorCode(result) << ") getting stream physical format for device (" << _device << ").");
 		return false;
@@ -738,7 +738,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 				testDescription.mBytesPerFrame =	testDescription.mBitsPerChannel/8 * testDescription.mChannelsPerFrame;
 			}
 			testDescription.mBytesPerPacket = testDescription.mBytesPerFrame * testDescription.mFramesPerPacket;
-			result = AudioObjectSetPropertyData(id, &property, 0, NULL, dataSize, &testDescription);
+			result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &testDescription);
 			if (result == noErr) {
 				setPhysicalFormat = true;
 				//std::cout << "Updated physical stream format:" << std::endl;
@@ -759,7 +759,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	dataSize = sizeof(uint32_t);
 	property.mSelector = kAudioDevicePropertyLatency;
 	if (AudioObjectHasProperty(id, &property) == true) {
-		result = AudioObjectGetPropertyData(id, &property, 0, NULL, &dataSize, &latency);
+		result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &latency);
 		if (result == kAudioHardwareNoError) {
 			m_stream.latency[ _mode ] = latency;
 		} else {
@@ -783,7 +783,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	}
 	m_stream.nUserChannels[_mode] = _channels;
 	m_stream.channelOffset[_mode] = channelOffset;	// offset within a CoreAudio stream
-	if (    _options != NULL
+	if (    _options != nullptr
 	     && _options->flags & NONINTERLEAVED) {
 		m_stream.userInterleaved = false;
 	} else {
@@ -813,7 +813,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	CoreHandle *handle = 0;
 	if (m_stream.apiHandle == 0) {
 		handle = new CoreHandle;
-		if (handle == NULL) {
+		if (handle == nullptr) {
 			ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: error allocating CoreHandle memory.");
 			return false;
 		}
@@ -830,7 +830,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	//	m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
 	m_stream.userBuffer[_mode] = (char *) malloc(bufferBytes * sizeof(char));
 	memset(m_stream.userBuffer[_mode], 0, bufferBytes * sizeof(char));
-	if (m_stream.userBuffer[_mode] == NULL) {
+	if (m_stream.userBuffer[_mode] == nullptr) {
 		ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: error allocating user buffer memory.");
 		goto error;
 	}
@@ -854,10 +854,10 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 			bufferBytes *= *_bufferSize;
 			if (m_stream.deviceBuffer) {
 				free(m_stream.deviceBuffer);
-				m_stream.deviceBuffer = NULL;
+				m_stream.deviceBuffer = nullptr;
 			}
 			m_stream.deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_stream.deviceBuffer == NULL) {
+			if (m_stream.deviceBuffer == nullptr) {
 				ATA_ERROR("airtaudio::api::Core::probeDeviceOpen: error allocating device buffer memory.");
 				goto error;
 			}
@@ -955,12 +955,12 @@ enum airtaudio::errorType airtaudio::api::Core::closeStream() {
 	for (int32_t i=0; i<2; i++) {
 		if (m_stream.userBuffer[i]) {
 			free(m_stream.userBuffer[i]);
-			m_stream.userBuffer[i] = NULL;
+			m_stream.userBuffer[i] = nullptr;
 		}
 	}
 	if (m_stream.deviceBuffer) {
 		free(m_stream.deviceBuffer);
-		m_stream.deviceBuffer = NULL;
+		m_stream.deviceBuffer = nullptr;
 	}
 	delete handle;
 	m_stream.apiHandle = 0;
@@ -1099,7 +1099,6 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 	// draining stream or duplex mode AND the input/output devices are
 	// different AND this function is called for the input device.
 	if (handle->drainCounter == 0 && (m_stream.mode != DUPLEX || _deviceId == outputDevice)) {
-		airtaudio::AirTAudioCallback callback = (airtaudio::AirTAudioCallback) info->callback;
 		double streamTime = getStreamTime();
 		airtaudio::streamStatus status = 0;
 		if (    m_stream.mode != INPUT
@@ -1112,12 +1111,11 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 			status |= INPUT_OVERFLOW;
 			handle->xrun[1] = false;
 		}
-		int32_t cbReturnValue = callback(m_stream.userBuffer[0],
-		                                 m_stream.userBuffer[1],
-		                                 m_stream.bufferSize,
-		                                 streamTime,
-		                                 status,
-		                                 info->userData);
+		int32_t cbReturnValue = info->callback(m_stream.userBuffer[0],
+		                                       m_stream.userBuffer[1],
+		                                       m_stream.bufferSize,
+		                                       streamTime,
+		                                       status);
 		if (cbReturnValue == 2) {
 			m_stream.state = STREAM_STOPPING;
 			handle->drainCounter = 2;

@@ -173,8 +173,6 @@ namespace airtaudio {
 			 *           allowable value is determined.
 			 * @param  _callback A client-defined function that will be invoked
 			 *           when input data is available and/or output data is needed.
-			 * @param  _userData An optional pointer to data that can be accessed
-			 *           from within the callback function.
 			 * @param  _options An optional pointer to a structure containing various
 			 *           global stream options, including a list of OR'ed airtaudio::streamFlags
 			 *           and a suggested number of stream buffers that can be used to 
@@ -193,7 +191,6 @@ namespace airtaudio {
 			                                     uint32_t _sampleRate,
 			                                     uint32_t *_bufferFrames,
 			                                     airtaudio::AirTAudioCallback _callback,
-			                                     void *_userData = nullptr,
 			                                     airtaudio::StreamOptions *_options = nullptr);
 			
 			/**

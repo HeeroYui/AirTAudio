@@ -12,6 +12,7 @@
 #include <thread>
 #include <condition_variable>
 #include <mutex>
+#include <functional>
 
 // defien type : uintXX_t and intXX_t
 #define __STDC_LIMIT_MACROS
@@ -158,13 +159,13 @@ namespace airtaudio {
 	 *          should write \c nFrames of audio sample frames into this
 	 *          buffer.	This argument should be recast to the datatype
 	 *          specified when the stream was opened. For input-only
-	 *          streams, this argument will be NULL.
+	 *          streams, this argument will be nullptr.
 	 * 
 	 * @param _inputBuffer For input (or duplex) streams, this buffer will
 	 *          hold \c nFrames of input audio sample frames. This
 	 *          argument should be recast to the datatype specified when the
 	 *          stream was opened.	For output-only streams, this argument
-	 *          will be NULL.
+	 *          will be nullptr.
 	 * 
 	 * @param _nFrames The number of sample frames of input or output
 	 *          data in the buffers. The actual buffer size in bytes is
@@ -178,20 +179,16 @@ namespace airtaudio {
 	 *          condition can be determined by comparison with the
 	 *          streamStatus flags.
 	 * 
-	 * @param _userData A pointer to optional data provided by the client
-	 *          when opening the stream (default = NULL).
-	 * 
 	 * To continue normal stream operation, the RtAudioCallback function
 	 * should return a value of zero. To stop the stream and drain the
 	 * output buffer, the function should return a value of one. To abort
 	 * the stream immediately, the client should return a value of two.
 	 */
-	typedef int32_t (*AirTAudioCallback)(void *_outputBuffer,
-	                                     void *_inputBuffer,
-	                                     uint32_t _nFrames,
-	                                     double _streamTime,
-	                                     airtaudio::streamStatus _status,
-	                                     void *_userData);
+	typedef std::function<int32_t (void* _outputBuffer,
+	                               const void* const _inputBuffer,
+	                               uint32_t _nFrames,
+	                               double _streamTime,
+	                               airtaudio::streamStatus _status)> AirTAudioCallback;
 }
 
 #include <airtaudio/DeviceInfo.h>

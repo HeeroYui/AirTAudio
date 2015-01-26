@@ -76,22 +76,21 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
                                                      uint32_t sampleRate,
                                                      uint32_t *bufferFrames,
                                                      airtaudio::AirTAudioCallback callback,
-                                                     void *userData,
                                                      airtaudio::StreamOptions *options) {
 	if (m_stream.state != airtaudio::api::STREAM_CLOSED) {
 		ATA_ERROR("airtaudio::Api::openStream: a stream is already open!");
 		return airtaudio::errorInvalidUse;
 	}
 	if (oParams && oParams->nChannels < 1) {
-		ATA_ERROR("airtaudio::Api::openStream: a non-NULL output StreamParameters structure cannot have an nChannels value less than one.");
+		ATA_ERROR("airtaudio::Api::openStream: a non-nullptr output StreamParameters structure cannot have an nChannels value less than one.");
 		return airtaudio::errorInvalidUse;
 	}
 	if (iParams && iParams->nChannels < 1) {
-		ATA_ERROR("airtaudio::Api::openStream: a non-NULL input StreamParameters structure cannot have an nChannels value less than one.");
+		ATA_ERROR("airtaudio::Api::openStream: a non-nullptr input StreamParameters structure cannot have an nChannels value less than one.");
 		return airtaudio::errorInvalidUse;
 	}
-	if (oParams == NULL && iParams == NULL) {
-		ATA_ERROR("airtaudio::Api::openStream: input and output StreamParameters structures are both NULL!");
+	if (oParams == nullptr && iParams == nullptr) {
+		ATA_ERROR("airtaudio::Api::openStream: input and output StreamParameters structures are both nullptr!");
 		return airtaudio::errorInvalidUse;
 	}
 	if (formatBytes(format) == 0) {
@@ -148,9 +147,8 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
 			return airtaudio::errorSystemError;
 		}
 	}
-	m_stream.callbackInfo.callback = (void *) callback;
-	m_stream.callbackInfo.userData = userData;
-	if (options != NULL) {
+	m_stream.callbackInfo.callback = callback;
+	if (options != nullptr) {
 		options->numberOfBuffers = m_stream.nBuffers;
 	}
 	m_stream.state = airtaudio::api::STREAM_STOPPED;
@@ -190,7 +188,7 @@ void airtaudio::Api::tickStreamTime() {
 	// provide basic stream time support.
 	m_stream.streamTime += (m_stream.bufferSize * 1.0 / m_stream.sampleRate);
 #if defined(HAVE_GETTIMEOFDAY)
-	gettimeofday(&m_stream.lastTickTimestamp, NULL);
+	gettimeofday(&m_stream.lastTickTimestamp, nullptr);
 #endif
 }
 
@@ -222,7 +220,7 @@ double airtaudio::Api::getStreamTime() {
 	if (m_stream.state != airtaudio::api::STREAM_RUNNING || m_stream.streamTime == 0.0) {
 		return m_stream.streamTime;
 	}
-	gettimeofday(&now, NULL);
+	gettimeofday(&now, nullptr);
 	then = m_stream.lastTickTimestamp;
 	return   m_stream.streamTime
 	       + ((now.tv_sec + 0.000001 * now.tv_usec)
@@ -259,7 +257,6 @@ void airtaudio::Api::clearStreamInfo() {
 	m_stream.apiHandle = 0;
 	m_stream.deviceBuffer = 0;
 	m_stream.callbackInfo.callback = 0;
-	m_stream.callbackInfo.userData = 0;
 	m_stream.callbackInfo.isRunning = false;
 	for (int32_t iii=0; iii<2; ++iii) {
 		m_stream.device[iii] = 11111;
@@ -808,8 +805,8 @@ void airtaudio::Api::convertBuffer(char *_outBuffer, char *_inBuffer, airtaudio:
 }
 
 void airtaudio::Api::byteSwapBuffer(char *_buffer, uint32_t _samples, airtaudio::format _format) {
-	register char val;
-	register char *ptr;
+	char val;
+	char *ptr;
 	ptr = _buffer;
 	if (_format == airtaudio::SINT16) {
 		for (uint32_t iii=0; iii<_samples; ++iii) {

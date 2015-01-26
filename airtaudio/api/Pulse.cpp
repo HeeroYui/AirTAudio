@@ -108,22 +108,22 @@ enum airtaudio::errorType airtaudio::api::Pulse::closeStream() {
 		m_stream.mutex.unlock();
 		pah->thread->join();
 		if (pah->s_play) {
-			pa_simple_flush(pah->s_play, NULL);
+			pa_simple_flush(pah->s_play, nullptr);
 			pa_simple_free(pah->s_play);
 		}
 		if (pah->s_rec) {
 			pa_simple_free(pah->s_rec);
 		}
 		delete pah;
-		m_stream.apiHandle = NULL;
+		m_stream.apiHandle = nullptr;
 	}
-	if (m_stream.userBuffer[0] != NULL) {
+	if (m_stream.userBuffer[0] != nullptr) {
 		free(m_stream.userBuffer[0]);
-		m_stream.userBuffer[0] = NULL;
+		m_stream.userBuffer[0] = nullptr;
 	}
-	if (m_stream.userBuffer[1] != NULL) {
+	if (m_stream.userBuffer[1] != nullptr) {
 		free(m_stream.userBuffer[1]);
-		m_stream.userBuffer[1] = NULL;
+		m_stream.userBuffer[1] = nullptr;
 	}
 	m_stream.state = STREAM_CLOSED;
 	m_stream.mode = UNINITIALIZED;
@@ -146,15 +146,13 @@ void airtaudio::api::Pulse::callbackEvent() {
 		ATA_ERROR("airtaudio::api::Pulse::callbackEvent(): the stream is closed ... this shouldn't happen!");
 		return;
 	}
-	airtaudio::AirTAudioCallback callback = (airtaudio::AirTAudioCallback) m_stream.callbackInfo.callback;
 	double streamTime = getStreamTime();
 	airtaudio::streamStatus status = 0;
-	int32_t doStopStream = callback(m_stream.userBuffer[OUTPUT],
-	                                m_stream.userBuffer[INPUT],
-	                                m_stream.bufferSize,
-	                                streamTime,
-	                                status,
-	                                m_stream.callbackInfo.userData);
+	int32_t doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[OUTPUT],
+	                                                      m_stream.userBuffer[INPUT],
+	                                                      m_stream.bufferSize,
+	                                                      streamTime,
+	                                                      status);
 	if (doStopStream == 2) {
 		abortStream();
 		return;
@@ -346,7 +344,7 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t _device,
 	// Allocate necessary internal buffers.
 	bufferBytes = m_stream.nUserChannels[_mode] * *_bufferSize * formatBytes(m_stream.userFormat);
 	m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
-	if (m_stream.userBuffer[_mode] == NULL) {
+	if (m_stream.userBuffer[_mode] == nullptr) {
 		ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error allocating user buffer memory.");
 		goto error;
 	}
@@ -364,7 +362,7 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t _device,
 			bufferBytes *= *_bufferSize;
 			if (m_stream.deviceBuffer) free(m_stream.deviceBuffer);
 			m_stream.deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_stream.deviceBuffer == NULL) {
+			if (m_stream.deviceBuffer == nullptr) {
 				ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error allocating device buffer memory.");
 				goto error;
 			}
@@ -387,14 +385,14 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t _device,
 	int32_t error;
 	switch (_mode) {
 		case INPUT:
-			pah->s_rec = pa_simple_new(NULL, "RtAudio", PA_STREAM_RECORD, NULL, "Record", &ss, NULL, NULL, &error);
+			pah->s_rec = pa_simple_new(nullptr, "airtAudio", PA_STREAM_RECORD, nullptr, "Record", &ss, nullptr, nullptr, &error);
 			if (!pah->s_rec) {
 				ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error connecting input to PulseAudio server.");
 				goto error;
 			}
 			break;
 		case OUTPUT:
-			pah->s_play = pa_simple_new(NULL, "RtAudio", PA_STREAM_PLAYBACK, NULL, "Playback", &ss, NULL, NULL, &error);
+			pah->s_play = pa_simple_new(nullptr, "airtAudio", PA_STREAM_PLAYBACK, nullptr, "Playback", &ss, nullptr, nullptr, &error);
 			if (!pah->s_play) {
 				ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error connecting output to PulseAudio server.");
 				goto error;
@@ -414,7 +412,7 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t _device,
 		m_stream.callbackInfo.object = this;
 		m_stream.callbackInfo.isRunning = true;
 		pah->thread = new std::thread(pulseaudio_callback, (void *)&m_stream.callbackInfo);
-		if (pah->thread == NULL) {
+		if (pah->thread == nullptr) {
 			ATA_ERROR("airtaudio::api::Pulse::probeDeviceOpen: error creating thread.");
 			goto error;
 		}

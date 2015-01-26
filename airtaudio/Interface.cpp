@@ -24,7 +24,6 @@ std::vector<airtaudio::api::type> airtaudio::Interface::getCompiledApi() {
 
 
 void airtaudio::Interface::openRtApi(airtaudio::api::type _api) {
-	
 	delete m_rtapi;
 	m_rtapi = nullptr;
 	for (auto &it :m_apiAvaillable) {
@@ -146,7 +145,6 @@ enum airtaudio::errorType airtaudio::Interface::openStream(
                 uint32_t _sampleRate,
                 uint32_t* _bufferFrames,
                 airtaudio::AirTAudioCallback _callback,
-                void* _userData,
                 airtaudio::StreamOptions* _options) {
 	if (m_rtapi == nullptr) {
 		return airtaudio::errorInputNull;
@@ -157,7 +155,6 @@ enum airtaudio::errorType airtaudio::Interface::openStream(
 	                           _sampleRate,
 	                           _bufferFrames,
 	                           _callback,
-	                           _userData,
 	                           _options);
 }
 

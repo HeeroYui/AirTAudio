@@ -88,15 +88,15 @@ airtaudio::api::Jack::~Jack() {
 uint32_t airtaudio::api::Jack::getDeviceCount() {
 	// See if we can become a jack client.
 	jack_options_t options = (jack_options_t) (JackNoStartServer); //JackNullOption;
-	jack_status_t *status = NULL;
+	jack_status_t *status = nullptr;
 	jack_client_t *client = jack_client_open("RtApiJackCount", options, status);
-	if (client == NULL) {
+	if (client == nullptr) {
 		return 0;
 	}
 	const char **ports;
 	std::string port, previousPort;
 	uint32_t nChannels = 0, nDevices = 0;
-	ports = jack_get_ports(client, NULL, NULL, 0);
+	ports = jack_get_ports(client, nullptr, nullptr, 0);
 	if (ports) {
 		// Parse the port names up to the first colon (:).
 		size_t iColon = 0;
@@ -121,9 +121,9 @@ airtaudio::DeviceInfo airtaudio::api::Jack::getDeviceInfo(uint32_t _device) {
 	airtaudio::DeviceInfo info;
 	info.probed = false;
 	jack_options_t options = (jack_options_t) (JackNoStartServer); //JackNullOption
-	jack_status_t *status = NULL;
+	jack_status_t *status = nullptr;
 	jack_client_t *client = jack_client_open("RtApiJackInfo", options, status);
-	if (client == NULL) {
+	if (client == nullptr) {
 		ATA_ERROR("airtaudio::api::Jack::getDeviceInfo: Jack server not found or connection error!");
 		// TODO : airtaudio::errorWarning;
 		return info;
@@ -131,7 +131,7 @@ airtaudio::DeviceInfo airtaudio::api::Jack::getDeviceInfo(uint32_t _device) {
 	const char **ports;
 	std::string port, previousPort;
 	uint32_t nPorts = 0, nDevices = 0;
-	ports = jack_get_ports(client, NULL, NULL, 0);
+	ports = jack_get_ports(client, nullptr, nullptr, 0);
 	if (ports) {
 		// Parse the port names up to the first colon (:).
 		size_t iColon = 0;
@@ -163,7 +163,7 @@ airtaudio::DeviceInfo airtaudio::api::Jack::getDeviceInfo(uint32_t _device) {
 	// Count the available ports containing the client name as device
 	// channels.	Jack "input ports" equal RtAudio output channels.
 	uint32_t nChannels = 0;
-	ports = jack_get_ports(client, info.name.c_str(), NULL, JackPortIsInput);
+	ports = jack_get_ports(client, info.name.c_str(), nullptr, JackPortIsInput);
 	if (ports) {
 		while (ports[ nChannels ]) {
 			nChannels++;
@@ -173,7 +173,7 @@ airtaudio::DeviceInfo airtaudio::api::Jack::getDeviceInfo(uint32_t _device) {
 	}
 	// Jack "output ports" equal RtAudio input channels.
 	nChannels = 0;
-	ports = jack_get_ports(client, info.name.c_str(), NULL, JackPortIsOutput);
+	ports = jack_get_ports(client, info.name.c_str(), nullptr, JackPortIsOutput);
 	if (ports) {
 		while (ports[ nChannels ]) {
 			nChannels++;
@@ -267,7 +267,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	     || (    _mode == INPUT
 	          && m_stream.mode != OUTPUT)) {
 		jack_options_t jackoptions = (jack_options_t) (JackNoStartServer); //JackNullOption;
-		jack_status_t *status = NULL;
+		jack_status_t *status = nullptr;
 		if (_options && !_options->streamName.empty()) {
 			client = jack_client_open(_options->streamName.c_str(), jackoptions, status);
 		} else {
@@ -284,7 +284,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	const char **ports;
 	std::string port, previousPort, deviceName;
 	uint32_t nPorts = 0, nDevices = 0;
-	ports = jack_get_ports(client, NULL, NULL, 0);
+	ports = jack_get_ports(client, nullptr, nullptr, 0);
 	if (ports) {
 		// Parse the port names up to the first colon (:).
 		size_t iColon = 0;
@@ -313,7 +313,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	uint32_t nChannels = 0;
 	uint64_t flag = JackPortIsInput;
 	if (_mode == INPUT) flag = JackPortIsOutput;
-	ports = jack_get_ports(client, deviceName.c_str(), NULL, flag);
+	ports = jack_get_ports(client, deviceName.c_str(), nullptr, flag);
 	if (ports) {
 		while (ports[ nChannels ]) {
 			nChannels++;
@@ -334,7 +334,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	}
 	m_stream.sampleRate = jackRate;
 	// Get the latency of the JACK port.
-	ports = jack_get_ports(client, deviceName.c_str(), NULL, flag);
+	ports = jack_get_ports(client, deviceName.c_str(), nullptr, flag);
 	if (ports[ _firstChannel ]) {
 		// Added by Ge Wang
 		jack_latency_callback_mode_t cbmode = (_mode == INPUT ? JackCaptureLatency : JackPlaybackLatency);
@@ -377,7 +377,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	// Allocate our JackHandle structure for the stream.
 	if (handle == 0) {
 		handle = new JackHandle;
-		if (handle == NULL) {
+		if (handle == nullptr) {
 			ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: error allocating JackHandle memory.");
 			goto error;
 		}
@@ -389,7 +389,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	uint64_t bufferBytes;
 	bufferBytes = m_stream.nUserChannels[_mode] * *_bufferSize * formatBytes(m_stream.userFormat);
 	m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
-	if (m_stream.userBuffer[_mode] == NULL) {
+	if (m_stream.userBuffer[_mode] == nullptr) {
 		ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: error allocating user buffer memory.");
 		goto error;
 	}
@@ -410,7 +410,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 			bufferBytes *= *_bufferSize;
 			if (m_stream.deviceBuffer) free(m_stream.deviceBuffer);
 			m_stream.deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_stream.deviceBuffer == NULL) {
+			if (m_stream.deviceBuffer == nullptr) {
 				ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: error allocating device buffer memory.");
 				goto error;
 			}
@@ -418,7 +418,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	}
 	// Allocate memory for the Jack ports (channels) identifiers.
 	handle->ports[_mode] = (jack_port_t **) malloc (sizeof (jack_port_t *) * _channels);
-	if (handle->ports[_mode] == NULL)	{
+	if (handle->ports[_mode] == nullptr)	{
 		ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: error allocating port memory.");
 		goto error;
 	}
@@ -474,17 +474,17 @@ error:
 			free(handle->ports[1]);
 		}
 		delete handle;
-		m_stream.apiHandle = NULL;
+		m_stream.apiHandle = nullptr;
 	}
 	for (int32_t iii=0; iii<2; ++iii) {
 		if (m_stream.userBuffer[iii]) {
 			free(m_stream.userBuffer[iii]);
-			m_stream.userBuffer[iii] = NULL;
+			m_stream.userBuffer[iii] = nullptr;
 		}
 	}
 	if (m_stream.deviceBuffer) {
 		free(m_stream.deviceBuffer);
-		m_stream.deviceBuffer = NULL;
+		m_stream.deviceBuffer = nullptr;
 	}
 	return false;
 }
@@ -495,13 +495,13 @@ enum airtaudio::errorType airtaudio::api::Jack::closeStream() {
 		return airtaudio::errorWarning;
 	}
 	JackHandle *handle = (JackHandle *) m_stream.apiHandle;
-	if (handle != NULL) {
+	if (handle != nullptr) {
 		if (m_stream.state == STREAM_RUNNING) {
 			jack_deactivate(handle->client);
 		}
 		jack_client_close(handle->client);
 	}
-	if (handle != NULL) {
+	if (handle != nullptr) {
 		if (handle->ports[0]) {
 			free(handle->ports[0]);
 		}
@@ -509,17 +509,17 @@ enum airtaudio::errorType airtaudio::api::Jack::closeStream() {
 			free(handle->ports[1]);
 		}
 		delete handle;
-		m_stream.apiHandle = NULL;
+		m_stream.apiHandle = nullptr;
 	}
 	for (int32_t i=0; i<2; i++) {
 		if (m_stream.userBuffer[i]) {
 			free(m_stream.userBuffer[i]);
-			m_stream.userBuffer[i] = NULL;
+			m_stream.userBuffer[i] = nullptr;
 		}
 	}
 	if (m_stream.deviceBuffer) {
 		free(m_stream.deviceBuffer);
-		m_stream.deviceBuffer = NULL;
+		m_stream.deviceBuffer = nullptr;
 	}
 	m_stream.mode = UNINITIALIZED;
 	m_stream.state = STREAM_CLOSED;
@@ -545,8 +545,8 @@ enum airtaudio::errorType airtaudio::api::Jack::startStream() {
 	if (    m_stream.mode == OUTPUT
 	     || m_stream.mode == DUPLEX) {
 		result = 1;
-		ports = jack_get_ports(handle->client, handle->deviceName[0].c_str(), NULL, JackPortIsInput);
-		if (ports == NULL) {
+		ports = jack_get_ports(handle->client, handle->deviceName[0].c_str(), nullptr, JackPortIsInput);
+		if (ports == nullptr) {
 			ATA_ERROR("airtaudio::api::Jack::startStream(): error determining available JACK input ports!");
 			goto unlock;
 		}
@@ -568,8 +568,8 @@ enum airtaudio::errorType airtaudio::api::Jack::startStream() {
 	if (    m_stream.mode == INPUT
 	     || m_stream.mode == DUPLEX) {
 		result = 1;
-		ports = jack_get_ports(handle->client, handle->deviceName[1].c_str(), NULL, JackPortIsOutput);
-		if (ports == NULL) {
+		ports = jack_get_ports(handle->client, handle->deviceName[1].c_str(), nullptr, JackPortIsOutput);
+		if (ports == nullptr) {
 			ATA_ERROR("airtaudio::api::Jack::startStream(): error determining available JACK output ports!");
 			goto unlock;
 		}
@@ -670,7 +670,6 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 	}
 	// Invoke user callback first, to get fresh output data.
 	if (handle->drainCounter == 0) {
-		airtaudio::AirTAudioCallback callback = (airtaudio::AirTAudioCallback) info->callback;
 		double streamTime = getStreamTime();
 		airtaudio::streamStatus status = 0;
 		if (m_stream.mode != INPUT && handle->xrun[0] == true) {
@@ -681,12 +680,11 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 			status |= INPUT_OVERFLOW;
 			handle->xrun[1] = false;
 		}
-		int32_t cbReturnValue = callback(m_stream.userBuffer[0],
-		                                 m_stream.userBuffer[1],
-		                                 m_stream.bufferSize,
-		                                 streamTime,
-		                                 status,
-		                                 info->userData);
+		int32_t cbReturnValue = info->callback(m_stream.userBuffer[0],
+		                                       m_stream.userBuffer[1],
+		                                       m_stream.bufferSize,
+		                                       streamTime,
+		                                       status);
 		if (cbReturnValue == 2) {
 			m_stream.state = STREAM_STOPPING;
 			handle->drainCounter = 2;
