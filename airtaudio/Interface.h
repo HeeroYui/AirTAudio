@@ -82,7 +82,7 @@ namespace airtaudio {
 			 * @return the audio API specifier for the current instance of airtaudio.
 			 */
 			airtaudio::api::type getCurrentApi() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return airtaudio::api::UNSPECIFIED;
 				}
 				return m_rtapi->getCurrentApi();
@@ -95,7 +95,7 @@ namespace airtaudio {
 			 * a system error occurs during processing, a warning will be issued. 
 			 */
 			uint32_t getDeviceCount() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return 0;
 				}
 				return m_rtapi->getDeviceCount();
@@ -112,7 +112,7 @@ namespace airtaudio {
 			 * @return An airtaudio::DeviceInfo structure for a specified device number.
 			 */
 			airtaudio::DeviceInfo getDeviceInfo(uint32_t _device) {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return airtaudio::DeviceInfo();
 				}
 				return m_rtapi->getDeviceInfo(_device);
@@ -127,7 +127,7 @@ namespace airtaudio {
 			 * before attempting to open a stream.
 			 */
 			uint32_t getDefaultOutputDevice() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return 0;
 				}
 				return m_rtapi->getDefaultOutputDevice();
@@ -142,7 +142,7 @@ namespace airtaudio {
 			 * before attempting to open a stream.
 			 */
 			uint32_t getDefaultInputDevice() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return 0;
 				}
 				return m_rtapi->getDefaultInputDevice();
@@ -157,12 +157,12 @@ namespace airtaudio {
 			 * @param _outputParameters Specifies output stream parameters to use
 			 *           when opening a stream, including a device ID, number of channels,
 			 *           and starting channel number. For input-only streams, this
-			 *           argument should be NULL. The device ID is an index value between
+			 *           argument should be nullptr. The device ID is an index value between
 			 *           0 and getDeviceCount() - 1.
 			 * @param  _inputParameters Specifies input stream parameters to use
 			 *           when opening a stream, including a device ID, number of channels,
 			 *           and starting channel number. For output-only streams, this
-			 *           argument should be NULL. The device ID is an index value between
+			 *           argument should be nullptr. The device ID is an index value between
 			 *           0 and getDeviceCount() - 1.
 			 * @param  _format An airtaudio::format specifying the desired sample data format.
 			 * @param  _sampleRate The desired sample rate (sample frames per second).
@@ -193,8 +193,8 @@ namespace airtaudio {
 			                                     uint32_t _sampleRate,
 			                                     uint32_t *_bufferFrames,
 			                                     airtaudio::AirTAudioCallback _callback,
-			                                     void *_userData = NULL,
-			                                     airtaudio::StreamOptions *_options = NULL);
+			                                     void *_userData = nullptr,
+			                                     airtaudio::StreamOptions *_options = nullptr);
 			
 			/**
 			 * @brief A function that closes a stream and frees any associated stream memory.
@@ -203,7 +203,7 @@ namespace airtaudio {
 			 * returns (no exception is thrown).
 			 */
 			enum airtaudio::errorType closeStream() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return airtaudio::errorInputNull;
 				}
 				return m_rtapi->closeStream();
@@ -217,7 +217,7 @@ namespace airtaudio {
 			 * running.
 			 */
 			enum airtaudio::errorType startStream() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return airtaudio::errorInputNull;
 				}
 				return m_rtapi->startStream();
@@ -231,7 +231,7 @@ namespace airtaudio {
 			 * stopped.
 			*/
 			enum airtaudio::errorType stopStream() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return airtaudio::errorInputNull;
 				}
 				return m_rtapi->stopStream();
@@ -244,7 +244,7 @@ namespace airtaudio {
 			 * stopped.
 			 */
 			enum airtaudio::errorType abortStream() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return airtaudio::errorInputNull;
 				}
 				return m_rtapi->abortStream();
@@ -253,7 +253,7 @@ namespace airtaudio {
 			 * @return true if a stream is open and false if not.
 			 */
 			bool isStreamOpen() const {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return false;
 				}
 				return m_rtapi->isStreamOpen();
@@ -262,7 +262,7 @@ namespace airtaudio {
 			 * @return true if the stream is running and false if it is stopped or not open.
 			 */
 			bool isStreamRunning() const {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return false;
 				}
 				return m_rtapi->isStreamRunning();
@@ -272,7 +272,7 @@ namespace airtaudio {
 			 * @return the number of elapsed seconds since the stream was started.
 			 */
 			double getStreamTime() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return 0.0;
 				}
 				return m_rtapi->getStreamTime();
@@ -287,7 +287,7 @@ namespace airtaudio {
 			 * @return The internal stream latency in sample frames.
 			 */
 			long getStreamLatency() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return 0;
 				}
 				return m_rtapi->getStreamLatency();
@@ -299,7 +299,7 @@ namespace airtaudio {
 			 * @return Returns actual sample rate in use by the stream.
 			 */
 			uint32_t getStreamSampleRate() {
-				if (m_rtapi == NULL) {
+				if (m_rtapi == nullptr) {
 					return 0;
 				}
 				return m_rtapi->getStreamSampleRate();

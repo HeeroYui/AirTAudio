@@ -24,16 +24,15 @@ std::vector<airtaudio::api::type> airtaudio::Interface::getCompiledApi() {
 
 
 void airtaudio::Interface::openRtApi(airtaudio::api::type _api) {
-	if (m_rtapi != NULL) {
-		delete m_rtapi;
-		m_rtapi = NULL;
-	}
+	
+	delete m_rtapi;
+	m_rtapi = nullptr;
 	for (auto &it :m_apiAvaillable) {
 		ATA_ERROR("try open " << it.first);
 		if (_api == it.first) {
 			ATA_ERROR("    ==> call it");
 			m_rtapi = it.second();
-			if (m_rtapi != NULL) {
+			if (m_rtapi != nullptr) {
 				return;
 			}
 		}
@@ -44,35 +43,46 @@ void airtaudio::Interface::openRtApi(airtaudio::api::type _api) {
 
 
 airtaudio::Interface::Interface() :
-  m_rtapi(NULL) {
+  m_rtapi(nullptr) {
+	ATA_DEBUG("Add interface:");
 #if defined(__UNIX_JACK__)
+	ATA_DEBUG("    JACK");
 	addInterface(airtaudio::api::UNIX_JACK, airtaudio::api::Jack::Create);
 #endif
 #if defined(__LINUX_ALSA__)
+	ATA_DEBUG("    ALSA");
 	addInterface(airtaudio::api::LINUX_ALSA, airtaudio::api::Alsa::Create);
 #endif
 #if defined(__LINUX_PULSE__)
+	ATA_DEBUG("    PULSE");
 	addInterface(airtaudio::api::LINUX_PULSE, airtaudio::api::Pulse::Create);
 #endif
 #if defined(__LINUX_OSS__)
+	ATA_DEBUG("    OSS");
 	addInterface(airtaudio::api::LINUX_OSS, airtaudio::api::Oss::Create);
 #endif
 #if defined(__WINDOWS_ASIO__)
+	ATA_DEBUG("    ASIO");
 	addInterface(airtaudio::api::WINDOWS_ASIO, airtaudio::api::Asio::Create);
 #endif
 #if defined(__WINDOWS_DS__)
+	ATA_DEBUG("    DS");
 	addInterface(airtaudio::api::WINDOWS_DS, airtaudio::api::Ds::Create);
 #endif
 #if defined(__MACOSX_CORE__)
-	  addInterface(airtaudio::api::MACOSX_CORE, airtaudio::api::Core::Create);
+	ATA_DEBUG("    MACOSX_CORE");
+	addInterface(airtaudio::api::MACOSX_CORE, airtaudio::api::Core::Create);
 #endif
 #if defined(__IOS_CORE__)
-	  addInterface(airtaudio::api::IOS_CORE, airtaudio::api::CoreIos::Create);
+	ATA_DEBUG("    IOS_CORE");
+	addInterface(airtaudio::api::IOS_CORE, airtaudio::api::CoreIos::Create);
 #endif
 #if defined(__ANDROID_JAVA__)
+	ATA_DEBUG("    JAVA");
 	addInterface(airtaudio::api::ANDROID_JAVA, airtaudio::api::Android::Create);
 #endif
 #if defined(__AIRTAUDIO_DUMMY__)
+	ATA_DEBUG("    DUMMY");
 	addInterface(airtaudio::api::RTAUDIO_DUMMY, airtaudio::api::Dummy::Create);
 #endif
 }
@@ -83,7 +93,7 @@ void airtaudio::Interface::addInterface(airtaudio::api::type _api, Api* (*_callb
 
 enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type _api) {
 	ATA_INFO("Instanciate API ...");
-	if (m_rtapi != NULL) {
+	if (m_rtapi != nullptr) {
 		ATA_WARNING("Interface already started ...!");
 		return airtaudio::errorNone;
 	}
@@ -91,7 +101,7 @@ enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type
 		ATA_ERROR("API specified ...");
 		// Attempt to open the specified API.
 		openRtApi(_api);
-		if (m_rtapi != NULL) {
+		if (m_rtapi != nullptr) {
 			return airtaudio::errorNone;
 		}
 		// No compiled support for specified API value.	Issue a debug
@@ -107,7 +117,7 @@ enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type
 	for (auto &it : apis) {
 		ATA_INFO("try open ...");
 		openRtApi(it);
-		if(m_rtapi == NULL) {
+		if(m_rtapi == nullptr) {
 			ATA_ERROR("    ==> can not create ...");
 			continue;
 		}
@@ -116,7 +126,7 @@ enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type
 			break;
 		}
 	}
-	if (m_rtapi != NULL) {
+	if (m_rtapi != nullptr) {
 		return airtaudio::errorNone;
 	}
 	ATA_ERROR("RtAudio: no compiled API support found ... critical error!!");
@@ -125,10 +135,8 @@ enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type
 
 airtaudio::Interface::~Interface() {
 	ATA_INFO("Remove interface");
-	if (m_rtapi != NULL) {
-		delete m_rtapi;
-		m_rtapi = NULL;
-	}
+	delete m_rtapi;
+	m_rtapi = nullptr;
 }
 
 enum airtaudio::errorType airtaudio::Interface::openStream(
@@ -140,7 +148,7 @@ enum airtaudio::errorType airtaudio::Interface::openStream(
                 airtaudio::AirTAudioCallback _callback,
                 void* _userData,
                 airtaudio::StreamOptions* _options) {
-	if (m_rtapi == NULL) {
+	if (m_rtapi == nullptr) {
 		return airtaudio::errorInputNull;
 	}
 	return m_rtapi->openStream(_outputParameters,
