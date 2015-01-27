@@ -10,6 +10,9 @@
 #include <airtaudio/api/Dummy.h>
 #include <airtaudio/debug.h>
 
+#undef __class__
+#define __class__ "api::Dummy"
+
 airtaudio::Api* airtaudio::api::Dummy::Create() {
 	return new airtaudio::api::Dummy();
 }

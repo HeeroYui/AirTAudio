@@ -12,6 +12,9 @@
 #include <airtaudio/debug.h>
 #include <limits.h>
 
+#undef __class__
+#define __class__ "api::Android"
+
 airtaudio::Api* airtaudio::api::Android::Create() {
 	ATA_INFO("Create Android device ... ");
 	return new airtaudio::api::Android();

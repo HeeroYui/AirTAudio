@@ -11,6 +11,9 @@
 #include <airtaudio/debug.h>
 #include <iostream>
 
+#undef __class__
+#define __class__ "Interface"
+
 std::vector<airtaudio::api::type> airtaudio::Interface::getCompiledApi() {
 	std::vector<airtaudio::api::type> apis;
 	// The order here will control the order of RtAudio's API search in

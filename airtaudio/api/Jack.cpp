@@ -15,6 +15,9 @@
 #include <airtaudio/debug.h>
 #include <string.h>
 
+#undef __class__
+#define __class__ "api::Jack"
+
 airtaudio::Api* airtaudio::api::Jack::Create() {
 	return new airtaudio::api::Jack();
 }

@@ -39,6 +39,9 @@ airtaudio::Api* airtaudio::api::Asio::Create() {
 #include "asiodrivers.h"
 #include <cmath>
 
+#undef __class__
+#define __class__ "api::Asio"
+
 static AsioDrivers drivers;
 static ASIOCallbacks asioCallbacks;
 static ASIODriverInfo driverInfo;

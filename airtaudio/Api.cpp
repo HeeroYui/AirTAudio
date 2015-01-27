@@ -14,6 +14,8 @@
 #include <cstring>
 #include <climits>
 
+#undef __class__
+#define __class__ "api"
 
 
 std::ostream& operator <<(std::ostream& _os, const airtaudio::api::type& _obj){

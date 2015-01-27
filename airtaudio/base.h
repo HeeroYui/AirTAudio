@@ -185,7 +185,7 @@ namespace airtaudio {
 	 * the stream immediately, the client should return a value of two.
 	 */
 	typedef std::function<int32_t (void* _outputBuffer,
-	                               const void* const _inputBuffer,
+	                               void* _inputBuffer,
 	                               uint32_t _nFrames,
 	                               double _streamTime,
 	                               airtaudio::streamStatus _status)> AirTAudioCallback;

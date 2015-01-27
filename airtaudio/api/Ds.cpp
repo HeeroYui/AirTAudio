@@ -11,6 +11,9 @@
 #include <airtaudio/Interface.h>
 #include <airtaudio/debug.h>
 
+#undef __class__
+#define __class__ "api::Ds"
+
 airtaudio::Api* airtaudio::api::Ds::Create() {
 	return new airtaudio::api::Ds();
 }

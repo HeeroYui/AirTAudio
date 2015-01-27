@@ -22,6 +22,8 @@ airtaudio::Api* airtaudio::api::Core::Create() {
 	return new airtaudio::api::Core();
 }
 
+#undef __class__
+#define __class__ "api::Core"
 
 // The OS X CoreAudio API is designed to use a separate callback
 // procedure for each of its audio devices.	A single RtAudio duplex

@@ -15,6 +15,9 @@
 #include <airtaudio/debug.h>
 #include <limits.h>
 
+#undef __class__
+#define __class__ "api::Alsa"
+
 airtaudio::Api* airtaudio::api::Alsa::Create() {
 	return new airtaudio::api::Alsa();
 }

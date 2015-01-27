@@ -20,6 +20,9 @@
 #include <pulse/simple.h>
 #include <cstdio>
 
+#undef __class__
+#define __class__ "api::Pulse"
+
 airtaudio::Api* airtaudio::api::Pulse::Create() {
 	return new airtaudio::api::Pulse();
 }

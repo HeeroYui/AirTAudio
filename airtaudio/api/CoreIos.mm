@@ -14,6 +14,9 @@
 #include <airtaudio/debug.h>
 #include <limits.h>
 
+#undef __class__
+#define __class__ "api::CoreIos"
+
 airtaudio::Api* airtaudio::api::CoreIos::Create(void) {
 	ATA_INFO("Create CoreIos device ... ");
 	return new airtaudio::api::CoreIos();

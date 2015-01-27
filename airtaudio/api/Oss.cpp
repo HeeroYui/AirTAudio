@@ -19,6 +19,9 @@
 #include <errno.h>
 #include <math.h>
 
+#undef __class__
+#define __class__ "api::Oss"
+
 airtaudio::Api* airtaudio::api::Oss::Create() {
 	return new airtaudio::api::Oss();
 }
