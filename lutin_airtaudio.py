@@ -37,15 +37,19 @@ def create(target):
 							   'airtaudio/api/Oss.cpp'
 							   ])
 		# Linux Alsa API
+		# TODO : myModule.add_optionnal_module_depend('alsa', "__LINUX_ALSA__")
 		myModule.add_export_flag_CC(['-D__LINUX_ALSA__'])
 		myModule.add_export_flag_LD("-lasound")
 		# Linux Jack API
+		# TODO : myModule.add_optionnal_module_depend('jack', "__UNIX_JACK__")
 		#myModule.add_export_flag_CC(['-D__UNIX_JACK__'])
 		#myModule.add_export_flag_LD("-ljack")
 		# Linux PulseAudio API
+		# TODO : myModule.add_optionnal_module_depend('pulse', "__LINUX_PULSE__")
 		#myModule.add_export_flag_CC(['-D__LINUX_PULSE__'])
 		#myModule.add_export_flag_LD("-lpulse-simple")
 		#myModule.add_export_flag_LD("-lpulse")
+		# TODO : myModule.add_optionnal_module_depend('oss', "__LINUX_OSS__")
 		#myModule.add_export_flag_CC(['-D__LINUX_OSS__'])
 		# ...
 		myModule.add_module_depend(['etk'])
@@ -55,12 +59,14 @@ def create(target):
 							   'airtaudio/api/Oss.cpp'
 							   ])
 		# MacOsX core
+		# TODO : myModule.add_optionnal_module_depend('CoreAudio', "__MACOSX_CORE__")
 		myModule.add_export_flag_CC(['-D__MACOSX_CORE__'])
 		myModule.add_export_flag_LD("-framework CoreAudio")
 		myModule.add_module_depend(['etk'])
 	elif target.name=="IOs":
 		myModule.add_src_file('airtaudio/api/CoreIos.mm')
 		# IOsX core
+		# TODO : myModule.add_optionnal_module_depend('CoreAudio', "__IOS_CORE__")
 		myModule.add_export_flag_CC(['-D__IOS_CORE__'])
 		myModule.add_export_flag_LD("-framework CoreAudio")
 		myModule.add_export_flag_LD("-framework AudioToolbox")
@@ -68,6 +74,7 @@ def create(target):
 	elif target.name=="Android":
 		myModule.add_src_file('airtaudio/api/Android.cpp')
 		# MacOsX core
+		# TODO : myModule.add_optionnal_module_depend('ewolAndroidAudio', "__ANDROID_JAVA__")
 		myModule.add_export_flag_CC(['-D__ANDROID_JAVA__'])
 		myModule.add_module_depend(['ewol'])
 	else:
