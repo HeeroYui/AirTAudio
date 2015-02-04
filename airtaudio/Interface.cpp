@@ -30,16 +30,16 @@ void airtaudio::Interface::openRtApi(airtaudio::api::type _api) {
 	delete m_rtapi;
 	m_rtapi = nullptr;
 	for (auto &it :m_apiAvaillable) {
-		ATA_ERROR("try open " << it.first);
+		ATA_INFO("try open " << it.first);
 		if (_api == it.first) {
-			ATA_ERROR("    ==> call it");
+			ATA_INFO("    ==> call it");
 			m_rtapi = it.second();
 			if (m_rtapi != nullptr) {
 				return;
 			}
 		}
 	}
-	// TODO : An eror occured ...
+	// TODO : An error occured ...
 	ATA_ERROR("Error in open API ...");
 }
 
@@ -100,10 +100,13 @@ enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type
 		return airtaudio::errorNone;
 	}
 	if (_api != airtaudio::api::UNSPECIFIED) {
-		ATA_ERROR("API specified ...");
+		ATA_INFO("API specified : " << _api);
 		// Attempt to open the specified API.
 		openRtApi(_api);
 		if (m_rtapi != nullptr) {
+			if (m_rtapi->getDeviceCount() != 0) {
+				ATA_INFO("    ==> api open");
+			}
 			return airtaudio::errorNone;
 		}
 		// No compiled support for specified API value.	Issue a debug

@@ -291,7 +291,7 @@ namespace airtaudio {
 			}
 			/**
 			 * @brief On some systems, the sample rate used may be slightly different
-			 * than that specified in the stream parameters.	If a stream is not
+			 * than that specified in the stream parameters. If a stream is not
 			 * open, an RtError (type = INVALID_USE) will be thrown.
 			 * @return Returns actual sample rate in use by the stream.
 			 */

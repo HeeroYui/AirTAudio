@@ -67,11 +67,6 @@ namespace airtaudio {
 	static const format FLOAT64 = 0x20; // Normalized between plus/minus 1.0.
 	
 	/**
-	 * @brief Debug operator To display the curent element in a Human redeable information
-	 */
-	//std::ostream& operator <<(std::ostream& _os, const airtaudio::format& _obj);
-	
-	/**
 	 * @typedef typedef uint64_t streamFlags;
 	 * @brief RtAudio stream option flags.
 	 * 
@@ -141,11 +136,6 @@ namespace airtaudio {
 	typedef uint32_t streamStatus;
 	static const streamStatus INPUT_OVERFLOW = 0x1; // Input data was discarded because of an overflow condition at the driver.
 	static const streamStatus OUTPUT_UNDERFLOW = 0x2; // The output buffer ran low, likely causing a gap in the output sound.
-	
-	/**
-	 * @brief Debug operator To display the curent element in a Human redeable information
-	 */
-	//std::ostream& operator <<(std::ostream& _os, const airtaudio::streamStatus& _obj);
 	
 	/**
 	 * @brief RtAudio callback function prototype.
