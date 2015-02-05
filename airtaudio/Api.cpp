@@ -17,32 +17,32 @@
 #undef __class__
 #define __class__ "api"
 
+static const char* listType[] {
+	"undefined",
+	"alsa",
+	"pulse",
+	"oss",
+	"jack",
+	"coreOSX",
+	"corIOS",
+	"asio",
+	"ds",
+	"java",
+	"dummy",
+	"user1",
+	"user2",
+	"user3",
+	"user4"
+};
 
-std::ostream& operator <<(std::ostream& _os, const airtaudio::api::type& _obj){
-	switch (_obj) {
-		default:
-		case airtaudio::api::UNSPECIFIED: _os << "UNSPECIFIED"; break;
-		case airtaudio::api::LINUX_ALSA: _os << "LINUX_ALSA"; break;
-		case airtaudio::api::LINUX_PULSE: _os << "LINUX_PULSE"; break;
-		case airtaudio::api::LINUX_OSS: _os << "LINUX_OSS"; break;
-		case airtaudio::api::UNIX_JACK: _os << "UNIX_JACK"; break;
-		case airtaudio::api::MACOSX_CORE: _os << "MACOSX_CORE"; break;
-		case airtaudio::api::IOS_CORE: _os << "IOS_CORE"; break;
-		case airtaudio::api::WINDOWS_ASIO: _os << "WINDOWS_ASIO"; break;
-		case airtaudio::api::WINDOWS_DS: _os << "WINDOWS_DS"; break;
-		case airtaudio::api::RTAUDIO_DUMMY: _os << "RTAUDIO_DUMMY"; break;
-		case airtaudio::api::ANDROID_JAVA: _os << "ANDROID_JAVA"; break;
-		case airtaudio::api::USER_INTERFACE_1: _os << "USER_INTERFACE_1"; break;
-		case airtaudio::api::USER_INTERFACE_2: _os << "USER_INTERFACE_2"; break;
-		case airtaudio::api::USER_INTERFACE_3: _os << "USER_INTERFACE_3"; break;
-		case airtaudio::api::USER_INTERFACE_4: _os << "USER_INTERFACE_4"; break;
-	}
+std::ostream& operator <<(std::ostream& _os, const airtaudio::type& _obj){
+	_os << listType[_obj];
 	return _os;
 }
 
 // Static variable definitions.
-const uint32_t airtaudio::api::MAX_SAMPLE_RATES = 14;
-const uint32_t airtaudio::api::SAMPLE_RATES[] = {
+static const uint32_t MAX_SAMPLE_RATES = 14;
+static const uint32_t SAMPLE_RATES[] = {
 	4000,
 	5512,
 	8000,
@@ -61,8 +61,8 @@ const uint32_t airtaudio::api::SAMPLE_RATES[] = {
 
 
 airtaudio::Api::Api() {
-	m_stream.state = airtaudio::api::STREAM_CLOSED;
-	m_stream.mode = airtaudio::api::UNINITIALIZED;
+	m_stream.state = airtaudio::state_closed;
+	m_stream.mode = airtaudio::mode_unknow;
 	m_stream.apiHandle = 0;
 	m_stream.userBuffer[0] = 0;
 	m_stream.userBuffer[1] = 0;
@@ -74,7 +74,7 @@ airtaudio::Api::~Api() {
 
 enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters *oParams,
                                                      airtaudio::StreamParameters *iParams,
-                                                     audio::format format,
+                                                     enum audio::format format,
                                                      uint32_t sampleRate,
                                                      uint32_t *bufferFrames,
                                                      airtaudio::AirTAudioCallback callback,

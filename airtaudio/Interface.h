@@ -38,7 +38,7 @@ namespace airtaudio {
 	 */
 	class Interface {
 		protected:
-			std::vector<std::pair<airtaudio::api::type, Api* (*)()>> m_apiAvaillable;
+			std::vector<std::pair<enum airtaudio::type, Api* (*)()>> m_apiAvaillable;
 		protected:
 			airtaudio::Api *m_rtapi;
 		public:
@@ -46,7 +46,7 @@ namespace airtaudio {
 			 * @brief A static function to determine the current airtaudio version.
 			 */
 			static std::string getVersion() {
-				return airtaudio::VERSION;
+				return "4.0.12";
 			}
 			/**
 			 * @brief A static function to determine the available compiled audio APIs.
@@ -55,7 +55,7 @@ namespace airtaudio {
 			 * the enumerated list values. Note that there can be more than one
 			 * API compiled for certain operating systems.
 			 */
-			std::vector<airtaudio::api::type> getCompiledApi();
+			std::vector<enum airtaudio::type> getCompiledApi();
 			/**
 			 * @brief The class constructor.
 			 * @note the creating of the basic instance is done by Instanciate
@@ -73,17 +73,17 @@ namespace airtaudio {
 			 * @param[in] _api Type of the interface.
 			 * @param[in] _callbackCreate API creation callback.
 			 */
-			void addInterface(airtaudio::api::type _api, Api* (*_callbackCreate)());
+			void addInterface(enum airtaudio::type _api, Api* (*_callbackCreate)());
 			/**
 			 * @brief Create an interface instance
 			 */
-			enum airtaudio::errorType instanciate(airtaudio::api::type _api = airtaudio::api::UNSPECIFIED);
+			enum airtaudio::errorType instanciate(enum airtaudio::type _api = airtaudio::type_undefined);
 			/**
 			 * @return the audio API specifier for the current instance of airtaudio.
 			 */
-			airtaudio::api::type getCurrentApi() {
+			enum airtaudio::type getCurrentApi() {
 				if (m_rtapi == nullptr) {
-					return airtaudio::api::UNSPECIFIED;
+					return airtaudio::type_undefined;
 				}
 				return m_rtapi->getCurrentApi();
 			}
@@ -187,7 +187,7 @@ namespace airtaudio {
 			 */
 			enum airtaudio::errorType openStream(airtaudio::StreamParameters *_outputParameters,
 			                                     airtaudio::StreamParameters *_inputParameters,
-			                                     audio::format _format,
+			                                     enum audio::format _format,
 			                                     uint32_t _sampleRate,
 			                                     uint32_t *_bufferFrames,
 			                                     airtaudio::AirTAudioCallback _callback,
@@ -302,7 +302,7 @@ namespace airtaudio {
 				return m_rtapi->getStreamSampleRate();
 			}
 		protected:
-			void openRtApi(airtaudio::api::type _api);
+			void openRtApi(enum airtaudio::type _api);
 	};
 };
 

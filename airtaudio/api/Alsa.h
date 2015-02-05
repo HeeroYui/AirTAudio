@@ -17,8 +17,8 @@ namespace airtaudio {
 			public:
 				Alsa();
 				virtual ~Alsa();
-				airtaudio::api::type getCurrentApi() {
-					return airtaudio::api::LINUX_ALSA;
+				enum airtaudio::type getCurrentApi() {
+					return airtaudio::type_alsa;
 				}
 				uint32_t getDeviceCount();
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
@@ -35,11 +35,11 @@ namespace airtaudio {
 				std::vector<airtaudio::DeviceInfo> m_devices;
 				void saveDeviceInfo();
 				bool probeDeviceOpen(uint32_t _device,
-				                     airtaudio::api::StreamMode _mode,
+				                     enum airtaudio::mode _mode,
 				                     uint32_t _channels,
 				                     uint32_t _firstChannel,
 				                     uint32_t _sampleRate,
-				                     audio::format _format,
+				                     enum audio::format _format,
 				                     uint32_t *_bufferSize,
 				                     airtaudio::StreamOptions *_options);
 		};

@@ -36,8 +36,6 @@ namespace airtaudio {
 		errorInvalidUse, //!< The function was called incorrectly.
 		errorSystemError //!< A system error occured.
 	};
-	// airtaudio version
-	static const std::string VERSION("4.0.12");
 	
 	/**
 	 * @typedef typedef uint64_t streamFlags;
