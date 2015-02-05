@@ -56,7 +56,7 @@ namespace airtaudio {
 		struct ConvertInfo {
 			int32_t channels;
 			int32_t inJump, outJump;
-			airtaudio::format inFormat, outFormat;
+			audio::format inFormat, outFormat;
 			std::vector<int> inOffset;
 			std::vector<int> outOffset;
 		};
@@ -81,8 +81,8 @@ namespace airtaudio {
 				uint32_t nDeviceChannels[2]; // Playback and record channels, respectively.
 				uint32_t channelOffset[2]; // Playback and record, respectively.
 				uint64_t latency[2]; // Playback and record, respectively.
-				airtaudio::format userFormat;
-				airtaudio::format deviceFormat[2]; // Playback and record, respectively.
+				audio::format userFormat;
+				audio::format deviceFormat[2]; // Playback and record, respectively.
 				std::mutex mutex;
 				airtaudio::CallbackInfo callbackInfo;
 				airtaudio::api::ConvertInfo convertInfo[2];
@@ -122,7 +122,7 @@ namespace airtaudio {
 			virtual uint32_t getDefaultOutputDevice();
 			enum airtaudio::errorType openStream(airtaudio::StreamParameters *_outputParameters,
 			                                     airtaudio::StreamParameters *_inputParameters,
-			                                     airtaudio::format _format,
+			                                     audio::format _format,
 			                                     uint32_t _sampleRate,
 			                                     uint32_t *_bufferFrames,
 			                                     airtaudio::AirTAudioCallback _callback,
@@ -156,7 +156,7 @@ namespace airtaudio {
 			                             uint32_t _channels,
 			                             uint32_t _firstChannel,
 			                             uint32_t _sampleRate,
-			                             airtaudio::format _format,
+			                             audio::format _format,
 			                             uint32_t *_bufferSize,
 			                             airtaudio::StreamOptions *_options);
 			
@@ -178,10 +178,7 @@ namespace airtaudio {
 			void convertBuffer(char *_outBuffer, char *_inBuffer, airtaudio::api::ConvertInfo& _info);
 			
 			//! Protected common method used to perform byte-swapping on buffers.
-			void byteSwapBuffer(char *_buffer, uint32_t _samples, airtaudio::format _format);
-			
-			//! Protected common method that returns the number of bytes for a given format.
-			uint32_t formatBytes(airtaudio::format _format);
+			void byteSwapBuffer(char *_buffer, uint32_t _samples, audio::format _format);
 			
 			//! Protected common method that sets up the parameters for buffer conversion.
 			void setConvertInfo(airtaudio::api::StreamMode _mode, uint32_t _firstChannel);

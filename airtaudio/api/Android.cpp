@@ -56,23 +56,7 @@ airtaudio::api::Android::Android() {
 			tmp.isDefaultInput = true;
 			tmp.duplexChannels = etk::string_to_int32_t(listProperty[3]);
 		}
-		std::vector<std::string> listFormat = etk::split(listProperty[4], ',');
-		tmp.nativeFormats = 0;
-		for(size_t fff=0; fff<listFormat.size(); ++fff) {
-			if (listFormat[fff] == "float") {
-				tmp.nativeFormats |= FLOAT32;
-			} else if (listFormat[fff] == "double") {
-				tmp.nativeFormats |= FLOAT64;
-			} else if (listFormat[fff] == "s32") {
-				tmp.nativeFormats |= SINT32;
-			} else if (listFormat[fff] == "s24") {
-				tmp.nativeFormats |= SINT24;
-			} else if (listFormat[fff] == "s16") {
-				tmp.nativeFormats |= SINT16;
-			} else if (listFormat[fff] == "s8") {
-				tmp.nativeFormats |= SINT8;
-			}
-		}
+		tmp.nativeFormats = audio::getListFormatFromString(listProperty[4]);
 		m_devices.push_back(tmp);
 	}
 	ATA_INFO("Create Android interface (end)");
@@ -162,7 +146,7 @@ bool airtaudio::api::Android::probeDeviceOpen(uint32_t _device,
                                               uint32_t _channels,
                                               uint32_t _firstChannel,
                                               uint32_t _sampleRate,
-                                              airtaudio::format _format,
+                                              audio::format _format,
                                               uint32_t *_bufferSize,
                                               airtaudio::StreamOptions *_options) {
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);

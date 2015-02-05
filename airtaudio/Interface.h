@@ -164,7 +164,7 @@ namespace airtaudio {
 			 *           and starting channel number. For output-only streams, this
 			 *           argument should be nullptr. The device ID is an index value between
 			 *           0 and getDeviceCount() - 1.
-			 * @param  _format An airtaudio::format specifying the desired sample data format.
+			 * @param  _format An audio::format specifying the desired sample data format.
 			 * @param  _sampleRate The desired sample rate (sample frames per second).
 			 * @param  *_bufferFrames A pointer to a value indicating the desired
 			 *           internal buffer size in sample frames.	The actual value
@@ -187,7 +187,7 @@ namespace airtaudio {
 			 */
 			enum airtaudio::errorType openStream(airtaudio::StreamParameters *_outputParameters,
 			                                     airtaudio::StreamParameters *_inputParameters,
-			                                     airtaudio::format _format,
+			                                     audio::format _format,
 			                                     uint32_t _sampleRate,
 			                                     uint32_t *_bufferFrames,
 			                                     airtaudio::AirTAudioCallback _callback,

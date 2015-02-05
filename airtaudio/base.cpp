@@ -35,7 +35,7 @@ std::ostream& airtaudio::operator <<(std::ostream& _os, enum errorType _obj) {
 	return _os;
 }
 
-std::ostream& airtaudio::operator <<(std::ostream& _os, const airtaudio::format& _obj) {
+std::ostream& airtaudio::operator <<(std::ostream& _os, const audio::format& _obj) {
 	switch(_obj) {
 		case SINT8:
 			_os << "SINT8";

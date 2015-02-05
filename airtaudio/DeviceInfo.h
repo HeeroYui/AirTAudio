@@ -23,7 +23,7 @@ namespace airtaudio {
 			bool isDefaultOutput; //!< true if this is the default output device.
 			bool isDefaultInput; //!< true if this is the default input device.
 			std::vector<uint32_t> sampleRates; //!< Supported sample rates (queried from list of standard rates).
-			airtaudio::format nativeFormats; //!< Bit mask of supported data formats.
+			std::vector<audio::format> nativeFormats; //!< Bit mask of supported data formats.
 			// Default constructor.
 			DeviceInfo() :
 			  probed(false),
@@ -32,7 +32,7 @@ namespace airtaudio {
 			  duplexChannels(0),
 			  isDefaultOutput(false),
 			  isDefaultInput(false),
-			  nativeFormats(0) {}
+			  nativeFormats() {}
 	};
 };
 

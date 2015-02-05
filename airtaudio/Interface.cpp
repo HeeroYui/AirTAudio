@@ -147,7 +147,7 @@ airtaudio::Interface::~Interface() {
 enum airtaudio::errorType airtaudio::Interface::openStream(
                 airtaudio::StreamParameters* _outputParameters,
                 airtaudio::StreamParameters* _inputParameters,
-                airtaudio::format _format,
+                audio::format _format,
                 uint32_t _sampleRate,
                 uint32_t* _bufferFrames,
                 airtaudio::AirTAudioCallback _callback,

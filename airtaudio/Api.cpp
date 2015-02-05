@@ -74,29 +74,29 @@ airtaudio::Api::~Api() {
 
 enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters *oParams,
                                                      airtaudio::StreamParameters *iParams,
-                                                     airtaudio::format format,
+                                                     audio::format format,
                                                      uint32_t sampleRate,
                                                      uint32_t *bufferFrames,
                                                      airtaudio::AirTAudioCallback callback,
                                                      airtaudio::StreamOptions *options) {
 	if (m_stream.state != airtaudio::api::STREAM_CLOSED) {
-		ATA_ERROR("airtaudio::Api::openStream: a stream is already open!");
+		ATA_ERROR("a stream is already open!");
 		return airtaudio::errorInvalidUse;
 	}
 	if (oParams && oParams->nChannels < 1) {
-		ATA_ERROR("airtaudio::Api::openStream: a non-nullptr output StreamParameters structure cannot have an nChannels value less than one.");
+		ATA_ERROR("a non-nullptr output StreamParameters structure cannot have an nChannels value less than one.");
 		return airtaudio::errorInvalidUse;
 	}
 	if (iParams && iParams->nChannels < 1) {
-		ATA_ERROR("airtaudio::Api::openStream: a non-nullptr input StreamParameters structure cannot have an nChannels value less than one.");
+		ATA_ERROR("a non-nullptr input StreamParameters structure cannot have an nChannels value less than one.");
 		return airtaudio::errorInvalidUse;
 	}
 	if (oParams == nullptr && iParams == nullptr) {
-		ATA_ERROR("airtaudio::Api::openStream: input and output StreamParameters structures are both nullptr!");
+		ATA_ERROR("input and output StreamParameters structures are both nullptr!");
 		return airtaudio::errorInvalidUse;
 	}
-	if (formatBytes(format) == 0) {
-		ATA_ERROR("airtaudio::Api::openStream: 'format' parameter value is undefined.");
+	if (audio::getFormatBytes(format) == 0) {
+		ATA_ERROR("'format' parameter value is undefined.");
 		return airtaudio::errorInvalidUse;
 	}
 	uint32_t nDevices = getDeviceCount();
@@ -104,7 +104,7 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
 	if (oParams) {
 		oChannels = oParams->nChannels;
 		if (oParams->deviceId >= nDevices) {
-			ATA_ERROR("airtaudio::Api::openStream: output device parameter value is invalid.");
+			ATA_ERROR("output device parameter value is invalid.");
 			return airtaudio::errorInvalidUse;
 		}
 	}
@@ -112,7 +112,7 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
 	if (iParams) {
 		iChannels = iParams->nChannels;
 		if (iParams->deviceId >= nDevices) {
-			ATA_ERROR("airtaudio::Api::openStream: input device parameter value is invalid.");
+			ATA_ERROR("input device parameter value is invalid.");
 			return airtaudio::errorInvalidUse;
 		}
 	}
@@ -177,7 +177,7 @@ bool airtaudio::Api::probeDeviceOpen(uint32_t /*device*/,
                                      uint32_t /*channels*/,
                                      uint32_t /*firstChannel*/,
                                      uint32_t /*sampleRate*/,
-                                     airtaudio::format /*format*/,
+                                     audio::format /*format*/,
                                      uint32_t * /*bufferSize*/,
                                      airtaudio::StreamOptions * /*options*/) {
 	// MUST be implemented in subclasses!
@@ -241,7 +241,7 @@ uint32_t airtaudio::Api::getStreamSampleRate() {
 
 enum airtaudio::errorType airtaudio::Api::verifyStream() {
 	if (m_stream.state == airtaudio::api::STREAM_CLOSED) {
-		ATA_ERROR("airtaudio::Api:: a stream is not open!");
+		ATA_ERROR("a stream is not open!");
 		return airtaudio::errorInvalidUse;
 	}
 	return airtaudio::errorNone;
@@ -253,7 +253,7 @@ void airtaudio::Api::clearStreamInfo() {
 	m_stream.sampleRate = 0;
 	m_stream.bufferSize = 0;
 	m_stream.nBuffers = 0;
-	m_stream.userFormat = 0;
+	m_stream.userFormat = audio::format_unknow;
 	m_stream.userInterleaved = true;
 	m_stream.streamTime = 0.0;
 	m_stream.apiHandle = 0;
@@ -268,36 +268,17 @@ void airtaudio::Api::clearStreamInfo() {
 		m_stream.nUserChannels[iii] = 0;
 		m_stream.nDeviceChannels[iii] = 0;
 		m_stream.channelOffset[iii] = 0;
-		m_stream.deviceFormat[iii] = 0;
+		m_stream.deviceFormat[iii] = audio::format_unknow;
 		m_stream.latency[iii] = 0;
 		m_stream.userBuffer[iii] = 0;
 		m_stream.convertInfo[iii].channels = 0;
 		m_stream.convertInfo[iii].inJump = 0;
 		m_stream.convertInfo[iii].outJump = 0;
-		m_stream.convertInfo[iii].inFormat = 0;
-		m_stream.convertInfo[iii].outFormat = 0;
+		m_stream.convertInfo[iii].inFormat = audio::format_unknow;
+		m_stream.convertInfo[iii].outFormat = audio::format_unknow;
 		m_stream.convertInfo[iii].inOffset.clear();
 		m_stream.convertInfo[iii].outOffset.clear();
 	}
-}
-
-uint32_t airtaudio::Api::formatBytes(airtaudio::format _format)
-{
-	if (_format == airtaudio::SINT16) {
-		return 2;
-	} else if (    _format == airtaudio::SINT32
-	            || _format == airtaudio::FLOAT32) {
-		return 4;
-	} else if (_format == airtaudio::FLOAT64) {
-		return 8;
-	} else if (_format == airtaudio::SINT24) {
-		return 3;
-	} else if (_format == airtaudio::SINT8) {
-		return 1;
-	}
-	ATA_ERROR("airtaudio::Api::formatBytes: undefined format.");
-	// TODO : airtaudio::errorWarning;
-	return 0;
 }
 
 void airtaudio::Api::setConvertInfo(airtaudio::api::StreamMode _mode, uint32_t _firstChannel) {
@@ -386,431 +367,19 @@ void airtaudio::Api::convertBuffer(char *_outBuffer, char *_inBuffer, airtaudio:
 	if (    _outBuffer == m_stream.deviceBuffer
 	     && m_stream.mode == airtaudio::api::DUPLEX
 	     && m_stream.nDeviceChannels[0] < m_stream.nDeviceChannels[1]) {
-		memset(_outBuffer, 0, m_stream.bufferSize * _info.outJump * formatBytes(_info.outFormat));
+		memset(_outBuffer, 0, m_stream.bufferSize * _info.outJump * audio::getFormatBytes(_info.outFormat));
 	}
 	int32_t jjj;
-	if (_info.outFormat == airtaudio::FLOAT64) {
-		double scale;
-		double *out = (double *)_outBuffer;
-
-		if (_info.inFormat == airtaudio::SINT8) {
-			signed char *in = (signed char *)_inBuffer;
-			scale = 1.0 / 127.5;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (double) in[_info.inOffset[jjj]];
-					out[_info.outOffset[jjj]] += 0.5;
-					out[_info.outOffset[jjj]] *= scale;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT16) {
-			int16_t *in = (int16_t *)_inBuffer;
-			scale = 1.0 / 32767.5;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (double) in[_info.inOffset[jjj]];
-					out[_info.outOffset[jjj]] += 0.5;
-					out[_info.outOffset[jjj]] *= scale;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT24) {
-			int24_t  *in = (int24_t  *)_inBuffer;
-			scale = 1.0 / 8388607.5;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (double) (in[_info.inOffset[jjj]].asInt());
-					out[_info.outOffset[jjj]] += 0.5;
-					out[_info.outOffset[jjj]] *= scale;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT32) {
-			int32_t *in = (int32_t *)_inBuffer;
-			scale = 1.0 / 2147483647.5;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (double) in[_info.inOffset[jjj]];
-					out[_info.outOffset[jjj]] += 0.5;
-					out[_info.outOffset[jjj]] *= scale;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT32) {
-			float *in = (float *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (double) in[_info.inOffset[jjj]];
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT64) {
-			// Channel compensation and/or (de)interleaving only.
-			double *in = (double *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = in[_info.inOffset[jjj]];
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-	}
-	else if (_info.outFormat == airtaudio::FLOAT32) {
-		float scale;
-		float *out = (float *)_outBuffer;
-		if (_info.inFormat == airtaudio::SINT8) {
-			signed char *in = (signed char *)_inBuffer;
-			scale = (float) (1.0 / 127.5);
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (float) in[_info.inOffset[jjj]];
-					out[_info.outOffset[jjj]] += 0.5;
-					out[_info.outOffset[jjj]] *= scale;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT16) {
-			int16_t *in = (int16_t *)_inBuffer;
-			scale = (float) (1.0 / 32767.5);
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (float) in[_info.inOffset[jjj]];
-					out[_info.outOffset[jjj]] += 0.5;
-					out[_info.outOffset[jjj]] *= scale;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT24) {
-			int24_t  *in = (int24_t  *)_inBuffer;
-			scale = (float) (1.0 / 8388607.5);
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (float) (in[_info.inOffset[jjj]].asInt());
-					out[_info.outOffset[jjj]] += 0.5;
-					out[_info.outOffset[jjj]] *= scale;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT32) {
-			int32_t *in = (int32_t *)_inBuffer;
-			scale = (float) (1.0 / 2147483647.5);
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (float) in[_info.inOffset[jjj]];
-					out[_info.outOffset[jjj]] += 0.5;
-					out[_info.outOffset[jjj]] *= scale;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT32) {
-			// Channel compensation and/or (de)interleaving only.
-			float *in = (float *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = in[_info.inOffset[jjj]];
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT64) {
-			double *in = (double *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (float) in[_info.inOffset[jjj]];
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-	}
-	else if (_info.outFormat == airtaudio::SINT32) {
-		int32_t *out = (int32_t *)_outBuffer;
-		if (_info.inFormat == airtaudio::SINT8) {
-			signed char *in = (signed char *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int32_t) in[_info.inOffset[jjj]];
-					out[_info.outOffset[jjj]] <<= 24;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT16) {
-			int16_t *in = (int16_t *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int32_t) in[_info.inOffset[jjj]];
-					out[_info.outOffset[jjj]] <<= 16;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT24) {
-			int24_t  *in = (int24_t  *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int32_t) in[_info.inOffset[jjj]].asInt();
-					out[_info.outOffset[jjj]] <<= 8;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT32) {
-			// Channel compensation and/or (de)interleaving only.
-			int32_t *in = (int32_t *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = in[_info.inOffset[jjj]];
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT32) {
-			float *in = (float *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int32_t) (in[_info.inOffset[jjj]] * 2147483647.5 - 0.5);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT64) {
-			double *in = (double *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int32_t) (in[_info.inOffset[jjj]] * 2147483647.5 - 0.5);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-	}
-	else if (_info.outFormat == airtaudio::SINT24) {
-		int24_t  *out = (int24_t  *)_outBuffer;
-		if (_info.inFormat == airtaudio::SINT8) {
-			signed char *in = (signed char *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int32_t) (in[_info.inOffset[jjj]] << 16);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT16) {
-			int16_t *in = (int16_t *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int32_t) (in[_info.inOffset[jjj]] << 8);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT24) {
-			// Channel compensation and/or (de)interleaving only.
-			int24_t  *in = (int24_t  *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = in[_info.inOffset[jjj]];
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT32) {
-			int32_t *in = (int32_t *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int32_t) (in[_info.inOffset[jjj]] >> 8);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT32) {
-			float *in = (float *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int32_t) (in[_info.inOffset[jjj]] * 8388607.5 - 0.5);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT64) {
-			double *in = (double *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int32_t) (in[_info.inOffset[jjj]] * 8388607.5 - 0.5);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-	}
-	else if (_info.outFormat == airtaudio::SINT16) {
-		int16_t *out = (int16_t *)_outBuffer;
-		if (_info.inFormat == airtaudio::SINT8) {
-			signed char *in = (signed char *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int16_t) in[_info.inOffset[jjj]];
-					out[_info.outOffset[jjj]] <<= 8;
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT16) {
-			// Channel compensation and/or (de)interleaving only.
-			int16_t *in = (int16_t *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = in[_info.inOffset[jjj]];
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT24) {
-			int24_t  *in = (int24_t  *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int16_t) (in[_info.inOffset[jjj]].asInt() >> 8);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT32) {
-			int32_t *in = (int32_t *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int16_t) ((in[_info.inOffset[jjj]] >> 16) & 0x0000ffff);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT32) {
-			float *in = (float *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int16_t) (in[_info.inOffset[jjj]] * 32767.5 - 0.5);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT64) {
-			double *in = (double *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (int16_t) (in[_info.inOffset[jjj]] * 32767.5 - 0.5);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-	}
-	else if (_info.outFormat == airtaudio::SINT8) {
-		signed char *out = (signed char *)_outBuffer;
-		if (_info.inFormat == airtaudio::SINT8) {
-			// Channel compensation and/or (de)interleaving only.
-			signed char *in = (signed char *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = in[_info.inOffset[jjj]];
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		if (_info.inFormat == airtaudio::SINT16) {
-			int16_t *in = (int16_t *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (signed char) ((in[_info.inOffset[jjj]] >> 8) & 0x00ff);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT24) {
-			int24_t  *in = (int24_t  *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (signed char) (in[_info.inOffset[jjj]].asInt() >> 16);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::SINT32) {
-			int32_t *in = (int32_t *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (signed char) ((in[_info.inOffset[jjj]] >> 24) & 0x000000ff);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT32) {
-			float *in = (float *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (signed char) (in[_info.inOffset[jjj]] * 127.5 - 0.5);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
-		else if (_info.inFormat == airtaudio::FLOAT64) {
-			double *in = (double *)_inBuffer;
-			for (uint32_t iii=0; iii<m_stream.bufferSize; ++iii) {
-				for (jjj=0; jjj<_info.channels; ++jjj) {
-					out[_info.outOffset[jjj]] = (signed char) (in[_info.inOffset[jjj]] * 127.5 - 0.5);
-				}
-				in += _info.inJump;
-				out += _info.outJump;
-			}
-		}
+	if (_info.outFormat != _info.outFormat) {
+		ATA_CRITICAL("not manage anymore the format changing ...");
 	}
 }
 
-void airtaudio::Api::byteSwapBuffer(char *_buffer, uint32_t _samples, airtaudio::format _format) {
+void airtaudio::Api::byteSwapBuffer(char *_buffer, uint32_t _samples, audio::format _format) {
 	char val;
 	char *ptr;
 	ptr = _buffer;
-	if (_format == airtaudio::SINT16) {
+	if (_format == audio::format_int16) {
 		for (uint32_t iii=0; iii<_samples; ++iii) {
 			// Swap 1st and 2nd bytes.
 			val = *(ptr);
@@ -820,8 +389,8 @@ void airtaudio::Api::byteSwapBuffer(char *_buffer, uint32_t _samples, airtaudio:
 			// Increment 2 bytes.
 			ptr += 2;
 		}
-	} else if (    _format == airtaudio::SINT32
-	            || _format == airtaudio::FLOAT32) {
+	} else if (    _format == audio::format_int32
+	            || _format == audio::format_float) {
 		for (uint32_t iii=0; iii<_samples; ++iii) {
 			// Swap 1st and 4th bytes.
 			val = *(ptr);
@@ -837,7 +406,7 @@ void airtaudio::Api::byteSwapBuffer(char *_buffer, uint32_t _samples, airtaudio:
 			// Increment 3 more bytes.
 			ptr += 3;
 		}
-	} else if (_format == airtaudio::SINT24) {
+	} else if (_format == audio::format_int24) {
 		for (uint32_t iii=0; iii<_samples; ++iii) {
 			// Swap 1st and 3rd bytes.
 			val = *(ptr);
@@ -847,7 +416,7 @@ void airtaudio::Api::byteSwapBuffer(char *_buffer, uint32_t _samples, airtaudio:
 			// Increment 2 more bytes.
 			ptr += 2;
 		}
-	} else if (_format == airtaudio::FLOAT64) {
+	} else if (_format == audio::format_double) {
 		for (uint32_t iii=0; iii<_samples; ++iii) {
 			// Swap 1st and 8th bytes
 			val = *(ptr);

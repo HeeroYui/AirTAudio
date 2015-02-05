@@ -17,6 +17,7 @@ def create(target):
 		'airtaudio/Api.cpp',
 		'airtaudio/api/Dummy.cpp',
 		])
+	myModule.add_module_depend(['audio'])
 	
 	myModule.add_export_flag_CC(['-D__AIRTAUDIO_API_DUMMY_H__'])
 	if target.name=="Windows":

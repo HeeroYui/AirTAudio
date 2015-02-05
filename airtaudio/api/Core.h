@@ -45,7 +45,7 @@ namespace airtaudio {
 				                     uint32_t _channels,
 				                     uint32_t _firstChannel,
 				                     uint32_t _sampleRate,
-				                     airtaudio::format _format,
+				                     audio::format _format,
 				                     uint32_t *_bufferSize,
 				                     airtaudio::StreamOptions *_options);
 				static const char* getErrorCode(OSStatus _code);

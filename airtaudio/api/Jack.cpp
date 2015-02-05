@@ -127,7 +127,7 @@ airtaudio::DeviceInfo airtaudio::api::Jack::getDeviceInfo(uint32_t _device) {
 	jack_status_t *status = nullptr;
 	jack_client_t *client = jack_client_open("RtApiJackInfo", options, status);
 	if (client == nullptr) {
-		ATA_ERROR("airtaudio::api::Jack::getDeviceInfo: Jack server not found or connection error!");
+		ATA_ERROR("Jack server not found or connection error!");
 		// TODO : airtaudio::errorWarning;
 		return info;
 	}
@@ -156,7 +156,7 @@ airtaudio::DeviceInfo airtaudio::api::Jack::getDeviceInfo(uint32_t _device) {
 	}
 	if (_device >= nDevices) {
 		jack_client_close(client);
-		ATA_ERROR("airtaudio::api::Jack::getDeviceInfo: device ID is invalid!");
+		ATA_ERROR("device ID is invalid!");
 		// TODO : airtaudio::errorInvalidUse;
 		return info;
 	}
@@ -186,7 +186,7 @@ airtaudio::DeviceInfo airtaudio::api::Jack::getDeviceInfo(uint32_t _device) {
 	}
 	if (info.outputChannels == 0 && info.inputChannels == 0) {
 		jack_client_close(client);
-		ATA_ERROR("airtaudio::api::Jack::getDeviceInfo: error determining Jack input/output channels!");
+		ATA_ERROR("error determining Jack input/output channels!");
 		// TODO : airtaudio::errorWarning;
 		return info;
 	}
@@ -195,7 +195,7 @@ airtaudio::DeviceInfo airtaudio::api::Jack::getDeviceInfo(uint32_t _device) {
 		info.duplexChannels = (info.outputChannels > info.inputChannels) ? info.inputChannels : info.outputChannels;
 	}
 	// Jack always uses 32-bit floats.
-	info.nativeFormats = airtaudio::FLOAT32;
+	info.nativeFormats.push_back(audio::format_float);
 	// Jack doesn't provide default devices so we'll use the first available one.
 	if (    _device == 0
 	     && info.outputChannels > 0) {
@@ -260,7 +260,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
                                            uint32_t _channels,
                                            uint32_t _firstChannel,
                                            uint32_t _sampleRate,
-                                           airtaudio::format _format,
+                                           audio::format _format,
                                            uint32_t* _bufferSize,
                                            airtaudio::StreamOptions* _options) {
 	JackHandle *handle = (JackHandle *) m_stream.apiHandle;
@@ -277,7 +277,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 			client = jack_client_open("RtApiJack", jackoptions, status);
 		}
 		if (client == 0) {
-			ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: Jack server not found or connection error!");
+			ATA_ERROR("Jack server not found or connection error!");
 			return false;
 		}
 	} else {
@@ -308,7 +308,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 		free(ports);
 	}
 	if (_device >= nDevices) {
-		ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: device ID is invalid!");
+		ATA_ERROR("device ID is invalid!");
 		return false;
 	}
 	// Count the available ports containing the client name as device
@@ -325,14 +325,14 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	}
 	// Compare the jack ports for specified client to the requested number of channels.
 	if (nChannels < (_channels + _firstChannel)) {
-		ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: requested number of channels (" << _channels << ") + offset (" << _firstChannel << ") not found for specified device (" << _device << ":" << deviceName << ").");
+		ATA_ERROR("requested number of channels (" << _channels << ") + offset (" << _firstChannel << ") not found for specified device (" << _device << ":" << deviceName << ").");
 		return false;
 	}
 	// Check the jack server sample rate.
 	uint32_t jackRate = jack_get_sample_rate(client);
 	if (_sampleRate != jackRate) {
 		jack_client_close(client);
-		ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: the requested sample rate (" << _sampleRate << ") is different than the JACK server rate (" << jackRate << ").");
+		ATA_ERROR("the requested sample rate (" << _sampleRate << ") is different than the JACK server rate (" << jackRate << ").");
 		return false;
 	}
 	m_stream.sampleRate = jackRate;
@@ -381,7 +381,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	if (handle == 0) {
 		handle = new JackHandle;
 		if (handle == nullptr) {
-			ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: error allocating JackHandle memory.");
+			ATA_ERROR("error allocating JackHandle memory.");
 			goto error;
 		}
 		m_stream.apiHandle = (void *) handle;
@@ -393,7 +393,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	bufferBytes = m_stream.nUserChannels[_mode] * *_bufferSize * formatBytes(m_stream.userFormat);
 	m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
 	if (m_stream.userBuffer[_mode] == nullptr) {
-		ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: error allocating user buffer memory.");
+		ATA_ERROR("error allocating user buffer memory.");
 		goto error;
 	}
 	if (m_stream.doConvertBuffer[_mode]) {
@@ -414,7 +414,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 			if (m_stream.deviceBuffer) free(m_stream.deviceBuffer);
 			m_stream.deviceBuffer = (char *) calloc(bufferBytes, 1);
 			if (m_stream.deviceBuffer == nullptr) {
-				ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: error allocating device buffer memory.");
+				ATA_ERROR("error allocating device buffer memory.");
 				goto error;
 			}
 		}
@@ -422,7 +422,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	// Allocate memory for the Jack ports (channels) identifiers.
 	handle->ports[_mode] = (jack_port_t **) malloc (sizeof (jack_port_t *) * _channels);
 	if (handle->ports[_mode] == nullptr)	{
-		ATA_ERROR("airtaudio::api::Jack::probeDeviceOpen: error allocating port memory.");
+		ATA_ERROR("error allocating port memory.");
 		goto error;
 	}
 	m_stream.device[_mode] = _device;
@@ -494,7 +494,7 @@ error:
 
 enum airtaudio::errorType airtaudio::api::Jack::closeStream() {
 	if (m_stream.state == STREAM_CLOSED) {
-		ATA_ERROR("airtaudio::api::Jack::closeStream(): no open stream to close!");
+		ATA_ERROR("no open stream to close!");
 		return airtaudio::errorWarning;
 	}
 	JackHandle *handle = (JackHandle *) m_stream.apiHandle;
@@ -534,13 +534,13 @@ enum airtaudio::errorType airtaudio::api::Jack::startStream() {
 		return airtaudio::errorFail;
 	}
 	if (m_stream.state == STREAM_RUNNING) {
-		ATA_ERROR("airtaudio::api::Jack::startStream(): the stream is already running!");
+		ATA_ERROR("the stream is already running!");
 		return airtaudio::errorWarning;
 	}
 	JackHandle *handle = (JackHandle *) m_stream.apiHandle;
 	int32_t result = jack_activate(handle->client);
 	if (result) {
-		ATA_ERROR("airtaudio::api::Jack::startStream(): unable to activate JACK client!");
+		ATA_ERROR("unable to activate JACK client!");
 		goto unlock;
 	}
 	const char **ports;
@@ -550,7 +550,7 @@ enum airtaudio::errorType airtaudio::api::Jack::startStream() {
 		result = 1;
 		ports = jack_get_ports(handle->client, handle->deviceName[0].c_str(), nullptr, JackPortIsInput);
 		if (ports == nullptr) {
-			ATA_ERROR("airtaudio::api::Jack::startStream(): error determining available JACK input ports!");
+			ATA_ERROR("error determining available JACK input ports!");
 			goto unlock;
 		}
 		// Now make the port connections.	Since RtAudio wasn't designed to
@@ -562,7 +562,7 @@ enum airtaudio::errorType airtaudio::api::Jack::startStream() {
 				result = jack_connect(handle->client, jack_port_name(handle->ports[0][i]), ports[ m_stream.channelOffset[0] + i ]);
 			if (result) {
 				free(ports);
-				ATA_ERROR("airtaudio::api::Jack::startStream(): error connecting output ports!");
+				ATA_ERROR("error connecting output ports!");
 				goto unlock;
 			}
 		}
@@ -573,7 +573,7 @@ enum airtaudio::errorType airtaudio::api::Jack::startStream() {
 		result = 1;
 		ports = jack_get_ports(handle->client, handle->deviceName[1].c_str(), nullptr, JackPortIsOutput);
 		if (ports == nullptr) {
-			ATA_ERROR("airtaudio::api::Jack::startStream(): error determining available JACK output ports!");
+			ATA_ERROR("error determining available JACK output ports!");
 			goto unlock;
 		}
 		// Now make the port connections. See note above.
@@ -584,7 +584,7 @@ enum airtaudio::errorType airtaudio::api::Jack::startStream() {
 			}
 			if (result) {
 				free(ports);
-				ATA_ERROR("airtaudio::api::Jack::startStream(): error connecting input ports!");
+				ATA_ERROR("error connecting input ports!");
 				goto unlock;
 			}
 		}
@@ -605,7 +605,7 @@ enum airtaudio::errorType airtaudio::api::Jack::stopStream() {
 		return airtaudio::errorFail;
 	}
 	if (m_stream.state == STREAM_STOPPED) {
-		ATA_ERROR("airtaudio::api::Jack::stopStream(): the stream is already stopped!");
+		ATA_ERROR("the stream is already stopped!");
 		return airtaudio::errorWarning;
 	}
 	JackHandle *handle = (JackHandle *) m_stream.apiHandle;
@@ -627,7 +627,7 @@ enum airtaudio::errorType airtaudio::api::Jack::abortStream() {
 		return airtaudio::errorFail;
 	}
 	if (m_stream.state == STREAM_STOPPED) {
-		ATA_ERROR("airtaudio::api::Jack::abortStream(): the stream is already stopped!");
+		ATA_ERROR("the stream is already stopped!");
 		return airtaudio::errorWarning;
 	}
 	JackHandle *handle = (JackHandle *) m_stream.apiHandle;

@@ -308,33 +308,33 @@ probeParameters:
 	}
 	// Probe the supported data formats ... we don't care about endian-ness just yet
 	snd_pcm_format_t format;
-	info.nativeFormats = 0;
+	info.nativeFormats.clear();
 	format = SND_PCM_FORMAT_S8;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats |= airtaudio::SINT8;
+		info.nativeFormats.push_back(audio::format_int8);
 	}
 	format = SND_PCM_FORMAT_S16;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats |= airtaudio::SINT16;
+		info.nativeFormats.push_back(audio::format_int16);
 	}
 	format = SND_PCM_FORMAT_S24;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats |= airtaudio::SINT24;
+		info.nativeFormats.push_back(audio::format_int24);
 	}
 	format = SND_PCM_FORMAT_S32;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats |= airtaudio::SINT32;
+		info.nativeFormats.push_back(audio::format_int32);
 	}
 	format = SND_PCM_FORMAT_FLOAT;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats |= airtaudio::FLOAT32;
+		info.nativeFormats.push_back(audio::format_float);
 	}
 	format = SND_PCM_FORMAT_FLOAT64;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats |= airtaudio::FLOAT64;
+		info.nativeFormats.push_back(audio::format_double);
 	}
 	// Check that we have at least one supported format
-	if (info.nativeFormats == 0) {
+	if (info.nativeFormats.size() == 0) {
 		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: pcm device (" << name << ") data format not supported by RtAudio.");
 		// TODO : Return airtaudio::errorWarning;
 		return info;
@@ -366,7 +366,7 @@ bool airtaudio::api::Alsa::probeDeviceOpen(uint32_t _device,
                                            uint32_t _channels,
                                            uint32_t _firstChannel,
                                            uint32_t _sampleRate,
-                                           airtaudio::format _format,
+                                           audio::format _format,
                                            uint32_t *_bufferSize,
                                            airtaudio::StreamOptions *_options) {
 	// I'm not using the "plug" interface ... too much inconsistent behavior.
@@ -487,60 +487,28 @@ foundDevice:
 	// Determine how to set the device format.
 	m_stream.userFormat = _format;
 	snd_pcm_format_t deviceFormat = SND_PCM_FORMAT_UNKNOWN;
-	if (_format == airtaudio::SINT8) {
+	if (_format == audio::format_int8) {
 		deviceFormat = SND_PCM_FORMAT_S8;
-	} else if (_format == airtaudio::SINT16) {
+	} else if (_format == audio::format_int16) {
 		deviceFormat = SND_PCM_FORMAT_S16;
-	} else if (_format == airtaudio::SINT24) {
+	} else if (_format == audio::format_int24) {
 		deviceFormat = SND_PCM_FORMAT_S24;
-	} else if (_format == airtaudio::SINT32) {
+	} else if (_format == audio::format_int32) {
 		deviceFormat = SND_PCM_FORMAT_S32;
-	} else if (_format == airtaudio::FLOAT32) {
+	} else if (_format == audio::format_float) {
 		deviceFormat = SND_PCM_FORMAT_FLOAT;
-	} else if (_format == airtaudio::FLOAT64) {
+	} else if (_format == audio::format_double) {
 		deviceFormat = SND_PCM_FORMAT_FLOAT64;
 	}
 	if (snd_pcm_hw_params_test_format(phandle, hw_params, deviceFormat) == 0) {
 		m_stream.deviceFormat[_mode] = _format;
-		goto setFormat;
+	} else {
+		// If we get here, no supported format was found.
+		snd_pcm_close(phandle);
+		ATA_ERROR("pcm device " << _device << " data format not supported: " << _format);
+		// TODO : display list of all supported format ..
+		return false;
 	}
-	// The user requested format is not natively supported by the device.
-	deviceFormat = SND_PCM_FORMAT_FLOAT64;
-	if (snd_pcm_hw_params_test_format(phandle, hw_params, deviceFormat) == 0) {
-		m_stream.deviceFormat[_mode] = airtaudio::FLOAT64;
-		goto setFormat;
-	}
-	deviceFormat = SND_PCM_FORMAT_FLOAT;
-	if (snd_pcm_hw_params_test_format(phandle, hw_params, deviceFormat) == 0) {
-		m_stream.deviceFormat[_mode] = airtaudio::FLOAT32;
-		goto setFormat;
-	}
-	deviceFormat = SND_PCM_FORMAT_S32;
-	if (snd_pcm_hw_params_test_format(phandle, hw_params, deviceFormat) == 0) {
-		m_stream.deviceFormat[_mode] = airtaudio::SINT32;
-		goto setFormat;
-	}
-	deviceFormat = SND_PCM_FORMAT_S24;
-	if (snd_pcm_hw_params_test_format(phandle, hw_params, deviceFormat) == 0) {
-		m_stream.deviceFormat[_mode] = airtaudio::SINT24;
-		goto setFormat;
-	}
-	deviceFormat = SND_PCM_FORMAT_S16;
-	if (snd_pcm_hw_params_test_format(phandle, hw_params, deviceFormat) == 0) {
-		m_stream.deviceFormat[_mode] = airtaudio::SINT16;
-		goto setFormat;
-	}
-	deviceFormat = SND_PCM_FORMAT_S8;
-	if (snd_pcm_hw_params_test_format(phandle, hw_params, deviceFormat) == 0) {
-		m_stream.deviceFormat[_mode] = airtaudio::SINT8;
-		goto setFormat;
-	}
-	// If we get here, no supported format was found.
-	snd_pcm_close(phandle);
-	ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: pcm device " << _device << " data format not supported by RtAudio.");
-	return false;
-
-setFormat:
 	result = snd_pcm_hw_params_set_format(phandle, hw_params, deviceFormat);
 	if (result < 0) {
 		snd_pcm_close(phandle);
@@ -683,7 +651,7 @@ setFormat:
 	phandle = 0;
 	// Allocate necessary internal buffers.
 	uint64_t bufferBytes;
-	bufferBytes = m_stream.nUserChannels[_mode] * *_bufferSize * formatBytes(m_stream.userFormat);
+	bufferBytes = m_stream.nUserChannels[_mode] * *_bufferSize * audio::getFormatBytes(m_stream.userFormat);
 	m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
 	if (m_stream.userBuffer[_mode] == nullptr) {
 		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error allocating user buffer memory.");
@@ -691,10 +659,10 @@ setFormat:
 	}
 	if (m_stream.doConvertBuffer[_mode]) {
 		bool makeBuffer = true;
-		bufferBytes = m_stream.nDeviceChannels[_mode] * formatBytes(m_stream.deviceFormat[_mode]);
+		bufferBytes = m_stream.nDeviceChannels[_mode] * audio::getFormatBytes(m_stream.deviceFormat[_mode]);
 		if (_mode == INPUT) {
 			if (m_stream.mode == OUTPUT && m_stream.deviceBuffer) {
-				uint64_t bytesOut = m_stream.nDeviceChannels[0] * formatBytes(m_stream.deviceFormat[0]);
+				uint64_t bytesOut = m_stream.nDeviceChannels[0] * audio::getFormatBytes(m_stream.deviceFormat[0]);
 				if (bufferBytes <= bytesOut) {
 					makeBuffer = false;
 				}
@@ -1001,7 +969,7 @@ void airtaudio::api::Alsa::callbackEvent() {
 	int32_t channels;
 	snd_pcm_t **handle;
 	snd_pcm_sframes_t frames;
-	airtaudio::format format;
+	audio::format format;
 	handle = (snd_pcm_t **) apiInfo->handles;
 	if (    m_stream.mode == airtaudio::api::INPUT
 	     || m_stream.mode == airtaudio::api::DUPLEX) {
@@ -1020,7 +988,7 @@ void airtaudio::api::Alsa::callbackEvent() {
 			result = snd_pcm_readi(handle[1], buffer, m_stream.bufferSize);
 		} else {
 			void *bufs[channels];
-			size_t offset = m_stream.bufferSize * formatBytes(format);
+			size_t offset = m_stream.bufferSize * audio::getFormatBytes(format);
 			for (int32_t i=0; i<channels; i++)
 				bufs[i] = (void *) (buffer + (i * offset));
 			result = snd_pcm_readn(handle[1], bufs, m_stream.bufferSize);
@@ -1082,7 +1050,7 @@ tryOutput:
 			result = snd_pcm_writei(handle[0], buffer, m_stream.bufferSize);
 		} else {
 			void *bufs[channels];
-			size_t offset = m_stream.bufferSize * formatBytes(format);
+			size_t offset = m_stream.bufferSize * audio::getFormatBytes(format);
 			for (int32_t i=0; i<channels; i++) {
 				bufs[i] = (void *) (buffer + (i * offset));
 			}

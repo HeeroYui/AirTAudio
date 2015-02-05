@@ -13,6 +13,8 @@
 #include <condition_variable>
 #include <mutex>
 #include <functional>
+#include <audio/channel.h>
+#include <audio/format.h>
 
 // defien type : uintXX_t and intXX_t
 #define __STDC_LIMIT_MACROS
@@ -36,35 +38,6 @@ namespace airtaudio {
 	};
 	// airtaudio version
 	static const std::string VERSION("4.0.12");
-	
-	/**
-	 * @brief Debug operator To display the curent element in a Human redeable information
-	 */
-	//std::ostream& operator <<(std::ostream& _os, enum errorType _obj);
-	/**
-	 * @typedef typedef uint64_t format;
-	 * @brief airtaudio data format type.
-	 *
-	 * Support for signed integers and floats.	Audio data fed to/from an
-	 * airtaudio stream is assumed to ALWAYS be in host byte order.	The
-	 * internal routines will automatically take care of any necessary
-	 * byte-swapping between the host format and the soundcard.	Thus,
-	 * endian-ness is not a concern in the following format definitions.
-	 *
-	 * - \e SINT8:	 8-bit signed integer.
-	 * - \e SINT16:	16-bit signed integer.
-	 * - \e SINT24:	24-bit signed integer.
-	 * - \e SINT32:	32-bit signed integer.
-	 * - \e FLOAT32: Normalized between plus/minus 1.0.
-	 * - \e FLOAT64: Normalized between plus/minus 1.0.
-	 */
-	typedef uint64_t format;
-	static const format SINT8 = 0x1;		// 8-bit signed integer.
-	static const format SINT16 = 0x2;	 // 16-bit signed integer.
-	static const format SINT24 = 0x4;	 // 24-bit signed integer.
-	static const format SINT32 = 0x8;	 // 32-bit signed integer.
-	static const format FLOAT32 = 0x10; // Normalized between plus/minus 1.0.
-	static const format FLOAT64 = 0x20; // Normalized between plus/minus 1.0.
 	
 	/**
 	 * @typedef typedef uint64_t streamFlags;

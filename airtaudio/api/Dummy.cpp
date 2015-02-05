@@ -19,7 +19,7 @@ airtaudio::Api* airtaudio::api::Dummy::Create() {
 
 
 airtaudio::api::Dummy::Dummy() {
-	m_errorText = "airtaudio::api::Dummy: This class provides no functionality.";
+	m_errorText = "This class provides no functionality.";
 	error(airtaudio::errorWarning);
 }
 
@@ -28,7 +28,7 @@ uint32_t airtaudio::api::Dummy::getDeviceCount() {
 }
 
 rtaudio::DeviceInfo airtaudio::api::Dummy::getDeviceInfo(uint32_t _device) {
-	()_device;
+	(void)_device;
 	rtaudio::DeviceInfo info;
 	return info;
 }
@@ -54,7 +54,7 @@ bool airtaudio::api::Dummy::probeDeviceOpen(uint32_t _device,
                                             uint32_t _channels,
                                             uint32_t _firstChannel,
                                             uint32_t _sampleRate,
-                                            airtaudio::format _format,
+                                            audio::format _format,
                                             uint32_t *_bufferSize,
                                             airtaudio::StreamOptions *_options) {
 	return false;

@@ -50,7 +50,7 @@ airtaudio::api::CoreIos::CoreIos(void) :
 	tmp.duplexChannels = 0;
 	tmp.isDefaultOutput = true;
 	tmp.isDefaultInput = false;
-	tmp.nativeFormats = SINT16;
+	tmp.nativeFormats.push_back(audio::format_int16);
 	m_devices.push_back(tmp);
 	// add default input format:
 	tmp.name = "in";
@@ -60,9 +60,8 @@ airtaudio::api::CoreIos::CoreIos(void) :
 	tmp.duplexChannels = 0;
 	tmp.isDefaultOutput = false;
 	tmp.isDefaultInput = true;
-	tmp.nativeFormats = SINT16;
+	tmp.nativeFormats.push_back(audio::format_int16);
 	m_devices.push_back(tmp);
-	
 	ATA_INFO("Create CoreIOs interface (end)");
 }
 
@@ -177,7 +176,7 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
                                               uint32_t _channels,
                                               uint32_t _firstChannel,
                                               uint32_t _sampleRate,
-                                              airtaudio::format _format,
+                                              audio::format _format,
                                               uint32_t *_bufferSize,
                                               airtaudio::StreamOptions *_options) {
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);
@@ -215,7 +214,7 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
 		uint64_t bufferBytes = m_stream.nUserChannels[_mode] * m_stream.bufferSize * formatBytes(m_stream.userFormat);
 		m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
 		if (m_stream.userBuffer[_mode] == nullptr) {
-			ATA_ERROR("airtaudio::api::Android::probeDeviceOpen: error allocating user buffer memory.");
+			ATA_ERROR("error allocating user buffer memory.");
 		}
 		setConvertInfo(_mode, _firstChannel);
 	}
