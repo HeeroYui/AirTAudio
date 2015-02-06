@@ -16,15 +16,15 @@ namespace airtaudio {
 				static airtaudio::Api* Create();
 			public:
 				virtual ~Pulse();
-				airtaudio::api::type getCurrentApi() {
-					return airtaudio::api::LINUX_PULSE;
+				enum airtaudio::type getCurrentApi() {
+					return airtaudio::type_pulse;
 				}
 				uint32_t getDeviceCount();
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
-				enum airtaudio::errorType closeStream();
-				enum airtaudio::errorType startStream();
-				enum airtaudio::errorType stopStream();
-				enum airtaudio::errorType abortStream();
+				enum airtaudio::error closeStream();
+				enum airtaudio::error startStream();
+				enum airtaudio::error stopStream();
+				enum airtaudio::error abortStream();
 				// This function is intended for internal use only.	It must be
 				// public because it is called by the internal callback handler,
 				// which is not a member of RtAudio.	External use of this function
@@ -34,7 +34,7 @@ namespace airtaudio {
 				std::vector<airtaudio::DeviceInfo> m_devices;
 				void saveDeviceInfo();
 				bool probeDeviceOpen(uint32_t _device,
-				                     airtaudio::api::StreamMode _mode,
+				                     airtaudio::mode _mode,
 				                     uint32_t _channels,
 				                     uint32_t _firstChannel,
 				                     uint32_t _sampleRate,

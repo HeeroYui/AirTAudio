@@ -17,15 +17,15 @@ namespace airtaudio {
 			public:
 				Asio();
 				virtual ~Asio();
-				airtaudio::api::type getCurrentApi() {
+				enum airtaudio::type getCurrentApi() {
 					return airtaudio::WINDOWS_ASIO;
 				}
 				uint32_t getDeviceCount();
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
-				enum airtaudio::errorType closeStream();
-				enum airtaudio::errorType startStream();
-				enum airtaudio::errorType stopStream();
-				enum airtaudio::errorType abortStream();
+				enum airtaudio::error closeStream();
+				enum airtaudio::error startStream();
+				enum airtaudio::error stopStream();
+				enum airtaudio::error abortStream();
 				long getStreamLatency();
 				// This function is intended for internal use only.	It must be
 				// public because it is called by the internal callback handler,
@@ -37,7 +37,7 @@ namespace airtaudio {
 				void saveDeviceInfo();
 				bool m_coInitialized;
 				bool probeDeviceOpen(uint32_t _device,
-				                     airtaudio::api::StreamMode _mode,
+				                     airtaudio::mode _mode,
 				                     uint32_t _channels,
 				                     uint32_t _firstChannel,
 				                     uint32_t _sampleRate,

@@ -82,31 +82,31 @@ airtaudio::DeviceInfo airtaudio::api::CoreIos::getDeviceInfo(uint32_t _device) {
 	return m_devices[_device];
 }
 
-enum airtaudio::errorType airtaudio::api::CoreIos::closeStream(void) {
+enum airtaudio::error airtaudio::api::CoreIos::closeStream(void) {
 	ATA_INFO("Close Stream");
 	// Can not close the stream now...
-	return airtaudio::errorNone;
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::CoreIos::startStream(void) {
+enum airtaudio::error airtaudio::api::CoreIos::startStream(void) {
 	ATA_INFO("Start Stream");
 	OSStatus status = AudioOutputUnitStart(m_private->audioUnit);
 	// Can not close the stream now...
-	return airtaudio::errorNone;
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::CoreIos::stopStream(void) {
+enum airtaudio::error airtaudio::api::CoreIos::stopStream(void) {
 	ATA_INFO("Stop stream");
 	OSStatus status = AudioOutputUnitStop(m_private->audioUnit);
 	// Can not close the stream now...
-	return airtaudio::errorNone;
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::CoreIos::abortStream(void) {
+enum airtaudio::error airtaudio::api::CoreIos::abortStream(void) {
 	ATA_INFO("Abort Stream");
 	OSStatus status = AudioOutputUnitStop(m_private->audioUnit);
 	// Can not close the stream now...
-	return airtaudio::errorNone;
+	return airtaudio::error_none;
 }
 
 void airtaudio::api::CoreIos::callBackEvent(void* _data,
@@ -127,14 +127,14 @@ void airtaudio::api::CoreIos::callBackEvent(void* _data,
 	#endif
 	int32_t doStopStream = 0;
 	double streamTime = getStreamTime();
-	airtaudio::streamStatus status = 0;
-	if (m_stream.doConvertBuffer[OUTPUT] == true) {
-		doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[OUTPUT],
+	enum airtaudio::status status = airtaudio::status_ok;
+	if (m_stream.doConvertBuffer[airtaudio::mode_output] == true) {
+		doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[airtaudio::mode_output],
 		                                              nullptr,
 		                                              _frameRate,
 		                                              streamTime,
 		                                              status);
-		convertBuffer((char*)_data, (char*)m_stream.userBuffer[OUTPUT], m_stream.convertInfo[OUTPUT]);
+		convertBuffer((char*)_data, (char*)m_stream.userBuffer[airtaudio::mode_output], m_stream.convertInfo[airtaudio::mode_output]);
 	} else {
 		doStopStream = m_stream.callbackInfo.callback(_data,
 		                                              nullptr,
@@ -172,7 +172,7 @@ static OSStatus playbackCallback(void *_userData,
 
 
 bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
-                                              airtaudio::api::StreamMode _mode,
+                                              airtaudio::mode _mode,
                                               uint32_t _channels,
                                               uint32_t _firstChannel,
                                               uint32_t _sampleRate,
@@ -180,7 +180,7 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
                                               uint32_t *_bufferSize,
                                               airtaudio::StreamOptions *_options) {
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);
-	if (_mode != OUTPUT) {
+	if (_mode != airtaudio::mode_output) {
 		ATA_ERROR("Can not start a device input or duplex for CoreIos ...");
 		return false;
 	}
@@ -188,39 +188,39 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
 	
 	// configure Airtaudio internal configuration:
 	m_stream.userFormat = _format;
-	m_stream.nUserChannels[_mode] = _channels;
+	m_stream.nUserChannels[modeToIdTable(_mode)] = _channels;
 	m_stream.bufferSize = 8192;
 	m_stream.sampleRate = _sampleRate;
-	m_stream.doByteSwap[_mode] = false; // for endienness ...
+	m_stream.doByteSwap[modeToIdTable(_mode)] = false; // for endienness ...
 	
 	// TODO : For now, we write it in hard ==> to be update later ...
-	m_stream.deviceFormat[_mode] = SINT16;
-	m_stream.nDeviceChannels[_mode] = 2;
-	m_stream.deviceInterleaved[_mode] =	true;
+	m_stream.deviceFormat[modeToIdTable(_mode)] = SINT16;
+	m_stream.nDeviceChannels[modeToIdTable(_mode)] = 2;
+	m_stream.deviceInterleaved[modeToIdTable(_mode)] =	true;
 	
-	m_stream.doConvertBuffer[_mode] = false;
-	if (m_stream.userFormat != m_stream.deviceFormat[_mode]) {
-		m_stream.doConvertBuffer[_mode] = true;
+	m_stream.doConvertBuffer[modeToIdTable(_mode)] = false;
+	if (m_stream.userFormat != m_stream.deviceFormat[modeToIdTable(_mode)]) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (m_stream.nUserChannels[_mode] < m_stream.nDeviceChannels[_mode]) {
-		m_stream.doConvertBuffer[_mode] = true;
+	if (m_stream.nUserChannels[modeToIdTable(_mode)] < m_stream.nDeviceChannels[modeToIdTable(_mode)]) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (    m_stream.userInterleaved != m_stream.deviceInterleaved[_mode]
-		&& m_stream.nUserChannels[_mode] > 1) {
-		m_stream.doConvertBuffer[_mode] = true;
+	if (    m_stream.deviceInterleaved[modeToIdTable(_mode)] == false
+	     && m_stream.nUserChannels[modeToIdTable(_mode)] > 1) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (m_stream.doConvertBuffer[_mode] == true) {
+	if (m_stream.doConvertBuffer[modeToIdTable(_mode)] == true) {
 		// Allocate necessary internal buffers.
-		uint64_t bufferBytes = m_stream.nUserChannels[_mode] * m_stream.bufferSize * formatBytes(m_stream.userFormat);
-		m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
-		if (m_stream.userBuffer[_mode] == nullptr) {
+		uint64_t bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * m_stream.bufferSize * formatBytes(m_stream.userFormat);
+		m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
+		if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
 			ATA_ERROR("error allocating user buffer memory.");
 		}
 		setConvertInfo(_mode, _firstChannel);
 	}
-	ATA_INFO("device format : " << m_stream.deviceFormat[_mode] << " user format : " << m_stream.userFormat);
-	ATA_INFO("device channels : " << m_stream.nDeviceChannels[_mode] << " user channels : " << m_stream.nUserChannels[_mode]);
-	ATA_INFO("do convert buffer : " << m_stream.doConvertBuffer[_mode]);
+	ATA_INFO("device format : " << m_stream.deviceFormat[modeToIdTable(_mode)] << " user format : " << m_stream.userFormat);
+	ATA_INFO("device channels : " << m_stream.nDeviceChannels[modeToIdTable(_mode)] << " user channels : " << m_stream.nUserChannels[modeToIdTable(_mode)]);
+	ATA_INFO("do convert buffer : " << m_stream.doConvertBuffer[modeToIdTable(_mode)]);
 	if (ret == false) {
 		ATA_ERROR("Can not open device.");
 	}

@@ -14,8 +14,8 @@
 #undef __class__
 #define __class__ "Interface"
 
-std::vector<airtaudio::api::type> airtaudio::Interface::getCompiledApi() {
-	std::vector<airtaudio::api::type> apis;
+std::vector<enum airtaudio::type> airtaudio::Interface::getCompiledApi() {
+	std::vector<enum airtaudio::type> apis;
 	// The order here will control the order of RtAudio's API search in
 	// the constructor.
 	for (auto &it : m_apiAvaillable) {
@@ -26,7 +26,7 @@ std::vector<airtaudio::api::type> airtaudio::Interface::getCompiledApi() {
 
 
 
-void airtaudio::Interface::openRtApi(airtaudio::api::type _api) {
+void airtaudio::Interface::openRtApi(enum airtaudio::type _api) {
 	delete m_rtapi;
 	m_rtapi = nullptr;
 	for (auto &it :m_apiAvaillable) {
@@ -49,57 +49,57 @@ airtaudio::Interface::Interface() :
 	ATA_DEBUG("Add interface:");
 #if defined(__UNIX_JACK__)
 	ATA_DEBUG("    JACK");
-	addInterface(airtaudio::api::UNIX_JACK, airtaudio::api::Jack::Create);
+	addInterface(airtaudio::type_jack, airtaudio::api::Jack::Create);
 #endif
 #if defined(__LINUX_ALSA__)
 	ATA_DEBUG("    ALSA");
-	addInterface(airtaudio::api::LINUX_ALSA, airtaudio::api::Alsa::Create);
+	addInterface(airtaudio::type_alsa, airtaudio::api::Alsa::Create);
 #endif
 #if defined(__LINUX_PULSE__)
 	ATA_DEBUG("    PULSE");
-	addInterface(airtaudio::api::LINUX_PULSE, airtaudio::api::Pulse::Create);
+	addInterface(airtaudio::type_pulse, airtaudio::api::Pulse::Create);
 #endif
 #if defined(__LINUX_OSS__)
 	ATA_DEBUG("    OSS");
-	addInterface(airtaudio::api::LINUX_OSS, airtaudio::api::Oss::Create);
+	addInterface(airtaudio::type_oss, airtaudio::api::Oss::Create);
 #endif
 #if defined(__WINDOWS_ASIO__)
 	ATA_DEBUG("    ASIO");
-	addInterface(airtaudio::api::WINDOWS_ASIO, airtaudio::api::Asio::Create);
+	addInterface(airtaudio::type_asio, airtaudio::api::Asio::Create);
 #endif
 #if defined(__WINDOWS_DS__)
 	ATA_DEBUG("    DS");
-	addInterface(airtaudio::api::WINDOWS_DS, airtaudio::api::Ds::Create);
+	addInterface(airtaudio::type_ds, airtaudio::api::Ds::Create);
 #endif
 #if defined(__MACOSX_CORE__)
-	ATA_DEBUG("    MACOSX_CORE");
-	addInterface(airtaudio::api::MACOSX_CORE, airtaudio::api::Core::Create);
+	ATA_DEBUG("    CORE OSX");
+	addInterface(airtaudio::type_coreOSX, airtaudio::api::Core::Create);
 #endif
 #if defined(__IOS_CORE__)
-	ATA_DEBUG("    IOS_CORE");
-	addInterface(airtaudio::api::IOS_CORE, airtaudio::api::CoreIos::Create);
+	ATA_DEBUG("    CORE IOS");
+	addInterface(airtaudio::type_coreIOS, airtaudio::api::CoreIos::Create);
 #endif
 #if defined(__ANDROID_JAVA__)
 	ATA_DEBUG("    JAVA");
-	addInterface(airtaudio::api::ANDROID_JAVA, airtaudio::api::Android::Create);
+	addInterface(airtaudio::type_java, airtaudio::api::Android::Create);
 #endif
 #if defined(__AIRTAUDIO_DUMMY__)
 	ATA_DEBUG("    DUMMY");
-	addInterface(airtaudio::api::RTAUDIO_DUMMY, airtaudio::api::Dummy::Create);
+	addInterface(airtaudio::type_dummy, airtaudio::api::Dummy::Create);
 #endif
 }
 
-void airtaudio::Interface::addInterface(airtaudio::api::type _api, Api* (*_callbackCreate)()) {
-	m_apiAvaillable.push_back(std::pair<airtaudio::api::type, Api* (*)()>(_api, _callbackCreate));
+void airtaudio::Interface::addInterface(enum airtaudio::type _api, Api* (*_callbackCreate)()) {
+	m_apiAvaillable.push_back(std::pair<enum airtaudio::type, Api* (*)()>(_api, _callbackCreate));
 }
 
-enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type _api) {
+enum airtaudio::error airtaudio::Interface::instanciate(enum airtaudio::type _api) {
 	ATA_INFO("Instanciate API ...");
 	if (m_rtapi != nullptr) {
 		ATA_WARNING("Interface already started ...!");
-		return airtaudio::errorNone;
+		return airtaudio::error_none;
 	}
-	if (_api != airtaudio::api::UNSPECIFIED) {
+	if (_api != airtaudio::type_undefined) {
 		ATA_INFO("API specified : " << _api);
 		// Attempt to open the specified API.
 		openRtApi(_api);
@@ -107,17 +107,17 @@ enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type
 			if (m_rtapi->getDeviceCount() != 0) {
 				ATA_INFO("    ==> api open");
 			}
-			return airtaudio::errorNone;
+			return airtaudio::error_none;
 		}
 		// No compiled support for specified API value.	Issue a debug
 		// warning and continue as if no API was specified.
 		ATA_ERROR("RtAudio: no compiled support for specified API argument!");
-		return airtaudio::errorFail;
+		return airtaudio::error_fail;
 	}
 	ATA_INFO("Auto choice API :");
 	// Iterate through the compiled APIs and return as soon as we find
 	// one with at least one device or we reach the end of the list.
-	std::vector<airtaudio::api::type> apis = getCompiledApi();
+	std::vector<enum airtaudio::type> apis = getCompiledApi();
 	ATA_INFO(" find : " << apis.size() << " apis.");
 	for (auto &it : apis) {
 		ATA_INFO("try open ...");
@@ -132,10 +132,10 @@ enum airtaudio::errorType airtaudio::Interface::instanciate(airtaudio::api::type
 		}
 	}
 	if (m_rtapi != nullptr) {
-		return airtaudio::errorNone;
+		return airtaudio::error_none;
 	}
 	ATA_ERROR("RtAudio: no compiled API support found ... critical error!!");
-	return airtaudio::errorFail;
+	return airtaudio::error_fail;
 }
 
 airtaudio::Interface::~Interface() {
@@ -144,7 +144,7 @@ airtaudio::Interface::~Interface() {
 	m_rtapi = nullptr;
 }
 
-enum airtaudio::errorType airtaudio::Interface::openStream(
+enum airtaudio::error airtaudio::Interface::openStream(
                 airtaudio::StreamParameters* _outputParameters,
                 airtaudio::StreamParameters* _inputParameters,
                 audio::format _format,
@@ -153,7 +153,7 @@ enum airtaudio::errorType airtaudio::Interface::openStream(
                 airtaudio::AirTAudioCallback _callback,
                 airtaudio::StreamOptions* _options) {
 	if (m_rtapi == nullptr) {
-		return airtaudio::errorInputNull;
+		return airtaudio::error_inputNull;
 	}
 	return m_rtapi->openStream(_outputParameters,
 	                           _inputParameters,

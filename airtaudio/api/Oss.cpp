@@ -49,7 +49,7 @@ airtaudio::api::Oss::Oss() {
 }
 
 airtaudio::api::Oss::~Oss() {
-	if (m_stream.state != STREAM_CLOSED) {
+	if (m_stream.state != airtaudio::state_closed) {
 		closeStream();
 	}
 }
@@ -102,20 +102,20 @@ airtaudio::DeviceInfo airtaudio::api::Oss::getDeviceInfo(uint32_t _device) {
 	close(mixerfd);
 	if (result == -1) {
 		ATA_ERROR("error getting device (" << ainfo.name << ") info.");
-		error(airtaudio::errorWarning);
+		error(airtaudio::error_warning);
 		return info;
 	}
 	// Probe channels
-	if (ainfo.caps & PCM_CAP_OUTPUT) {
+	if (ainfo.caps & PCM_CAP_airtaudio::mode_output) {
 		info.outputChannels = ainfo.max_channels;
 	}
-	if (ainfo.caps & PCM_CAP_INPUT) {
+	if (ainfo.caps & PCM_CAP_airtaudio::mode_input) {
 		info.inputChannels = ainfo.max_channels;
 	}
-	if (ainfo.caps & PCM_CAP_DUPLEX) {
+	if (ainfo.caps & PCM_CAP_airtaudio::mode_duplex) {
 		if (    info.outputChannels > 0
 		     && info.inputChannels > 0
-		     && ainfo.caps & PCM_CAP_DUPLEX) {
+		     && ainfo.caps & PCM_CAP_airtaudio::mode_duplex) {
 			info.duplexChannels = (info.outputChannels > info.inputChannels) ? info.inputChannels : info.outputChannels;
 		}
 	}
@@ -215,11 +215,11 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		return false;
 	}
 	// Check if device supports input or output
-	if (    (    _mode == OUTPUT
-	          && !(ainfo.caps & PCM_CAP_OUTPUT))
-	     || (    _mode == INPUT
-	          && !(ainfo.caps & PCM_CAP_INPUT))) {
-		if (_mode == OUTPUT) {
+	if (    (    _mode == airtaudio::mode_output
+	          && !(ainfo.caps & PCM_CAP_airtaudio::mode_output))
+	     || (    _mode == airtaudio::mode_input
+	          && !(ainfo.caps & PCM_CAP_airtaudio::mode_input))) {
+		if (_mode == airtaudio::mode_output) {
 			ATA_ERROR("device (" << ainfo.name << ") does not support output.");
 		} else {
 			ATA_ERROR("device (" << ainfo.name << ") does not support input.");
@@ -228,15 +228,15 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	}
 	int32_t flags = 0;
 	OssHandle *handle = (OssHandle *) m_stream.apiHandle;
-	if (_mode == OUTPUT) {
+	if (_mode == airtaudio::mode_output) {
 		flags |= O_WRONLY;
-	} else { // _mode == INPUT
-		if (    m_stream.mode == OUTPUT
+	} else { // _mode == airtaudio::mode_input
+		if (    m_stream.mode == airtaudio::mode_output
 		     && m_stream.device[0] == _device) {
 			// We just set the same device for playback ... close and reopen for duplex (OSS only).
 			close(handle->id[0]);
 			handle->id[0] = 0;
-			if (!(ainfo.caps & PCM_CAP_DUPLEX)) {
+			if (!(ainfo.caps & PCM_CAP_airtaudio::mode_duplex)) {
 				ATA_ERROR("device (" << ainfo.name << ") does not support duplex mode.");
 				return false;
 			}
@@ -269,7 +269,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	// For duplex operation, specifically set this mode (this doesn't seem to work).
 	/*
 		if (flags | O_RDWR) {
-			result = ioctl(fd, SNDCTL_DSP_SETDUPLEX, nullptr);
+			result = ioctl(fd, SNDCTL_DSP_SETairtaudio::mode_duplex, nullptr);
 			if (result == -1) {
 				m_errorStream << "error setting duplex mode for device (" << ainfo.name << ").";
 				m_errorText = m_errorStream.str();
@@ -278,7 +278,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		}
 	*/
 	// Check the device channel support.
-	m_stream.nUserChannels[_mode] = _channels;
+	m_stream.nUserChannels[modeToIdTable(_mode)] = _channels;
 	if (ainfo.max_channels < (int)(_channels + _firstChannel)) {
 		close(fd);
 		ATA_ERROR("the device (" << ainfo.name << ") does not support requested channel parameters.");
@@ -293,7 +293,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		ATA_ERROR("error setting channel parameters on device (" << ainfo.name << ").");
 		return false;
 	}
-	m_stream.nDeviceChannels[_mode] = deviceChannels;
+	m_stream.nDeviceChannels[modeToIdTable(_mode)] = deviceChannels;
 	// Get the data format mask
 	int32_t mask;
 	result = ioctl(fd, SNDCTL_DSP_GETFMTS, &mask);
@@ -305,69 +305,69 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	// Determine how to set the device format.
 	m_stream.userFormat = _format;
 	int32_t deviceFormat = -1;
-	m_stream.doByteSwap[_mode] = false;
+	m_stream.doByteSwap[modeToIdTable(_mode)] = false;
 	if (_format == RTAUDIO_SINT8) {
 		if (mask & AFMT_S8) {
 			deviceFormat = AFMT_S8;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT8;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT8;
 		}
 	} else if (_format == RTAUDIO_SINT16) {
 		if (mask & AFMT_S16_NE) {
 			deviceFormat = AFMT_S16_NE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT16;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT16;
 		} else if (mask & AFMT_S16_OE) {
 			deviceFormat = AFMT_S16_OE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT16;
-			m_stream.doByteSwap[_mode] = true;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT16;
+			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
 		}
 	} else if (_format == RTAUDIO_SINT24) {
 		if (mask & AFMT_S24_NE) {
 			deviceFormat = AFMT_S24_NE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT24;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT24;
 		} else if (mask & AFMT_S24_OE) {
 			deviceFormat = AFMT_S24_OE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT24;
-			m_stream.doByteSwap[_mode] = true;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT24;
+			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
 		}
 	} else if (_format == RTAUDIO_SINT32) {
 		if (mask & AFMT_S32_NE) {
 			deviceFormat = AFMT_S32_NE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT32;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT32;
 		} else if (mask & AFMT_S32_OE) {
 			deviceFormat = AFMT_S32_OE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT32;
-			m_stream.doByteSwap[_mode] = true;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT32;
+			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
 		}
 	}
 	if (deviceFormat == -1) {
 		// The user requested format is not natively supported by the device.
 		if (mask & AFMT_S16_NE) {
 			deviceFormat = AFMT_S16_NE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT16;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT16;
 		} else if (mask & AFMT_S32_NE) {
 			deviceFormat = AFMT_S32_NE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT32;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT32;
 		} else if (mask & AFMT_S24_NE) {
 			deviceFormat = AFMT_S24_NE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT24;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT24;
 		} else if (mask & AFMT_S16_OE) {
 			deviceFormat = AFMT_S16_OE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT16;
-			m_stream.doByteSwap[_mode] = true;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT16;
+			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
 		} else if (mask & AFMT_S32_OE) {
 			deviceFormat = AFMT_S32_OE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT32;
-			m_stream.doByteSwap[_mode] = true;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT32;
+			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
 		} else if (mask & AFMT_S24_OE) {
 			deviceFormat = AFMT_S24_OE;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT24;
-			m_stream.doByteSwap[_mode] = true;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT24;
+			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
 		} else if (mask & AFMT_S8) {
 			deviceFormat = AFMT_S8;
-			m_stream.deviceFormat[_mode] = RTAUDIO_SINT8;
+			m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT8;
 		}
 	}
-	if (m_stream.deviceFormat[_mode] == 0) {
+	if (m_stream.deviceFormat[modeToIdTable(_mode)] == 0) {
 		// This really shouldn't happen ...
 		close(fd);
 		ATA_ERROR("device (" << ainfo.name << ") data format not supported by RtAudio.");
@@ -389,7 +389,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	// bytes) is given as 2^SSSS and the number of buffers as 2^MMMM.
 	// We'll check the actual value used near the end of the setup
 	// procedure.
-	int32_t ossBufferBytes = *_bufferSize * formatBytes(m_stream.deviceFormat[_mode]) * deviceChannels;
+	int32_t ossBufferBytes = *_bufferSize * formatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]) * deviceChannels;
 	if (ossBufferBytes < 16) {
 		ossBufferBytes = 16;
 	}
@@ -398,7 +398,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		buffers = _options->numberOfBuffers;
 	}
 	if (    _options != nullptr
-	     && _options->flags & RTAUDIO_MINIMIZE_LATENCY) {
+	     && _options->flags.m_minimizeLatency == true) {
 		buffers = 2;
 	}
 	if (buffers < 2) {
@@ -413,7 +413,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	}
 	m_stream.nBuffers = buffers;
 	// Save buffer size (in sample frames).
-	*_bufferSize = ossBufferBytes / (formatBytes(m_stream.deviceFormat[_mode]) * deviceChannels);
+	*_bufferSize = ossBufferBytes / (formatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]) * deviceChannels);
 	m_stream.bufferSize = *_bufferSize;
 	// Set the sample rate.
 	int32_t srate = _sampleRate;
@@ -430,30 +430,26 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		return false;
 	}
 	m_stream.sampleRate = _sampleRate;
-	if (    _mode == INPUT
-	     && m_stream._mode == OUTPUT
+	if (    _mode == airtaudio::mode_input
+	     && m_stream._mode == airtaudio::mode_output
 	     && m_stream.device[0] == _device) {
 		// We're doing duplex setup here.
 		m_stream.deviceFormat[0] = m_stream.deviceFormat[1];
 		m_stream.nDeviceChannels[0] = deviceChannels;
 	}
 	// Set interleaving parameters.
-	m_stream.userInterleaved = true;
-	m_stream.deviceInterleaved[_mode] =	true;
-	if (_options && _options->flags & RTAUDIO_NONINTERLEAVED) {
-		m_stream.userInterleaved = false;
-	}
+	m_stream.deviceInterleaved[modeToIdTable(_mode)] =	true;
 	// Set flags for buffer conversion
-	m_stream.doConvertBuffer[_mode] = false;
-	if (m_stream.userFormat != m_stream.deviceFormat[_mode]) {
-		m_stream.doConvertBuffer[_mode] = true;
+	m_stream.doConvertBuffer[modeToIdTable(_mode)] = false;
+	if (m_stream.userFormat != m_stream.deviceFormat[modeToIdTable(_mode)]) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (m_stream.nUserChannels[_mode] < m_stream.nDeviceChannels[_mode]) {
-		m_stream.doConvertBuffer[_mode] = true;
+	if (m_stream.nUserChannels[modeToIdTable(_mode)] < m_stream.nDeviceChannels[modeToIdTable(_mode)]) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (    m_stream.userInterleaved != m_stream.deviceInterleaved[_mode]
-	     && m_stream.nUserChannels[_mode] > 1) {
-		m_stream.doConvertBuffer[_mode] = true;
+	if (    m_stream.deviceInterleaved[modeToIdTable(_mode)] == false
+	     && m_stream.nUserChannels[modeToIdTable(_mode)] > 1) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
 	// Allocate the stream handles if necessary and then save.
 	if (m_stream.apiHandle == 0) {
@@ -466,20 +462,20 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	} else {
 		handle = (OssHandle *) m_stream.apiHandle;
 	}
-	handle->id[_mode] = fd;
+	handle->id[modeToIdTable(_mode)] = fd;
 	// Allocate necessary internal buffers.
 	uint64_t bufferBytes;
-	bufferBytes = m_stream.nUserChannels[_mode] * *_bufferSize * formatBytes(m_stream.userFormat);
-	m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
-	if (m_stream.userBuffer[_mode] == nullptr) {
+	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * formatBytes(m_stream.userFormat);
+	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
+	if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
 		ATA_ERROR("error allocating user buffer memory.");
 		goto error;
 	}
-	if (m_stream.doConvertBuffer[_mode]) {
+	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
 		bool makeBuffer = true;
-		bufferBytes = m_stream.nDeviceChannels[_mode] * formatBytes(m_stream.deviceFormat[_mode]);
-		if (_mode == INPUT) {
-			if (    m_stream._mode == OUTPUT
+		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * formatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
+		if (_mode == airtaudio::mode_input) {
+			if (    m_stream._mode == airtaudio::mode_output
 			     && m_stream.deviceBuffer) {
 				uint64_t bytesOut = m_stream.nDeviceChannels[0] * formatBytes(m_stream.deviceFormat[0]);
 				if (bufferBytes <= bytesOut) {
@@ -499,16 +495,16 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 			}
 		}
 	}
-	m_stream.device[_mode] = _device;
-	m_stream.state = STREAM_STOPPED;
+	m_stream.device[modeToIdTable(_mode)] = _device;
+	m_stream.state = airtaudio::state_stopped;
 	// Setup the buffer conversion information structure.
-	if (m_stream.doConvertBuffer[_mode]) {
+	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
 		setConvertInfo(_mode, _firstChannel);
 	}
 	// Setup thread if necessary.
-	if (m_stream.mode == OUTPUT && _mode == INPUT) {
+	if (m_stream.mode == airtaudio::mode_output && _mode == airtaudio::mode_input) {
 		// We had already set up an output stream.
-		m_stream.mode = DUPLEX;
+		m_stream.mode = airtaudio::mode_duplex;
 		if (m_stream.device[0] == _device) {
 			handle->id[0] = fd;
 		}
@@ -549,26 +545,26 @@ error:
 	return false;
 }
 
-enum airtaudio::errorType airtaudio::api::Oss::closeStream() {
-	if (m_stream.state == STREAM_CLOSED) {
+enum airtaudio::error airtaudio::api::Oss::closeStream() {
+	if (m_stream.state == airtaudio::state_closed) {
 		ATA_ERROR("no open stream to close!");
-		return airtaudio::errorWarning;
+		return airtaudio::error_warning;
 	}
 	OssHandle *handle = (OssHandle *) m_stream.apiHandle;
 	m_stream.callbackInfo.isRunning = false;
 	m_stream.mutex.lock();
-	if (m_stream.state == STREAM_STOPPED) {
+	if (m_stream.state == airtaudio::state_stopped) {
 		handle->runnable.notify_one();
 	}
 	m_stream.mutex.unlock();
 	m_stream.callbackInfo.thread->join();
-	if (m_stream.state == STREAM_RUNNING) {
-		if (m_stream.mode == OUTPUT || m_stream.mode == DUPLEX) {
+	if (m_stream.state == airtaudio::state_running) {
+		if (m_stream.mode == airtaudio::mode_output || m_stream.mode == airtaudio::mode_duplex) {
 			ioctl(handle->id[0], SNDCTL_DSP_HALT, 0);
 		} else {
 			ioctl(handle->id[1], SNDCTL_DSP_HALT, 0);
 		}
-		m_stream.state = STREAM_STOPPED;
+		m_stream.state = airtaudio::state_stopped;
 	}
 	if (handle) {
 		if (handle->id[0]) {
@@ -590,21 +586,21 @@ enum airtaudio::errorType airtaudio::api::Oss::closeStream() {
 		free(m_stream.deviceBuffer);
 		m_stream.deviceBuffer = 0;
 	}
-	m_stream.mode = UNINITIALIZED;
-	m_stream.state = STREAM_CLOSED;
-	return airtaudio::errorNone;
+	m_stream.mode = airtaudio::mode_unknow;
+	m_stream.state = airtaudio::state_closed;
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::Oss::startStream() {
-	if (verifyStream() != airtaudio::errorNone) {
-		return airtaudio::errorFail;
+enum airtaudio::error airtaudio::api::Oss::startStream() {
+	if (verifyStream() != airtaudio::error_none) {
+		return airtaudio::error_fail;
 	}
-	if (m_stream.state == STREAM_RUNNING) {
+	if (m_stream.state == airtaudio::state_running) {
 		ATA_ERROR("the stream is already running!");
-		return airtaudio::errorWarning;
+		return airtaudio::error_warning;
 	}
 	m_stream.mutex.lock();
-	m_stream.state = STREAM_RUNNING;
+	m_stream.state = airtaudio::state_running;
 	// No need to do anything else here ... OSS automatically starts
 	// when fed samples.
 	m_stream.mutex.unlock();
@@ -612,24 +608,24 @@ enum airtaudio::errorType airtaudio::api::Oss::startStream() {
 	handle->runnable.notify_one();
 }
 
-enum airtaudio::errorType airtaudio::api::Oss::stopStream() {
-	if (verifyStream() != airtaudio::errorNone) {
-		return airtaudio::errorFail;
+enum airtaudio::error airtaudio::api::Oss::stopStream() {
+	if (verifyStream() != airtaudio::error_none) {
+		return airtaudio::error_fail;
 	}
-	if (m_stream.state == STREAM_STOPPED) {
+	if (m_stream.state == airtaudio::state_stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return;
 	}
 	m_stream.mutex.lock();
 	// The state might change while waiting on a mutex.
-	if (m_stream.state == STREAM_STOPPED) {
+	if (m_stream.state == airtaudio::state_stopped) {
 		m_stream.mutex.unlock();
 		return;
 	}
 	int32_t result = 0;
 	OssHandle *handle = (OssHandle *) m_stream.apiHandle;
-	if (    m_stream.mode == OUTPUT
-	     || m_stream.mode == DUPLEX) {
+	if (    m_stream.mode == airtaudio::mode_output
+	     || m_stream.mode == airtaudio::mode_duplex) {
 		// Flush the output with zeros a few times.
 		char *buffer;
 		int32_t samples;
@@ -648,7 +644,7 @@ enum airtaudio::errorType airtaudio::api::Oss::stopStream() {
 			result = write(handle->id[0], buffer, samples * formatBytes(format));
 			if (result == -1) {
 				ATA_ERROR("audio write error.");
-				return airtaudio::errorWarning;
+				return airtaudio::error_warning;
 			}
 		}
 		result = ioctl(handle->id[0], SNDCTL_DSP_HALT, 0);
@@ -658,8 +654,8 @@ enum airtaudio::errorType airtaudio::api::Oss::stopStream() {
 		}
 		handle->triggered = false;
 	}
-	if (    m_stream.mode == INPUT
-	     || (    m_stream.mode == DUPLEX
+	if (    m_stream.mode == airtaudio::mode_input
+	     || (    m_stream.mode == airtaudio::mode_duplex
 	          && handle->id[0] != handle->id[1])) {
 		result = ioctl(handle->id[1], SNDCTL_DSP_HALT, 0);
 		if (result == -1) {
@@ -668,31 +664,31 @@ enum airtaudio::errorType airtaudio::api::Oss::stopStream() {
 		}
 	}
 unlock:
-	m_stream.state = STREAM_STOPPED;
+	m_stream.state = airtaudio::state_stopped;
 	m_stream.mutex.unlock();
 	if (result != -1) {
-		return airtaudio::errorNone;
+		return airtaudio::error_none;
 	}
-	return airtaudio::errorSystemError;
+	return airtaudio::error_systemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Oss::abortStream() {
-	if (verifyStream() != airtaudio::errorNone) {
-		return airtaudio::errorFail;
+enum airtaudio::error airtaudio::api::Oss::abortStream() {
+	if (verifyStream() != airtaudio::error_none) {
+		return airtaudio::error_fail;
 	}
-	if (m_stream.state == STREAM_STOPPED) {
+	if (m_stream.state == airtaudio::state_stopped) {
 		ATA_ERROR("the stream is already stopped!");
-		return airtaudio::errorWarning;
+		return airtaudio::error_warning;
 	}
 	m_stream.mutex.lock();
 	// The state might change while waiting on a mutex.
-	if (m_stream.state == STREAM_STOPPED) {
+	if (m_stream.state == airtaudio::state_stopped) {
 		m_stream.mutex.unlock();
 		return;
 	}
 	int32_t result = 0;
 	OssHandle *handle = (OssHandle *) m_stream.apiHandle;
-	if (m_stream.mode == OUTPUT || m_stream.mode == DUPLEX) {
+	if (m_stream.mode == airtaudio::mode_output || m_stream.mode == airtaudio::mode_duplex) {
 		result = ioctl(handle->id[0], SNDCTL_DSP_HALT, 0);
 		if (result == -1) {
 			ATA_ERROR("system error stopping callback procedure on device (" << m_stream.device[0] << ").");
@@ -700,7 +696,7 @@ enum airtaudio::errorType airtaudio::api::Oss::abortStream() {
 		}
 		handle->triggered = false;
 	}
-	if (m_stream.mode == INPUT || (m_stream.mode == DUPLEX && handle->id[0] != handle->id[1])) {
+	if (m_stream.mode == airtaudio::mode_input || (m_stream.mode == airtaudio::mode_duplex && handle->id[0] != handle->id[1])) {
 		result = ioctl(handle->id[1], SNDCTL_DSP_HALT, 0);
 		if (result == -1) {
 			ATA_ERROR("system error stopping input callback procedure on device (" << m_stream.device[0] << ").");
@@ -708,39 +704,39 @@ enum airtaudio::errorType airtaudio::api::Oss::abortStream() {
 		}
 	}
 unlock:
-	m_stream.state = STREAM_STOPPED;
+	m_stream.state = airtaudio::state_stopped;
 	m_stream.mutex.unlock();
 	if (result != -1) {
-		return airtaudio::errorNone;
+		return airtaudio::error_none;
 	}
-	return airtaudio::errorSystemError;
+	return airtaudio::error_systemError;
 }
 
 void airtaudio::api::Oss::callbackEvent() {
 	OssHandle *handle = (OssHandle *) m_stream.apiHandle;
-	if (m_stream.state == STREAM_STOPPED) {
+	if (m_stream.state == airtaudio::state_stopped) {
 		std::unique_lock<std::mutex> lck(m_stream.mutex);
 		handle->runnable.wait(lck);
-		if (m_stream.state != STREAM_RUNNING) {
+		if (m_stream.state != airtaudio::state_running) {
 			return;
 		}
 	}
-	if (m_stream.state == STREAM_CLOSED) {
+	if (m_stream.state == airtaudio::state_closed) {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
-		return airtaudio::errorWarning;
+		return airtaudio::error_warning;
 	}
 	// Invoke user callback to get fresh output data.
 	int32_t doStopStream = 0;
 	double streamTime = getStreamTime();
 	rtaudio::streamStatus status = 0;
-	if (    m_stream.mode != INPUT
+	if (    m_stream.mode != airtaudio::mode_input
 	     && handle->xrun[0] == true) {
-		status |= RTAUDIO_OUTPUT_UNDERFLOW;
+		status |= RTAUDIO_airtaudio::status_underflow;
 		handle->xrun[0] = false;
 	}
-	if (    m_stream.mode != OUTPUT
+	if (    m_stream.mode != airtaudio::mode_output
 	     && handle->xrun[1] == true) {
-		status |= RTAUDIO_INPUT_OVERFLOW;
+		status |= RTAUDIO_airtaudio::mode_input_OVERFLOW;
 		handle->xrun[1] = false;
 	}
 	doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[0],
@@ -754,15 +750,15 @@ void airtaudio::api::Oss::callbackEvent() {
 	}
 	m_stream.mutex.lock();
 	// The state might change while waiting on a mutex.
-	if (m_stream.state == STREAM_STOPPED) {
+	if (m_stream.state == airtaudio::state_stopped) {
 		goto unlock;
 	}
 	int32_t result;
 	char *buffer;
 	int32_t samples;
 	audio::format format;
-	if (    m_stream.mode == OUTPUT
-	     || m_stream.mode == DUPLEX) {
+	if (    m_stream.mode == airtaudio::mode_output
+	     || m_stream.mode == airtaudio::mode_duplex) {
 		// Setup parameters and do buffer conversion if necessary.
 		if (m_stream.doConvertBuffer[0]) {
 			buffer = m_stream.deviceBuffer;
@@ -778,12 +774,12 @@ void airtaudio::api::Oss::callbackEvent() {
 		if (m_stream.doByteSwap[0]) {
 			byteSwapBuffer(buffer, samples, format);
 		}
-		if (    m_stream.mode == DUPLEX
+		if (    m_stream.mode == airtaudio::mode_duplex
 		     && handle->triggered == false) {
 			int32_t trig = 0;
 			ioctl(handle->id[0], SNDCTL_DSP_SETTRIGGER, &trig);
 			result = write(handle->id[0], buffer, samples * formatBytes(format));
-			trig = PCM_ENABLE_INPUT|PCM_ENABLE_OUTPUT;
+			trig = PCM_ENABLE_airtaudio::mode_input|PCM_ENABLE_airtaudio::mode_output;
 			ioctl(handle->id[0], SNDCTL_DSP_SETTRIGGER, &trig);
 			handle->triggered = true;
 		} else {
@@ -795,12 +791,12 @@ void airtaudio::api::Oss::callbackEvent() {
 			// specific means for determining that.
 			handle->xrun[0] = true;
 			ATA_ERROR("audio write error.");
-			//error(airtaudio::errorWarning);
+			//error(airtaudio::error_warning);
 			// Continue on to input section.
 		}
 	}
-	if (    m_stream.mode == INPUT
-	     || m_stream.mode == DUPLEX) {
+	if (    m_stream.mode == airtaudio::mode_input
+	     || m_stream.mode == airtaudio::mode_duplex) {
 		// Setup parameters.
 		if (m_stream.doConvertBuffer[1]) {
 			buffer = m_stream.deviceBuffer;

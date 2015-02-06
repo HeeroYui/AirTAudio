@@ -22,10 +22,10 @@ namespace airtaudio {
 				}
 				uint32_t getDeviceCount();
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
-				enum airtaudio::errorType closeStream();
-				enum airtaudio::errorType startStream();
-				enum airtaudio::errorType stopStream();
-				enum airtaudio::errorType abortStream();
+				enum airtaudio::error closeStream();
+				enum airtaudio::error startStream();
+				enum airtaudio::error stopStream();
+				enum airtaudio::error abortStream();
 				// This function is intended for internal use only.	It must be
 				// public because it is called by the internal callback handler,
 				// which is not a member of RtAudio.	External use of this function

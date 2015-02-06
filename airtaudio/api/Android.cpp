@@ -76,46 +76,46 @@ airtaudio::DeviceInfo airtaudio::api::Android::getDeviceInfo(uint32_t _device) {
 	return m_devices[_device];
 }
 
-enum airtaudio::errorType airtaudio::api::Android::closeStream() {
+enum airtaudio::error airtaudio::api::Android::closeStream() {
 	ATA_INFO("Clese Stream");
 	// Can not close the stream now...
-	return airtaudio::errorNone;
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::Android::startStream() {
+enum airtaudio::error airtaudio::api::Android::startStream() {
 	ATA_INFO("Start Stream");
 	// Can not close the stream now...
-	return airtaudio::errorNone;
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::Android::stopStream() {
+enum airtaudio::error airtaudio::api::Android::stopStream() {
 	ATA_INFO("Stop stream");
 	ewol::Context& tmpContext = ewol::getContext();
 	tmpContext.audioCloseDevice(0);
 	// Can not close the stream now...
-	return airtaudio::errorNone;
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::Android::abortStream() {
+enum airtaudio::error airtaudio::api::Android::abortStream() {
 	ATA_INFO("Abort Stream");
 	ewol::Context& tmpContext = ewol::getContext();
 	tmpContext.audioCloseDevice(0);
 	// Can not close the stream now...
-	return airtaudio::errorNone;
+	return airtaudio::error_none;
 }
 
 void airtaudio::api::Android::callBackEvent(void* _data,
                                             int32_t _frameRate) {
 	int32_t doStopStream = 0;
 	double streamTime = getStreamTime();
-	airtaudio::streamStatus status = 0;
-	if (m_stream.doConvertBuffer[OUTPUT] == true) {
-		doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[OUTPUT],
+	enum airtaudio::status status = airtaudio::status_ok;
+	if (m_stream.doConvertBuffer[airtaudio::mode_output] == true) {
+		doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[airtaudio::mode_output],
 		                                              nullptr,
 		                                              _frameRate,
 		                                              streamTime,
 		                                              status);
-		convertBuffer((char*)_data, (char*)m_stream.userBuffer[OUTPUT], m_stream.convertInfo[OUTPUT]);
+		convertBuffer((char*)_data, (char*)m_stream.userBuffer[airtaudio::mode_output], m_stream.convertInfo[airtaudio::mode_output]);
 	} else {
 		doStopStream = m_stream.callbackInfo.callback(_data,
 		                                              nullptr,
@@ -142,7 +142,7 @@ void airtaudio::api::Android::androidCallBackEvent(void* _data,
 }
 
 bool airtaudio::api::Android::probeDeviceOpen(uint32_t _device,
-                                              airtaudio::api::StreamMode _mode,
+                                              airtaudio::mode _mode,
                                               uint32_t _channels,
                                               uint32_t _firstChannel,
                                               uint32_t _sampleRate,
@@ -150,12 +150,12 @@ bool airtaudio::api::Android::probeDeviceOpen(uint32_t _device,
                                               uint32_t *_bufferSize,
                                               airtaudio::StreamOptions *_options) {
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);
-	if (_mode != OUTPUT) {
+	if (_mode != airtaudio::mode_output) {
 		ATA_ERROR("Can not start a device input or duplex for Android ...");
 		return false;
 	}
 	m_stream.userFormat = _format;
-	m_stream.nUserChannels[_mode] = _channels;
+	m_stream.nUserChannels[modeToIdTable(_mode)] = _channels;
 	ewol::Context& tmpContext = ewol::getContext();
 	bool ret = false;
 	if (_format == SINT8) {
@@ -165,36 +165,36 @@ bool airtaudio::api::Android::probeDeviceOpen(uint32_t _device,
 	}
 	m_stream.bufferSize = 256;
 	m_stream.sampleRate = _sampleRate;
-	m_stream.doByteSwap[_mode] = false; // for endienness ...
+	m_stream.doByteSwap[modeToIdTable(_mode)] = false; // for endienness ...
 	
 	// TODO : For now, we write it in hard ==> to bu update later ...
-	m_stream.deviceFormat[_mode] = SINT16;
-	m_stream.nDeviceChannels[_mode] = 2;
-	m_stream.deviceInterleaved[_mode] =	true;
+	m_stream.deviceFormat[modeToIdTable(_mode)] = SINT16;
+	m_stream.nDeviceChannels[modeToIdTable(_mode)] = 2;
+	m_stream.deviceInterleaved[modeToIdTable(_mode)] =	true;
 	
-	m_stream.doConvertBuffer[_mode] = false;
-	if (m_stream.userFormat != m_stream.deviceFormat[_mode]) {
-		m_stream.doConvertBuffer[_mode] = true;
+	m_stream.doConvertBuffer[modeToIdTable(_mode)] = false;
+	if (m_stream.userFormat != m_stream.deviceFormat[modeToIdTable(_mode)]) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (m_stream.nUserChannels[_mode] < m_stream.nDeviceChannels[_mode]) {
-		m_stream.doConvertBuffer[_mode] = true;
+	if (m_stream.nUserChannels[modeToIdTable(_mode)] < m_stream.nDeviceChannels[modeToIdTable(_mode)]) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (    m_stream.userInterleaved != m_stream.deviceInterleaved[_mode]
-	     && m_stream.nUserChannels[_mode] > 1) {
-		m_stream.doConvertBuffer[_mode] = true;
+	if (    m_stream.deviceInterleaved[modeToIdTable(_mode)] == false
+	     && m_stream.nUserChannels[modeToIdTable(_mode)] > 1) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (m_stream.doConvertBuffer[_mode] == true) {
+	if (m_stream.doConvertBuffer[modeToIdTable(_mode)] == true) {
 		// Allocate necessary internal buffers.
-		uint64_t bufferBytes = m_stream.nUserChannels[_mode] * m_stream.bufferSize * formatBytes(m_stream.userFormat);
-		m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
-		if (m_stream.userBuffer[_mode] == nullptr) {
+		uint64_t bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * m_stream.bufferSize * formatBytes(m_stream.userFormat);
+		m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
+		if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
 			ATA_ERROR("airtaudio::api::Android::probeDeviceOpen: error allocating user buffer memory.");
 		}
 		setConvertInfo(_mode, _firstChannel);
 	}
-	ATA_INFO("device format : " << m_stream.deviceFormat[_mode] << " user format : " << m_stream.userFormat);
-	ATA_INFO("device channels : " << m_stream.nDeviceChannels[_mode] << " user channels : " << m_stream.nUserChannels[_mode]);
-	ATA_INFO("do convert buffer : " << m_stream.doConvertBuffer[_mode]);
+	ATA_INFO("device format : " << m_stream.deviceFormat[modeToIdTable(_mode)] << " user format : " << m_stream.userFormat);
+	ATA_INFO("device channels : " << m_stream.nDeviceChannels[modeToIdTable(_mode)] << " user channels : " << m_stream.nUserChannels[modeToIdTable(_mode)]);
+	ATA_INFO("do convert buffer : " << m_stream.doConvertBuffer[modeToIdTable(_mode)]);
 	if (ret == false) {
 		ATA_ERROR("Can not open device.");
 	}

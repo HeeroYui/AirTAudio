@@ -20,7 +20,7 @@ airtaudio::Api* airtaudio::api::Dummy::Create() {
 
 airtaudio::api::Dummy::Dummy() {
 	m_errorText = "This class provides no functionality.";
-	error(airtaudio::errorWarning);
+	error(airtaudio::error_warning);
 }
 
 uint32_t airtaudio::api::Dummy::getDeviceCount() {
@@ -33,24 +33,24 @@ rtaudio::DeviceInfo airtaudio::api::Dummy::getDeviceInfo(uint32_t _device) {
 	return info;
 }
 
-enum airtaudio::errorType airtaudio::api::Dummy::closeStream() {
-	return airtaudio::errorNone;
+enum airtaudio::error airtaudio::api::Dummy::closeStream() {
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::Dummy::startStream() {
-	return airtaudio::errorNone;
+enum airtaudio::error airtaudio::api::Dummy::startStream() {
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::Dummy::stopStream() {
-	return airtaudio::errorNone;
+enum airtaudio::error airtaudio::api::Dummy::stopStream() {
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::Dummy::abortStream() {
-	return airtaudio::errorNone;
+enum airtaudio::error airtaudio::api::Dummy::abortStream() {
+	return airtaudio::error_none;
 }
 
 bool airtaudio::api::Dummy::probeDeviceOpen(uint32_t _device,
-                                            airtaudio::api::StreamMode _mode,
+                                            airtaudio::mode _mode,
                                             uint32_t _channels,
                                             uint32_t _firstChannel,
                                             uint32_t _sampleRate,

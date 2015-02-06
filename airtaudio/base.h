@@ -27,87 +27,29 @@
 //#include <etk/Stream.h>
 
 namespace airtaudio {
-	//! Defined RtError types.
-	enum errorType {
-		errorNone, //!< No error
-		errorFail, //!< An error occure in the operation
-		errorWarning, //!< A non-critical error.
-		errorInputNull, //!< null input or internal errror
-		errorInvalidUse, //!< The function was called incorrectly.
-		errorSystemError //!< A system error occured.
+	//! Defined error types.
+	enum error {
+		error_none, //!< No error
+		error_fail, //!< An error occure in the operation
+		error_warning, //!< A non-critical error.
+		error_inputNull, //!< null input or internal errror
+		error_invalidUse, //!< The function was called incorrectly.
+		error_systemError //!< A system error occured.
 	};
 	
-	/**
-	 * @typedef typedef uint64_t streamFlags;
-	 * @brief RtAudio stream option flags.
-	 * 
-	 * The following flags can be OR'ed together to allow a client to
-	 * make changes to the default stream behavior:
-	 * 
-	 * - \e NONINTERLEAVED:	 Use non-interleaved buffers (default = interleaved).
-	 * - \e MINIMIZE_LATENCY: Attempt to set stream parameters for lowest possible latency.
-	 * - \e HOG_DEVICE:			 Attempt grab device for exclusive use.
-	 * - \e ALSA_USE_DEFAULT: Use the "default" PCM device (ALSA only).
-	 * 
-	 * By default, RtAudio streams pass and receive audio data from the
-	 * client in an interleaved format.	By passing the
-	 * RTAUDIO_NONINTERLEAVED flag to the openStream() function, audio
-	 * data will instead be presented in non-interleaved buffers.	In
-	 * this case, each buffer argument in the RtAudioCallback function
-	 * will point to a single array of data, with \c nFrames samples for
-	 * each channel concatenated back-to-back.	For example, the first
-	 * sample of data for the second channel would be located at index \c
-	 * nFrames (assuming the \c buffer pointer was recast to the correct
-	 * data type for the stream).
-	 * 
-	 * Certain audio APIs offer a number of parameters that influence the
-	 * I/O latency of a stream.	By default, RtAudio will attempt to set
-	 * these parameters internally for robust (glitch-free) performance
-	 * (though some APIs, like Windows Direct Sound, make this difficult).
-	 * By passing the RTAUDIO_MINIMIZE_LATENCY flag to the openStream()
-	 * function, internal stream settings will be influenced in an attempt
-	 * to minimize stream latency, though possibly at the expense of stream
-	 * performance.
-	 * 
-	 * If the RTAUDIO_HOG_DEVICE flag is set, RtAudio will attempt to
-	 * open the input and/or output stream device(s) for exclusive use.
-	 * Note that this is not possible with all supported audio APIs.
-	 * 
-	 * If the RTAUDIO_SCHEDULE_REALTIME flag is set, RtAudio will attempt 
-	 * to select realtime scheduling (round-robin) for the callback thread.
-	 * 
-	 * If the RTAUDIO_ALSA_USE_DEFAULT flag is set, RtAudio will attempt to
-	 * open the "default" PCM device when using the ALSA API. Note that this
-	 * will override any specified input or output device id.
-	*/
-	typedef uint32_t streamFlags;
-	static const streamFlags NONINTERLEAVED = 0x1; // Use non-interleaved buffers (default = interleaved).
-	static const streamFlags MINIMIZE_LATENCY = 0x2; // Attempt to set stream parameters for lowest possible latency.
-	static const streamFlags HOG_DEVICE = 0x4; // Attempt grab device and prevent use by others.
-	static const streamFlags SCHEDULE_REALTIME = 0x8; // Try to select realtime scheduling for callback thread.
-	static const streamFlags ALSA_USE_DEFAULT = 0x10; // Use the "default" PCM device (ALSA only).
-	
-	/**
-	 * @brief Debug operator To display the curent element in a Human redeable information
-	 */
-	//std::ostream& operator <<(std::ostream& _os, const airtaudio::streamFlags& _obj);
-	
-	/**
-	 * @typedef typedef uint64_t rtaudio::streamStatus;
-	 * @brief RtAudio stream status (over- or underflow) flags.
-	 * 
-	 * Notification of a stream over- or underflow is indicated by a
-	 * non-zero stream \c status argument in the RtAudioCallback function.
-	 * The stream status can be one of the following two options,
-	 * depending on whether the stream is open for output and/or input:
-	 * 
-	 * - \e RTAUDIO_INPUT_OVERFLOW: Input data was discarded because of an overflow condition at the driver.
-	 * - \e RTAUDIO_OUTPUT_UNDERFLOW: The output buffer ran low, likely producing a break in the output sound.
-	 */
-	typedef uint32_t streamStatus;
-	static const streamStatus INPUT_OVERFLOW = 0x1; // Input data was discarded because of an overflow condition at the driver.
-	static const streamStatus OUTPUT_UNDERFLOW = 0x2; // The output buffer ran low, likely causing a gap in the output sound.
-	
+	class Flags {
+		public:
+			bool m_minimizeLatency; // Simple example ==> TODO ...
+			Flags() :
+			  m_minimizeLatency(false) {
+				// nothing to do ...
+			}
+	};
+	enum status {
+		status_ok, //!< nothing...
+		status_overflow, //!< Internal buffer has more data than they can accept
+		status_underflow //!< The internal buffer is empty
+	};
 	/**
 	 * @brief RtAudio callback function prototype.
 	 *
@@ -149,7 +91,7 @@ namespace airtaudio {
 	                               void* _inputBuffer,
 	                               uint32_t _nFrames,
 	                               double _streamTime,
-	                               airtaudio::streamStatus _status)> AirTAudioCallback;
+	                               airtaudio::status _status)> AirTAudioCallback;
 }
 
 #include <airtaudio/DeviceInfo.h>

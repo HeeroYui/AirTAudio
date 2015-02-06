@@ -34,29 +34,73 @@ static const char* listType[] {
 	"user3",
 	"user4"
 };
+static int32_t listTypeSize = sizeof(listType)/sizeof(char*);
 
-std::ostream& operator <<(std::ostream& _os, const airtaudio::type& _obj){
+
+std::ostream& airtaudio::operator <<(std::ostream& _os, const enum airtaudio::type& _obj) {
 	_os << listType[_obj];
 	return _os;
 }
 
+std::ostream& airtaudio::operator <<(std::ostream& _os, const std::vector<enum airtaudio::type>& _obj) {
+	_os << std::string("{");
+	for (size_t iii=0; iii<_obj.size(); ++iii) {
+		if (iii!=0) {
+			_os << std::string(";");
+		}
+		_os << _obj[iii];
+	}
+	_os << std::string("}");
+	return _os;
+}
+
+std::string airtaudio::getTypeString(enum audio::format _value) {
+	return listType[_value];
+}
+
+enum airtaudio::type airtaudio::getTypeFromString(const std::string& _value) {
+	for (int32_t iii=0; iii<listTypeSize; ++iii) {
+		if (_value == listType[iii]) {
+			return static_cast<enum airtaudio::type>(iii);
+		}
+	}
+	return airtaudio::type_undefined;
+}
+
+int32_t airtaudio::modeToIdTable(enum mode _mode) {
+	switch (_mode) {
+		case mode_unknow:
+		case mode_duplex:
+		case mode_output:
+			return 0;
+		case mode_input:
+			return 1;
+	}
+	return 0;
+}
+
 // Static variable definitions.
-static const uint32_t MAX_SAMPLE_RATES = 14;
-static const uint32_t SAMPLE_RATES[] = {
-	4000,
-	5512,
-	8000,
-	9600,
-	11025,
-	16000,
-	22050,
-	32000,
-	44100,
-	48000,
-	88200,
-	96000,
-	176400,
-	192000
+const std::vector<uint32_t>& airtaudio::genericSampleRate() {
+	static std::vector<uint32_t> list;
+	if (list.size() == 0) {
+		list.push_back(4000);
+		list.push_back(5512);
+		list.push_back(8000);
+		list.push_back(9600);
+		list.push_back(11025);
+		list.push_back(16000);
+		list.push_back(22050);
+		list.push_back(32000);
+		list.push_back(44100);
+		list.push_back(48000);
+		list.push_back(64000);
+		list.push_back(88200);
+		list.push_back(96000);
+		list.push_back(128000);
+		list.push_back(176400);
+		list.push_back(192000);
+	}
+	return list;
 };
 
 
@@ -72,32 +116,32 @@ airtaudio::Api::~Api() {
 	
 }
 
-enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters *oParams,
+enum airtaudio::error airtaudio::Api::openStream(airtaudio::StreamParameters *oParams,
                                                      airtaudio::StreamParameters *iParams,
                                                      enum audio::format format,
                                                      uint32_t sampleRate,
                                                      uint32_t *bufferFrames,
                                                      airtaudio::AirTAudioCallback callback,
                                                      airtaudio::StreamOptions *options) {
-	if (m_stream.state != airtaudio::api::STREAM_CLOSED) {
+	if (m_stream.state != airtaudio::state_closed) {
 		ATA_ERROR("a stream is already open!");
-		return airtaudio::errorInvalidUse;
+		return airtaudio::error_invalidUse;
 	}
 	if (oParams && oParams->nChannels < 1) {
 		ATA_ERROR("a non-nullptr output StreamParameters structure cannot have an nChannels value less than one.");
-		return airtaudio::errorInvalidUse;
+		return airtaudio::error_invalidUse;
 	}
 	if (iParams && iParams->nChannels < 1) {
 		ATA_ERROR("a non-nullptr input StreamParameters structure cannot have an nChannels value less than one.");
-		return airtaudio::errorInvalidUse;
+		return airtaudio::error_invalidUse;
 	}
 	if (oParams == nullptr && iParams == nullptr) {
 		ATA_ERROR("input and output StreamParameters structures are both nullptr!");
-		return airtaudio::errorInvalidUse;
+		return airtaudio::error_invalidUse;
 	}
 	if (audio::getFormatBytes(format) == 0) {
 		ATA_ERROR("'format' parameter value is undefined.");
-		return airtaudio::errorInvalidUse;
+		return airtaudio::error_invalidUse;
 	}
 	uint32_t nDevices = getDeviceCount();
 	uint32_t oChannels = 0;
@@ -105,7 +149,7 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
 		oChannels = oParams->nChannels;
 		if (oParams->deviceId >= nDevices) {
 			ATA_ERROR("output device parameter value is invalid.");
-			return airtaudio::errorInvalidUse;
+			return airtaudio::error_invalidUse;
 		}
 	}
 	uint32_t iChannels = 0;
@@ -113,14 +157,14 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
 		iChannels = iParams->nChannels;
 		if (iParams->deviceId >= nDevices) {
 			ATA_ERROR("input device parameter value is invalid.");
-			return airtaudio::errorInvalidUse;
+			return airtaudio::error_invalidUse;
 		}
 	}
 	clearStreamInfo();
 	bool result;
 	if (oChannels > 0) {
 		result = probeDeviceOpen(oParams->deviceId,
-		                         airtaudio::api::OUTPUT,
+		                         airtaudio::mode_output,
 		                         oChannels,
 		                         oParams->firstChannel,
 		                         sampleRate,
@@ -129,12 +173,12 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
 		                         options);
 		if (result == false) {
 			ATA_ERROR("system ERROR");
-			return airtaudio::errorSystemError;
+			return airtaudio::error_systemError;
 		}
 	}
 	if (iChannels > 0) {
 		result = probeDeviceOpen(iParams->deviceId,
-		                         airtaudio::api::INPUT,
+		                         airtaudio::mode_input,
 		                         iChannels,
 		                         iParams->firstChannel,
 		                         sampleRate,
@@ -146,15 +190,15 @@ enum airtaudio::errorType airtaudio::Api::openStream(airtaudio::StreamParameters
 				closeStream();
 			}
 			ATA_ERROR("system error");
-			return airtaudio::errorSystemError;
+			return airtaudio::error_systemError;
 		}
 	}
 	m_stream.callbackInfo.callback = callback;
 	if (options != nullptr) {
 		options->numberOfBuffers = m_stream.nBuffers;
 	}
-	m_stream.state = airtaudio::api::STREAM_STOPPED;
-	return airtaudio::errorNone;
+	m_stream.state = airtaudio::state_stopped;
+	return airtaudio::error_none;
 }
 
 uint32_t airtaudio::Api::getDefaultInputDevice() {
@@ -167,13 +211,13 @@ uint32_t airtaudio::Api::getDefaultOutputDevice() {
 	return 0;
 }
 
-enum airtaudio::errorType airtaudio::Api::closeStream() {
+enum airtaudio::error airtaudio::Api::closeStream() {
 	// MUST be implemented in subclasses!
-	return airtaudio::errorNone;
+	return airtaudio::error_none;
 }
 
 bool airtaudio::Api::probeDeviceOpen(uint32_t /*device*/,
-                                     airtaudio::api::StreamMode /*mode*/,
+                                     airtaudio::mode /*mode*/,
                                      uint32_t /*channels*/,
                                      uint32_t /*firstChannel*/,
                                      uint32_t /*sampleRate*/,
@@ -195,23 +239,23 @@ void airtaudio::Api::tickStreamTime() {
 }
 
 long airtaudio::Api::getStreamLatency() {
-	if (verifyStream() != airtaudio::errorNone) {
+	if (verifyStream() != airtaudio::error_none) {
 		return 0;
 	}
 	long totalLatency = 0;
-	if (    m_stream.mode == airtaudio::api::OUTPUT
-	     || m_stream.mode == airtaudio::api::DUPLEX) {
+	if (    m_stream.mode == airtaudio::mode_output
+	     || m_stream.mode == airtaudio::mode_duplex) {
 		totalLatency = m_stream.latency[0];
 	}
-	if (    m_stream.mode == airtaudio::api::INPUT
-	     || m_stream.mode == airtaudio::api::DUPLEX) {
+	if (    m_stream.mode == airtaudio::mode_input
+	     || m_stream.mode == airtaudio::mode_duplex) {
 		totalLatency += m_stream.latency[1];
 	}
 	return totalLatency;
 }
 
 double airtaudio::Api::getStreamTime() {
-	if (verifyStream() != airtaudio::errorNone) {
+	if (verifyStream() != airtaudio::error_none) {
 		return 0.0f;
 	}
 #if defined(HAVE_GETTIMEOFDAY)
@@ -219,7 +263,7 @@ double airtaudio::Api::getStreamTime() {
 	// adding in the elapsed time since the last tick.
 	struct timeval then;
 	struct timeval now;
-	if (m_stream.state != airtaudio::api::STREAM_RUNNING || m_stream.streamTime == 0.0) {
+	if (m_stream.state != airtaudio::state_running || m_stream.streamTime == 0.0) {
 		return m_stream.streamTime;
 	}
 	gettimeofday(&now, nullptr);
@@ -233,28 +277,27 @@ double airtaudio::Api::getStreamTime() {
 }
 
 uint32_t airtaudio::Api::getStreamSampleRate() {
-	if (verifyStream() != airtaudio::errorNone) {
+	if (verifyStream() != airtaudio::error_none) {
 		return 0;
 	}
 	return m_stream.sampleRate;
 }
 
-enum airtaudio::errorType airtaudio::Api::verifyStream() {
-	if (m_stream.state == airtaudio::api::STREAM_CLOSED) {
+enum airtaudio::error airtaudio::Api::verifyStream() {
+	if (m_stream.state == airtaudio::state_closed) {
 		ATA_ERROR("a stream is not open!");
-		return airtaudio::errorInvalidUse;
+		return airtaudio::error_invalidUse;
 	}
-	return airtaudio::errorNone;
+	return airtaudio::error_none;
 }
 
 void airtaudio::Api::clearStreamInfo() {
-	m_stream.mode = airtaudio::api::UNINITIALIZED;
-	m_stream.state = airtaudio::api::STREAM_CLOSED;
+	m_stream.mode = airtaudio::mode_unknow;
+	m_stream.state = airtaudio::state_closed;
 	m_stream.sampleRate = 0;
 	m_stream.bufferSize = 0;
 	m_stream.nBuffers = 0;
 	m_stream.userFormat = audio::format_unknow;
-	m_stream.userInterleaved = true;
 	m_stream.streamTime = 0.0;
 	m_stream.apiHandle = 0;
 	m_stream.deviceBuffer = 0;
@@ -281,91 +324,80 @@ void airtaudio::Api::clearStreamInfo() {
 	}
 }
 
-void airtaudio::Api::setConvertInfo(airtaudio::api::StreamMode _mode, uint32_t _firstChannel) {
-	if (_mode == airtaudio::api::INPUT) { // convert device to user buffer
-		m_stream.convertInfo[_mode].inJump = m_stream.nDeviceChannels[1];
-		m_stream.convertInfo[_mode].outJump = m_stream.nUserChannels[1];
-		m_stream.convertInfo[_mode].inFormat = m_stream.deviceFormat[1];
-		m_stream.convertInfo[_mode].outFormat = m_stream.userFormat;
+void airtaudio::Api::setConvertInfo(airtaudio::mode _mode, uint32_t _firstChannel) {
+	int32_t idTable = airtaudio::modeToIdTable(_mode);
+	if (_mode == airtaudio::mode_input) { // convert device to user buffer
+		m_stream.convertInfo[idTable].inJump = m_stream.nDeviceChannels[1];
+		m_stream.convertInfo[idTable].outJump = m_stream.nUserChannels[1];
+		m_stream.convertInfo[idTable].inFormat = m_stream.deviceFormat[1];
+		m_stream.convertInfo[idTable].outFormat = m_stream.userFormat;
 	} else { // convert user to device buffer
-		m_stream.convertInfo[_mode].inJump = m_stream.nUserChannels[0];
-		m_stream.convertInfo[_mode].outJump = m_stream.nDeviceChannels[0];
-		m_stream.convertInfo[_mode].inFormat = m_stream.userFormat;
-		m_stream.convertInfo[_mode].outFormat = m_stream.deviceFormat[0];
+		m_stream.convertInfo[idTable].inJump = m_stream.nUserChannels[0];
+		m_stream.convertInfo[idTable].outJump = m_stream.nDeviceChannels[0];
+		m_stream.convertInfo[idTable].inFormat = m_stream.userFormat;
+		m_stream.convertInfo[idTable].outFormat = m_stream.deviceFormat[0];
 	}
-	if (m_stream.convertInfo[_mode].inJump < m_stream.convertInfo[_mode].outJump) {
-		m_stream.convertInfo[_mode].channels = m_stream.convertInfo[_mode].inJump;
+	if (m_stream.convertInfo[idTable].inJump < m_stream.convertInfo[idTable].outJump) {
+		m_stream.convertInfo[idTable].channels = m_stream.convertInfo[idTable].inJump;
 	} else {
-		m_stream.convertInfo[_mode].channels = m_stream.convertInfo[_mode].outJump;
+		m_stream.convertInfo[idTable].channels = m_stream.convertInfo[idTable].outJump;
 	}
 	// Set up the interleave/deinterleave offsets.
-	if (m_stream.deviceInterleaved[_mode] != m_stream.userInterleaved) {
-		if (    (    _mode == airtaudio::api::OUTPUT
-		          && m_stream.deviceInterleaved[_mode])
-		     || (    _mode == airtaudio::api::INPUT
-		          && m_stream.userInterleaved)) {
-			for (int32_t kkk=0; kkk<m_stream.convertInfo[_mode].channels; ++kkk) {
-				m_stream.convertInfo[_mode].inOffset.push_back(kkk * m_stream.bufferSize);
-				m_stream.convertInfo[_mode].outOffset.push_back(kkk);
-				m_stream.convertInfo[_mode].inJump = 1;
+	if (m_stream.deviceInterleaved[idTable] == false) {
+		if (_mode == airtaudio::mode_input) {
+			for (int32_t kkk=0; kkk<m_stream.convertInfo[idTable].channels; ++kkk) {
+				m_stream.convertInfo[idTable].inOffset.push_back(kkk * m_stream.bufferSize);
+				m_stream.convertInfo[idTable].outOffset.push_back(kkk);
+				m_stream.convertInfo[idTable].inJump = 1;
 			}
 		} else {
-			for (int32_t kkk=0; kkk<m_stream.convertInfo[_mode].channels; ++kkk) {
-				m_stream.convertInfo[_mode].inOffset.push_back(kkk);
-				m_stream.convertInfo[_mode].outOffset.push_back(kkk * m_stream.bufferSize);
-				m_stream.convertInfo[_mode].outJump = 1;
+			for (int32_t kkk=0; kkk<m_stream.convertInfo[idTable].channels; ++kkk) {
+				m_stream.convertInfo[idTable].inOffset.push_back(kkk);
+				m_stream.convertInfo[idTable].outOffset.push_back(kkk * m_stream.bufferSize);
+				m_stream.convertInfo[idTable].outJump = 1;
 			}
 		}
 	} else { // no (de)interleaving
-		if (m_stream.userInterleaved) {
-			for (int32_t kkk=0; kkk<m_stream.convertInfo[_mode].channels; ++kkk) {
-				m_stream.convertInfo[_mode].inOffset.push_back(kkk);
-				m_stream.convertInfo[_mode].outOffset.push_back(kkk);
-			}
-		} else {
-			for (int32_t kkk=0; kkk<m_stream.convertInfo[_mode].channels; ++kkk) {
-				m_stream.convertInfo[_mode].inOffset.push_back(kkk * m_stream.bufferSize);
-				m_stream.convertInfo[_mode].outOffset.push_back(kkk * m_stream.bufferSize);
-				m_stream.convertInfo[_mode].inJump = 1;
-				m_stream.convertInfo[_mode].outJump = 1;
-			}
+		for (int32_t kkk=0; kkk<m_stream.convertInfo[idTable].channels; ++kkk) {
+			m_stream.convertInfo[idTable].inOffset.push_back(kkk);
+			m_stream.convertInfo[idTable].outOffset.push_back(kkk);
 		}
 	}
 
 	// Add channel offset.
 	if (_firstChannel > 0) {
-		if (m_stream.deviceInterleaved[_mode]) {
-			if (_mode == airtaudio::api::OUTPUT) {
-				for (int32_t kkk=0; kkk<m_stream.convertInfo[_mode].channels; ++kkk) {
-					m_stream.convertInfo[_mode].outOffset[kkk] += _firstChannel;
+		if (m_stream.deviceInterleaved[idTable]) {
+			if (_mode == airtaudio::mode_output) {
+				for (int32_t kkk=0; kkk<m_stream.convertInfo[idTable].channels; ++kkk) {
+					m_stream.convertInfo[idTable].outOffset[kkk] += _firstChannel;
 				}
 			} else {
-				for (int32_t kkk=0; kkk<m_stream.convertInfo[_mode].channels; ++kkk) {
-					m_stream.convertInfo[_mode].inOffset[kkk] += _firstChannel;
+				for (int32_t kkk=0; kkk<m_stream.convertInfo[idTable].channels; ++kkk) {
+					m_stream.convertInfo[idTable].inOffset[kkk] += _firstChannel;
 				}
 			}
 		} else {
-			if (_mode == airtaudio::api::OUTPUT) {
-				for (int32_t kkk=0; kkk<m_stream.convertInfo[_mode].channels; ++kkk) {
-					m_stream.convertInfo[_mode].outOffset[kkk] += (_firstChannel * m_stream.bufferSize);
+			if (_mode == airtaudio::mode_output) {
+				for (int32_t kkk=0; kkk<m_stream.convertInfo[idTable].channels; ++kkk) {
+					m_stream.convertInfo[idTable].outOffset[kkk] += (_firstChannel * m_stream.bufferSize);
 				}
 			} else {
-				for (int32_t kkk=0; kkk<m_stream.convertInfo[_mode].channels; ++kkk) {
-					m_stream.convertInfo[_mode].inOffset[kkk] += (_firstChannel * m_stream.bufferSize);
+				for (int32_t kkk=0; kkk<m_stream.convertInfo[idTable].channels; ++kkk) {
+					m_stream.convertInfo[idTable].inOffset[kkk] += (_firstChannel * m_stream.bufferSize);
 				}
 			}
 		}
 	}
 }
 
-void airtaudio::Api::convertBuffer(char *_outBuffer, char *_inBuffer, airtaudio::api::ConvertInfo &_info) {
+void airtaudio::Api::convertBuffer(char *_outBuffer, char *_inBuffer, airtaudio::ConvertInfo &_info) {
 	// This function does format conversion, input/output channel compensation, and
 	// data interleaving/deinterleaving.	24-bit integers are assumed to occupy
 	// the lower three bytes of a 32-bit integer.
 
 	// Clear our device buffer when in/out duplex device channels are different
 	if (    _outBuffer == m_stream.deviceBuffer
-	     && m_stream.mode == airtaudio::api::DUPLEX
+	     && m_stream.mode == airtaudio::mode_duplex
 	     && m_stream.nDeviceChannels[0] < m_stream.nDeviceChannels[1]) {
 		memset(_outBuffer, 0, m_stream.bufferSize * _info.outJump * audio::getFormatBytes(_info.outFormat));
 	}

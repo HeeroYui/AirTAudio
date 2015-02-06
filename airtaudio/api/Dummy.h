@@ -6,8 +6,8 @@
  * @license like MIT (see license file)
  */
 
-#if !defined(__AIRTAUDIO_API_DUMMY_H__) && defined(__AIRTAUDIO_DUMMY__)
-#define __AIRTAUDIO_API_DUMMY_H__
+#if !defined(__AIRTAUDIO_DUMMY__) && defined(__DUMMY__)
+#define __AIRTAUDIO_DUMMY__
 
 #include <airtaudio/Interface.h>
 
@@ -18,18 +18,18 @@ namespace airtaudio {
 				static airtaudio::Api* Create();
 			public:
 				Dummy();
-				airtaudio::api::type getCurrentApi() {
-					return airtaudio::api::RTAUDIO_DUMMY;
+				enum airtaudio::type getCurrentApi() {
+					return airtaudio::type_dummy;
 				}
 				uint32_t getDeviceCount();
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
-				enum airtaudio::errorType closeStream();
-				enum airtaudio::errorType startStream();
-				enum airtaudio::errorType stopStream();
-				enum airtaudio::errorType abortStream();
+				enum airtaudio::error closeStream();
+				enum airtaudio::error startStream();
+				enum airtaudio::error stopStream();
+				enum airtaudio::error abortStream();
 			private:
 				bool probeDeviceOpen(uint32_t _device,
-				                     airtaudio::api::StreamMode _mode,
+				                     airtaudio::mode _mode,
 				                     uint32_t _channels,
 				                     uint32_t _firstChannel,
 				                     uint32_t _sampleRate,

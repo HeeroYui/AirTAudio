@@ -19,17 +19,17 @@ namespace airtaudio {
 			public:
 				Core();
 				virtual ~Core();
-				airtaudio::api::type getCurrentApi() {
-					return airtaudio::api::MACOSX_CORE;
+				enum airtaudio::type getCurrentApi() {
+					return airtaudio::type_coreOSX;
 				}
 				uint32_t getDeviceCount();
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
 				uint32_t getDefaultOutputDevice();
 				uint32_t getDefaultInputDevice();
-				enum airtaudio::errorType closeStream();
-				enum airtaudio::errorType startStream();
-				enum airtaudio::errorType stopStream();
-				enum airtaudio::errorType abortStream();
+				enum airtaudio::error closeStream();
+				enum airtaudio::error startStream();
+				enum airtaudio::error stopStream();
+				enum airtaudio::error abortStream();
 				long getStreamLatency();
 				// This function is intended for internal use only.	It must be
 				// public because it is called by the internal callback handler,
@@ -41,7 +41,7 @@ namespace airtaudio {
 				
 			private:
 				bool probeDeviceOpen(uint32_t _device,
-				                     airtaudio::api::StreamMode _mode,
+				                     airtaudio::mode _mode,
 				                     uint32_t _channels,
 				                     uint32_t _firstChannel,
 				                     uint32_t _sampleRate,

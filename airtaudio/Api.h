@@ -13,6 +13,7 @@
 #include <airtaudio/debug.h>
 
 namespace airtaudio {
+	const std::vector<uint32_t>& genericSampleRate();
 	/**
 	 * @brief Audio API specifier arguments.
 	 */
@@ -33,6 +34,11 @@ namespace airtaudio {
 		type_user3, //!< User interface 3.
 		type_user4, //!< User interface 4.
 	};
+	std::ostream& operator <<(std::ostream& _os, const enum airtaudio::type& _obj);
+	std::ostream& operator <<(std::ostream& _os, const std::vector<enum airtaudio::type>& _obj);
+	std::string getTypeString(enum audio::format _value);
+	enum airtaudio::type getTypeFromString(const std::string& _value);
+	
 	enum state {
 		state_closed,
 		state_stopped,
@@ -45,6 +51,7 @@ namespace airtaudio {
 		mode_input,
 		mode_duplex
 	};
+	int32_t modeToIdTable(enum mode _mode);
 	// A protected structure used for buffer conversion.
 	class ConvertInfo {
 		public:
@@ -63,12 +70,11 @@ namespace airtaudio {
 			public:
 				uint32_t device[2]; // Playback and record, respectively.
 				void *apiHandle; // void pointer for API specific stream handle information
-				enum airtaudio::mode mode; // OUTPUT, INPUT, or DUPLEX.
+				enum airtaudio::mode mode; // airtaudio::mode_output, airtaudio::mode_input, or airtaudio::mode_duplex.
 				enum airtaudio::state state; // STOPPED, RUNNING, or CLOSED
 				char *userBuffer[2]; // Playback and record, respectively.
 				char *deviceBuffer;
 				bool doConvertBuffer[2]; // Playback and record, respectively.
-				bool userInterleaved;
 				bool deviceInterleaved[2]; // Playback and record, respectively.
 				bool doByteSwap[2]; // Playback and record, respectively.
 				uint32_t sampleRate;
@@ -106,17 +112,17 @@ namespace airtaudio {
 			virtual airtaudio::DeviceInfo getDeviceInfo(uint32_t _device) = 0;
 			virtual uint32_t getDefaultInputDevice();
 			virtual uint32_t getDefaultOutputDevice();
-			enum airtaudio::errorType openStream(airtaudio::StreamParameters *_outputParameters,
+			enum airtaudio::error openStream(airtaudio::StreamParameters *_outputParameters,
 			                                     airtaudio::StreamParameters *_inputParameters,
 			                                     audio::format _format,
 			                                     uint32_t _sampleRate,
 			                                     uint32_t *_bufferFrames,
 			                                     airtaudio::AirTAudioCallback _callback,
 			                                     airtaudio::StreamOptions *_options);
-			virtual enum airtaudio::errorType closeStream();
-			virtual enum airtaudio::errorType startStream() = 0;
-			virtual enum airtaudio::errorType stopStream() = 0;
-			virtual enum airtaudio::errorType abortStream() = 0;
+			virtual enum airtaudio::error closeStream();
+			virtual enum airtaudio::error startStream() = 0;
+			virtual enum airtaudio::error stopStream() = 0;
+			virtual enum airtaudio::error abortStream() = 0;
 			long getStreamLatency();
 			uint32_t getStreamSampleRate();
 			virtual double getStreamTime();
@@ -156,7 +162,7 @@ namespace airtaudio {
 				Protected common method that throws an RtError (type =
 				INVALID_USE) if a stream is not open.
 			*/
-			enum airtaudio::errorType verifyStream();
+			enum airtaudio::error verifyStream();
 			/**
 			 * @brief Protected method used to perform format, channel number, and/or interleaving
 			 * conversions between the user and device buffers.

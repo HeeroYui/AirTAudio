@@ -77,7 +77,7 @@ namespace airtaudio {
 			/**
 			 * @brief Create an interface instance
 			 */
-			enum airtaudio::errorType instanciate(enum airtaudio::type _api = airtaudio::type_undefined);
+			enum airtaudio::error instanciate(enum airtaudio::type _api = airtaudio::type_undefined);
 			/**
 			 * @return the audio API specifier for the current instance of airtaudio.
 			 */
@@ -185,7 +185,7 @@ namespace airtaudio {
 			 * @param  _errorCallback A client-defined function that will be invoked
 			 *           when an error has occured.
 			 */
-			enum airtaudio::errorType openStream(airtaudio::StreamParameters *_outputParameters,
+			enum airtaudio::error openStream(airtaudio::StreamParameters *_outputParameters,
 			                                     airtaudio::StreamParameters *_inputParameters,
 			                                     enum audio::format _format,
 			                                     uint32_t _sampleRate,
@@ -199,9 +199,9 @@ namespace airtaudio {
 			 * If a stream is not open, this function issues a warning and
 			 * returns (no exception is thrown).
 			 */
-			enum airtaudio::errorType closeStream() {
+			enum airtaudio::error closeStream() {
 				if (m_rtapi == nullptr) {
-					return airtaudio::errorInputNull;
+					return airtaudio::error_inputNull;
 				}
 				return m_rtapi->closeStream();
 			}
@@ -213,9 +213,9 @@ namespace airtaudio {
 			 * stream is not open.	A warning is issued if the stream is already
 			 * running.
 			 */
-			enum airtaudio::errorType startStream() {
+			enum airtaudio::error startStream() {
 				if (m_rtapi == nullptr) {
-					return airtaudio::errorInputNull;
+					return airtaudio::error_inputNull;
 				}
 				return m_rtapi->startStream();
 			}
@@ -227,9 +227,9 @@ namespace airtaudio {
 			 * stream is not open.	A warning is issued if the stream is already
 			 * stopped.
 			*/
-			enum airtaudio::errorType stopStream() {
+			enum airtaudio::error stopStream() {
 				if (m_rtapi == nullptr) {
-					return airtaudio::errorInputNull;
+					return airtaudio::error_inputNull;
 				}
 				return m_rtapi->stopStream();
 			}
@@ -240,9 +240,9 @@ namespace airtaudio {
 			 * stream is not open.	A warning is issued if the stream is already
 			 * stopped.
 			 */
-			enum airtaudio::errorType abortStream() {
+			enum airtaudio::error abortStream() {
 				if (m_rtapi == nullptr) {
-					return airtaudio::errorInputNull;
+					return airtaudio::error_inputNull;
 				}
 				return m_rtapi->abortStream();
 			}

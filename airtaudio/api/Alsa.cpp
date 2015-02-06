@@ -35,6 +35,8 @@ struct AlsaHandle {
 	AlsaHandle() :
 	  synchronized(false),
 	  runnable(false) {
+		handles[0] = nullptr;
+		handles[1] = nullptr;
 		xrun[0] = false;
 		xrun[1] = false;
 	}
@@ -47,7 +49,7 @@ airtaudio::api::Alsa::Alsa() {
 }
 
 airtaudio::api::Alsa::~Alsa() {
-	if (m_stream.state != STREAM_CLOSED) {
+	if (m_stream.state != airtaudio::state_closed) {
 		closeStream();
 	}
 }
@@ -64,16 +66,16 @@ uint32_t airtaudio::api::Alsa::getDeviceCount() {
 		sprintf(name, "hw:%d", card);
 		result = snd_ctl_open(&handle, name, 0);
 		if (result < 0) {
-			ATA_ERROR("airtaudio::api::Alsa::getDeviceCount: control open, card = " << card << ", " << snd_strerror(result) << ".");
-			// TODO : Return error airtaudio::errorWarning;
+			ATA_ERROR("control open, card = " << card << ", " << snd_strerror(result) << ".");
+			// TODO : Return error airtaudio::error_warning;
 			goto nextcard;
 		}
 		subdevice = -1;
 		while(1) {
 			result = snd_ctl_pcm_next_device(handle, &subdevice);
 			if (result < 0) {
-				ATA_ERROR("airtaudio::api::Alsa::getDeviceCount: control next device, card = " << card << ", " << snd_strerror(result) << ".");
-				// TODO : Return error airtaudio::errorWarning;
+				ATA_ERROR("control next device, card = " << card << ", " << snd_strerror(result) << ".");
+				// TODO : Return error airtaudio::error_warning;
 				break;
 			}
 			if (subdevice < 0) {
@@ -107,14 +109,14 @@ airtaudio::DeviceInfo airtaudio::api::Alsa::getDeviceInfo(uint32_t _device) {
 		sprintf(name, "hw:%d", card);
 		result = snd_ctl_open(&chandle, name, SND_CTL_NONBLOCK);
 		if (result < 0) {
-			ATA_WARNING("airtaudio::api::Alsa::getDeviceInfo: control open, card = " << card << ", " << snd_strerror(result) << ".");
+			ATA_WARNING("control open, card = " << card << ", " << snd_strerror(result) << ".");
 			goto nextcard;
 		}
 		subdevice = -1;
 		while(1) {
 			result = snd_ctl_pcm_next_device(chandle, &subdevice);
 			if (result < 0) {
-				ATA_WARNING("airtaudio::api::Alsa::getDeviceInfo: control next device, card = " << card << ", " << snd_strerror(result) << ".");
+				ATA_WARNING("control next device, card = " << card << ", " << snd_strerror(result) << ".");
 				break;
 			}
 			if (subdevice < 0) {
@@ -139,26 +141,26 @@ airtaudio::DeviceInfo airtaudio::api::Alsa::getDeviceInfo(uint32_t _device) {
 		nDevices++;
 	}
 	if (nDevices == 0) {
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: no devices found!");
-		// TODO : airtaudio::errorInvalidUse;
+		ATA_ERROR("no devices found!");
+		// TODO : airtaudio::error_invalidUse;
 		return info;
 	}
 	if (_device >= nDevices) {
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: device ID is invalid!");
-		// TODO : airtaudio::errorInvalidUse;
+		ATA_ERROR("device ID is invalid!");
+		// TODO : airtaudio::error_invalidUse;
 		return info;
 	}
 
 foundDevice:
 	// If a stream is already open, we cannot probe the stream devices.
 	// Thus, use the saved results.
-	if (    m_stream.state != STREAM_CLOSED
+	if (    m_stream.state != airtaudio::state_closed
 	     && (    m_stream.device[0] == _device
 	          || m_stream.device[1] == _device)) {
 		snd_ctl_close(chandle);
 		if (_device >= m_devices.size()) {
-			ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: device ID was not present before stream was opened.");
-			// TODO : return airtaudio::errorWarning;
+			ATA_ERROR("device ID was not present before stream was opened.");
+			// TODO : return airtaudio::error_warning;
 			return info;
 		}
 		return m_devices[ _device ];
@@ -184,16 +186,16 @@ foundDevice:
 	}
 	result = snd_pcm_open(&phandle, name, stream, openMode | SND_PCM_NONBLOCK);
 	if (result < 0) {
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: snd_pcm_open error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::errorWarning;
+		ATA_ERROR("snd_pcm_open error for device (" << name << "), " << snd_strerror(result) << ".");
+		// TODO : Return airtaudio::error_warning;
 		goto captureProbe;
 	}
 	// The device is open ... fill the parameter structure.
 	result = snd_pcm_hw_params_any(phandle, params);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: snd_pcm_hw_params error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::errorWarning;
+		ATA_ERROR("snd_pcm_hw_params error for device (" << name << "), " << snd_strerror(result) << ".");
+		// TODO : Return airtaudio::error_warning;
 		goto captureProbe;
 	}
 	// Get output channel information.
@@ -201,8 +203,8 @@ foundDevice:
 	result = snd_pcm_hw_params_get_channels_max(params, &value);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: error getting device (" << name << ") output channels, " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::errorWarning;
+		ATA_ERROR("error getting device (" << name << ") output channels, " << snd_strerror(result) << ".");
+		// TODO : Return airtaudio::error_warning;
 		goto captureProbe;
 	}
 	info.outputChannels = value;
@@ -225,8 +227,8 @@ captureProbe:
 	}
 	result = snd_pcm_open(&phandle, name, stream, openMode | SND_PCM_NONBLOCK);
 	if (result < 0) {
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: snd_pcm_open error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::errorWarning;
+		ATA_ERROR("snd_pcm_open error for device (" << name << "), " << snd_strerror(result) << ".");
+		// TODO : Return airtaudio::error_warning;
 		if (info.outputChannels == 0) {
 			return info;
 		}
@@ -236,8 +238,8 @@ captureProbe:
 	result = snd_pcm_hw_params_any(phandle, params);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: snd_pcm_hw_params error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::errorWarning;
+		ATA_ERROR("snd_pcm_hw_params error for device (" << name << "), " << snd_strerror(result) << ".");
+		// TODO : Return airtaudio::error_warning;
 		if (info.outputChannels == 0) {
 			return info;
 		}
@@ -246,8 +248,8 @@ captureProbe:
 	result = snd_pcm_hw_params_get_channels_max(params, &value);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: error getting device (" << name << ") input channels, " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::errorWarning;
+		ATA_ERROR("error getting device (" << name << ") input channels, " << snd_strerror(result) << ".");
+		// TODO : Return airtaudio::error_warning;
 		if (info.outputChannels == 0) {
 			return info;
 		}
@@ -281,29 +283,29 @@ probeParameters:
 	snd_pcm_info_set_stream(pcminfo, stream);
 	result = snd_pcm_open(&phandle, name, stream, openMode | SND_PCM_NONBLOCK);
 	if (result < 0) {
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: snd_pcm_open error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::errorWarning;
+		ATA_ERROR("snd_pcm_open error for device (" << name << "), " << snd_strerror(result) << ".");
+		// TODO : Return airtaudio::error_warning;
 		return info;
 	}
 	// The device is open ... fill the parameter structure.
 	result = snd_pcm_hw_params_any(phandle, params);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: snd_pcm_hw_params error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::errorWarning;
+		ATA_ERROR("snd_pcm_hw_params error for device (" << name << "), " << snd_strerror(result) << ".");
+		// TODO : Return airtaudio::error_warning;
 		return info;
 	}
 	// Test our discrete set of sample rate values.
 	info.sampleRates.clear();
-	for (uint32_t i=0; i<MAX_SAMPLE_RATES; i++) {
-		if (snd_pcm_hw_params_test_rate(phandle, params, SAMPLE_RATES[i], 0) == 0) {
-			info.sampleRates.push_back(SAMPLE_RATES[i]);
+	for (auto &it : airtaudio::genericSampleRate()) {
+		if (snd_pcm_hw_params_test_rate(phandle, params, it, 0) == 0) {
+			info.sampleRates.push_back(it);
 		}
 	}
 	if (info.sampleRates.size() == 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: no supported sample rates found for device (" << name << ").");
-		// TODO : Return airtaudio::errorWarning;
+		ATA_ERROR("no supported sample rates found for device (" << name << ").");
+		// TODO : Return airtaudio::error_warning;
 		return info;
 	}
 	// Probe the supported data formats ... we don't care about endian-ness just yet
@@ -335,8 +337,8 @@ probeParameters:
 	}
 	// Check that we have at least one supported format
 	if (info.nativeFormats.size() == 0) {
-		ATA_ERROR("airtaudio::api::Alsa::getDeviceInfo: pcm device (" << name << ") data format not supported by RtAudio.");
-		// TODO : Return airtaudio::errorWarning;
+		ATA_ERROR("pcm device (" << name << ") data format not supported by RtAudio.");
+		// TODO : Return airtaudio::error_warning;
 		return info;
 	}
 	// Get the device name
@@ -362,7 +364,7 @@ void airtaudio::api::Alsa::saveDeviceInfo() {
 }
 
 bool airtaudio::api::Alsa::probeDeviceOpen(uint32_t _device,
-                                           airtaudio::api::StreamMode _mode,
+                                           airtaudio::mode _mode,
                                            uint32_t _channels,
                                            uint32_t _firstChannel,
                                            uint32_t _sampleRate,
@@ -374,66 +376,64 @@ bool airtaudio::api::Alsa::probeDeviceOpen(uint32_t _device,
 	int32_t result, subdevice, card;
 	char name[64];
 	snd_ctl_t *chandle;
-	if (_options && _options->flags & airtaudio::ALSA_USE_DEFAULT) {
-		snprintf(name, sizeof(name), "%s", "default");
-	} else {
-		// Count cards and devices
-		card = -1;
-		snd_card_next(&card);
-		while (card >= 0) {
-			sprintf(name, "hw:%d", card);
-			result = snd_ctl_open(&chandle, name, SND_CTL_NONBLOCK);
-			if (result < 0) {
-				ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: control open, card = " << card << ", " << snd_strerror(result) << ".");
-				return false;
-			}
-			subdevice = -1;
-			while(1) {
-				result = snd_ctl_pcm_next_device(chandle, &subdevice);
-				if (result < 0) break;
-				if (subdevice < 0) break;
-				if (nDevices == _device) {
-					sprintf(name, "hw:%d,%d", card, subdevice);
-					snd_ctl_close(chandle);
-					goto foundDevice;
-				}
-				nDevices++;
-			}
-			snd_ctl_close(chandle);
-			snd_card_next(&card);
+	// Count cards and devices
+	card = -1;
+	// NOTE : Find the device name : [BEGIN]
+	snd_card_next(&card);
+	while (card >= 0) {
+		sprintf(name, "hw:%d", card);
+		result = snd_ctl_open(&chandle, name, SND_CTL_NONBLOCK);
+		if (result < 0) {
+			ATA_ERROR("control open, card = " << card << ", " << snd_strerror(result) << ".");
+			return false;
 		}
-		result = snd_ctl_open(&chandle, "default", SND_CTL_NONBLOCK);
-		if (result == 0) {
+		subdevice = -1;
+		while(1) {
+			result = snd_ctl_pcm_next_device(chandle, &subdevice);
+			if (result < 0) break;
+			if (subdevice < 0) break;
 			if (nDevices == _device) {
-				strcpy(name, "default");
+				sprintf(name, "hw:%d,%d", card, subdevice);
+				snd_ctl_close(chandle);
 				goto foundDevice;
 			}
 			nDevices++;
 		}
-		if (nDevices == 0) {
-			// This should not happen because a check is made before this function is called.
-			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: no devices found!");
-			return false;
-		}
-		if (_device >= nDevices) {
-			// This should not happen because a check is made before this function is called.
-			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: device ID is invalid!");
-			return false;
-		}
+		snd_ctl_close(chandle);
+		snd_card_next(&card);
 	}
+	result = snd_ctl_open(&chandle, "default", SND_CTL_NONBLOCK);
+	if (result == 0) {
+		if (nDevices == _device) {
+			strcpy(name, "default");
+			goto foundDevice;
+		}
+		nDevices++;
+	}
+	if (nDevices == 0) {
+		// This should not happen because a check is made before this function is called.
+		ATA_ERROR("no devices found!");
+		return false;
+	}
+	if (_device >= nDevices) {
+		// This should not happen because a check is made before this function is called.
+		ATA_ERROR("device ID is invalid!");
+		return false;
+	}
+	// NOTE : Find the device name : [ END ]
 
 foundDevice:
 	// The getDeviceInfo() function will not work for a device that is
 	// already open.	Thus, we'll probe the system before opening a
 	// stream and save the results for use by getDeviceInfo().
-	if (    _mode == OUTPUT
-	    || (    _mode == INPUT
-	         && m_stream.mode != OUTPUT)) {
+	if (    _mode == airtaudio::mode_output
+	    || (    _mode == airtaudio::mode_input
+	         && m_stream.mode != airtaudio::mode_output)) {
 		// only do once
 		this->saveDeviceInfo();
 	}
 	snd_pcm_stream_t stream;
-	if (_mode == OUTPUT) {
+	if (_mode == airtaudio::mode_output) {
 		stream = SND_PCM_STREAM_PLAYBACK;
 	} else {
 		stream = SND_PCM_STREAM_CAPTURE;
@@ -442,10 +442,10 @@ foundDevice:
 	int32_t openMode = SND_PCM_ASYNC;
 	result = snd_pcm_open(&phandle, name, stream, openMode);
 	if (result < 0) {
-		if (_mode == OUTPUT) {
-			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: pcm device (" << name << ") won't open for output.");
+		if (_mode == airtaudio::mode_output) {
+			ATA_ERROR("pcm device (" << name << ") won't open for output.");
 		} else {
-			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: pcm device (" << name << ") won't open for input.");
+			ATA_ERROR("pcm device (" << name << ") won't open for input.");
 		}
 		return false;
 	}
@@ -455,33 +455,20 @@ foundDevice:
 	result = snd_pcm_hw_params_any(phandle, hw_params);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error getting pcm device (" << name << ") parameters, " << snd_strerror(result) << ".");
+		ATA_ERROR("error getting pcm device (" << name << ") parameters, " << snd_strerror(result) << ".");
 		return false;
 	}
-	// Set access ... check user preference.
-	if (    _options != nullptr
-	     && _options->flags & airtaudio::NONINTERLEAVED) {
-		m_stream.userInterleaved = false;
+	// Open stream all time in interleave mode (by default): (open in non interleave if we have no choice
+	result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+	if (result < 0) {
 		result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
-		if (result < 0) {
-			result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
-			m_stream.deviceInterleaved[_mode] =	true;
-		} else {
-			m_stream.deviceInterleaved[_mode] = false;
-		}
+		m_stream.deviceInterleaved[modeToIdTable(_mode)] =	false;
 	} else {
-		m_stream.userInterleaved = true;
-		result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
-		if (result < 0) {
-			result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
-			m_stream.deviceInterleaved[_mode] =	false;
-		} else {
-			m_stream.deviceInterleaved[_mode] =	true;
-		}
+		m_stream.deviceInterleaved[modeToIdTable(_mode)] =	true;
 	}
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting pcm device (" << name << ") access, " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting pcm device (" << name << ") access, " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Determine how to set the device format.
@@ -501,7 +488,7 @@ foundDevice:
 		deviceFormat = SND_PCM_FORMAT_FLOAT64;
 	}
 	if (snd_pcm_hw_params_test_format(phandle, hw_params, deviceFormat) == 0) {
-		m_stream.deviceFormat[_mode] = _format;
+		m_stream.deviceFormat[modeToIdTable(_mode)] = _format;
 	} else {
 		// If we get here, no supported format was found.
 		snd_pcm_close(phandle);
@@ -512,18 +499,18 @@ foundDevice:
 	result = snd_pcm_hw_params_set_format(phandle, hw_params, deviceFormat);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting pcm device (" << name << ") data format, " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting pcm device (" << name << ") data format, " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Determine whether byte-swaping is necessary.
-	m_stream.doByteSwap[_mode] = false;
+	m_stream.doByteSwap[modeToIdTable(_mode)] = false;
 	if (deviceFormat != SND_PCM_FORMAT_S8) {
 		result = snd_pcm_format_cpu_endian(deviceFormat);
 		if (result == 0) {
-			m_stream.doByteSwap[_mode] = true;
+			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
 		} else if (result < 0) {
 			snd_pcm_close(phandle);
-			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error getting pcm device (" << name << ") endian-ness, " << snd_strerror(result) << ".");
+			ATA_ERROR("error getting pcm device (" << name << ") endian-ness, " << snd_strerror(result) << ".");
 			return false;
 		}
 	}
@@ -531,37 +518,37 @@ foundDevice:
 	result = snd_pcm_hw_params_set_rate_near(phandle, hw_params, (uint32_t*) &_sampleRate, 0);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting sample rate on device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting sample rate on device (" << name << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Determine the number of channels for this device.	We support a possible
 	// minimum device channel number > than the value requested by the user.
-	m_stream.nUserChannels[_mode] = _channels;
+	m_stream.nUserChannels[modeToIdTable(_mode)] = _channels;
 	uint32_t value;
 	result = snd_pcm_hw_params_get_channels_max(hw_params, &value);
 	uint32_t deviceChannels = value;
 	if (    result < 0
 	     || deviceChannels < _channels + _firstChannel) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: requested channel parameters not supported by device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("requested channel parameters not supported by device (" << name << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	result = snd_pcm_hw_params_get_channels_min(hw_params, &value);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error getting minimum channels for device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error getting minimum channels for device (" << name << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	deviceChannels = value;
 	if (deviceChannels < _channels + _firstChannel) {
 		deviceChannels = _channels + _firstChannel;
 	}
-	m_stream.nDeviceChannels[_mode] = deviceChannels;
+	m_stream.nDeviceChannels[modeToIdTable(_mode)] = deviceChannels;
 	// Set the device channels.
 	result = snd_pcm_hw_params_set_channels(phandle, hw_params, deviceChannels);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting channels for device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting channels for device (" << name << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Set the buffer (or period) size.
@@ -570,26 +557,38 @@ foundDevice:
 	result = snd_pcm_hw_params_set_period_size_near(phandle, hw_params, &periodSize, &dir);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting period size for device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting period size for device (" << name << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	*_bufferSize = periodSize;
 	// Set the buffer number, which in ALSA is referred to as the "period".
 	uint32_t periods = 0;
-	if (_options && _options->flags & airtaudio::MINIMIZE_LATENCY) periods = 2;
-	if (_options && _options->numberOfBuffers > 0) periods = _options->numberOfBuffers;
-	if (periods < 2) periods = 4; // a fairly safe default value
+	if (    _options != nullptr
+	     && _options->flags.m_minimizeLatency == true) {
+		periods = 2;
+	}
+	/* TODO : Chouse the number of low level buffer ...
+	if (    _options != nullptr
+	     && _options->numberOfBuffers > 0) {
+		periods = _options->numberOfBuffers;
+	}
+	*/
+	if (periods < 2) {
+		periods = 4; // a fairly safe default value
+	}
 	result = snd_pcm_hw_params_set_periods_near(phandle, hw_params, &periods, &dir);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error setting periods for device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting periods for device (" << name << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	// If attempting to setup a duplex stream, the bufferSize parameter
 	// MUST be the same in both directions!
-	if (m_stream.mode == OUTPUT && _mode == INPUT && *_bufferSize != m_stream.bufferSize) {
+	if (    m_stream.mode == airtaudio::mode_output
+	     && _mode == airtaudio::mode_input
+	     && *_bufferSize != m_stream.bufferSize) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: system error setting buffer size for duplex stream on device (" << name << ").");
+		ATA_ERROR("system error setting buffer size for duplex stream on device (" << name << ").");
 		return false;
 	}
 	m_stream.bufferSize = *_bufferSize;
@@ -597,7 +596,7 @@ foundDevice:
 	result = snd_pcm_hw_params(phandle, hw_params);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error installing hardware configuration on device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error installing hardware configuration on device (" << name << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Set the software configuration to fill buffers with zeros and prevent device stopping on xruns.
@@ -618,50 +617,49 @@ foundDevice:
 	result = snd_pcm_sw_params(phandle, sw_params);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error installing software configuration on device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error installing software configuration on device (" << name << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Set flags for buffer conversion
-	m_stream.doConvertBuffer[_mode] = false;
-	if (m_stream.userFormat != m_stream.deviceFormat[_mode]) {
-		m_stream.doConvertBuffer[_mode] = true;
+	m_stream.doConvertBuffer[modeToIdTable(_mode)] = false;
+	if (m_stream.userFormat != m_stream.deviceFormat[modeToIdTable(_mode)]) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (m_stream.nUserChannels[_mode] < m_stream.nDeviceChannels[_mode]) {
-		m_stream.doConvertBuffer[_mode] = true;
+	if (m_stream.nUserChannels[modeToIdTable(_mode)] < m_stream.nDeviceChannels[modeToIdTable(_mode)]) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (    m_stream.userInterleaved != m_stream.deviceInterleaved[_mode]
-	     && m_stream.nUserChannels[_mode] > 1) {
-		m_stream.doConvertBuffer[_mode] = true;
+	if (    m_stream.deviceInterleaved[modeToIdTable(_mode)] == false
+	     && m_stream.nUserChannels[modeToIdTable(_mode)] > 1) {
+		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
 	// Allocate the ApiHandle if necessary and then save.
-	AlsaHandle *apiInfo = 0;
-	if (m_stream.apiHandle == 0) {
+	AlsaHandle *apiInfo = nullptr;
+	if (m_stream.apiHandle == nullptr) {
 		apiInfo = (AlsaHandle *) new AlsaHandle;
 		if (apiInfo == nullptr) {
-			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error allocating AlsaHandle memory.");
+			ATA_ERROR("error allocating AlsaHandle memory.");
 			goto error;
 		}
 		m_stream.apiHandle = (void *) apiInfo;
-		apiInfo->handles[0] = 0;
-		apiInfo->handles[1] = 0;
 	} else {
 		apiInfo = (AlsaHandle *) m_stream.apiHandle;
 	}
-	apiInfo->handles[_mode] = phandle;
+	apiInfo->handles[modeToIdTable(_mode)] = phandle;
 	phandle = 0;
 	// Allocate necessary internal buffers.
 	uint64_t bufferBytes;
-	bufferBytes = m_stream.nUserChannels[_mode] * *_bufferSize * audio::getFormatBytes(m_stream.userFormat);
-	m_stream.userBuffer[_mode] = (char *) calloc(bufferBytes, 1);
-	if (m_stream.userBuffer[_mode] == nullptr) {
-		ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error allocating user buffer memory.");
+	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_stream.userFormat);
+	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
+	if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
+		ATA_ERROR("error allocating user buffer memory.");
 		goto error;
 	}
-	if (m_stream.doConvertBuffer[_mode]) {
+	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
 		bool makeBuffer = true;
-		bufferBytes = m_stream.nDeviceChannels[_mode] * audio::getFormatBytes(m_stream.deviceFormat[_mode]);
-		if (_mode == INPUT) {
-			if (m_stream.mode == OUTPUT && m_stream.deviceBuffer) {
+		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
+		if (_mode == airtaudio::mode_input) {
+			if (    m_stream.mode == airtaudio::mode_output
+			     && m_stream.deviceBuffer) {
 				uint64_t bytesOut = m_stream.nDeviceChannels[0] * audio::getFormatBytes(m_stream.deviceFormat[0]);
 				if (bufferBytes <= bytesOut) {
 					makeBuffer = false;
@@ -676,31 +674,31 @@ foundDevice:
 			}
 			m_stream.deviceBuffer = (char *) calloc(bufferBytes, 1);
 			if (m_stream.deviceBuffer == nullptr) {
-				ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: error allocating device buffer memory.");
+				ATA_ERROR("error allocating device buffer memory.");
 				goto error;
 			}
 		}
 	}
 	m_stream.sampleRate = _sampleRate;
 	m_stream.nBuffers = periods;
-	m_stream.device[_mode] = _device;
-	m_stream.state = STREAM_STOPPED;
+	m_stream.device[modeToIdTable(_mode)] = _device;
+	m_stream.state = airtaudio::state_stopped;
 	// Setup the buffer conversion information structure.
-	if (m_stream.doConvertBuffer[_mode]) {
+	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
 		setConvertInfo(_mode, _firstChannel);
 	}
 	// Setup thread if necessary.
-	if (    m_stream.mode == OUTPUT
-	     && _mode == INPUT) {
+	if (    m_stream.mode == airtaudio::mode_output
+	     && _mode == airtaudio::mode_input) {
 		// We had already set up an output stream.
-		m_stream.mode = DUPLEX;
+		m_stream.mode = airtaudio::mode_duplex;
 		// Link the streams if possible.
 		apiInfo->synchronized = false;
 		if (snd_pcm_link(apiInfo->handles[0], apiInfo->handles[1]) == 0) {
 			apiInfo->synchronized = true;
 		} else {
-			ATA_ERROR("airtaudio::api::Alsa::probeDeviceOpen: unable to synchronize input and output devices.");
-			// TODO : airtaudio::errorWarning;
+			ATA_ERROR("unable to synchronize input and output devices.");
+			// TODO : airtaudio::error_warning;
 		}
 	} else {
 		m_stream.mode = _mode;
@@ -710,7 +708,7 @@ foundDevice:
 		m_stream.callbackInfo.thread = new std::thread(alsaCallbackHandler, &m_stream.callbackInfo);
 		if (m_stream.callbackInfo.thread == nullptr) {
 			m_stream.callbackInfo.isRunning = false;
-			ATA_ERROR("airtaudio::api::Alsa::error creating callback thread!");
+			ATA_ERROR("creating callback thread!");
 			goto error;
 		}
 	}
@@ -740,19 +738,19 @@ error:
 		free(m_stream.deviceBuffer);
 		m_stream.deviceBuffer = 0;
 	}
-	m_stream.state = STREAM_CLOSED;
+	m_stream.state = airtaudio::state_closed;
 	return false;
 }
 
-enum airtaudio::errorType airtaudio::api::Alsa::closeStream() {
-	if (m_stream.state == STREAM_CLOSED) {
-		ATA_ERROR("airtaudio::api::Alsa::closeStream(): no open stream to close!");
-		return airtaudio::errorWarning;
+enum airtaudio::error airtaudio::api::Alsa::closeStream() {
+	if (m_stream.state == airtaudio::state_closed) {
+		ATA_ERROR("no open stream to close!");
+		return airtaudio::error_warning;
 	}
 	AlsaHandle *apiInfo = (AlsaHandle *) m_stream.apiHandle;
 	m_stream.callbackInfo.isRunning = false;
 	m_stream.mutex.lock();
-	if (m_stream.state == STREAM_STOPPED) {
+	if (m_stream.state == airtaudio::state_stopped) {
 		apiInfo->runnable = true;
 		apiInfo->runnable_cv.notify_one();
 	}
@@ -760,14 +758,14 @@ enum airtaudio::errorType airtaudio::api::Alsa::closeStream() {
 	if (m_stream.callbackInfo.thread != nullptr) {
 		m_stream.callbackInfo.thread->join();
 	}
-	if (m_stream.state == STREAM_RUNNING) {
-		m_stream.state = STREAM_STOPPED;
-		if (    m_stream.mode == OUTPUT
-		     || m_stream.mode == DUPLEX) {
+	if (m_stream.state == airtaudio::state_running) {
+		m_stream.state = airtaudio::state_stopped;
+		if (    m_stream.mode == airtaudio::mode_output
+		     || m_stream.mode == airtaudio::mode_duplex) {
 			snd_pcm_drop(apiInfo->handles[0]);
 		}
-		if (    m_stream.mode == INPUT
-		     || m_stream.mode == DUPLEX) {
+		if (    m_stream.mode == airtaudio::mode_input
+		     || m_stream.mode == airtaudio::mode_duplex) {
 			snd_pcm_drop(apiInfo->handles[1]);
 		}
 	}
@@ -792,138 +790,151 @@ enum airtaudio::errorType airtaudio::api::Alsa::closeStream() {
 		free(m_stream.deviceBuffer);
 		m_stream.deviceBuffer = 0;
 	}
-	m_stream.mode = UNINITIALIZED;
-	m_stream.state = STREAM_CLOSED;
-	return airtaudio::errorNone;
+	m_stream.mode = airtaudio::mode_unknow;
+	m_stream.state = airtaudio::state_closed;
+	return airtaudio::error_none;
 }
 
-enum airtaudio::errorType airtaudio::api::Alsa::startStream() {
+enum airtaudio::error airtaudio::api::Alsa::startStream() {
 	// This method calls snd_pcm_prepare if the device isn't already in that state.
-	if (verifyStream() != airtaudio::errorNone) {
-		return airtaudio::errorFail;
+	if (verifyStream() != airtaudio::error_none) {
+		return airtaudio::error_fail;
 	}
-	if (m_stream.state == STREAM_RUNNING) {
-		ATA_ERROR("airtaudio::api::Alsa::startStream(): the stream is already running!");
-		return airtaudio::errorWarning;
+	if (m_stream.state == airtaudio::state_running) {
+		ATA_ERROR("the stream is already running!");
+		return airtaudio::error_warning;
 	}
 	std::unique_lock<std::mutex> lck(m_stream.mutex);
 	int32_t result = 0;
 	snd_pcm_state_t state;
 	AlsaHandle *apiInfo = (AlsaHandle *) m_stream.apiHandle;
 	snd_pcm_t **handle = (snd_pcm_t **) apiInfo->handles;
-	if (m_stream.mode == OUTPUT || m_stream.mode == DUPLEX) {
+	if (    m_stream.mode == airtaudio::mode_output
+	     || m_stream.mode == airtaudio::mode_duplex) {
+		if (handle[0] == nullptr) {
+			ATA_ERROR("send nullptr to alsa ...");
+			if (handle[1] != nullptr) {
+				ATA_ERROR("note : 1 is not null");
+			}
+		}
 		state = snd_pcm_state(handle[0]);
 		if (state != SND_PCM_STATE_PREPARED) {
 			result = snd_pcm_prepare(handle[0]);
 			if (result < 0) {
-				ATA_ERROR("airtaudio::api::Alsa::startStream: error preparing output pcm device, " << snd_strerror(result) << ".");
+				ATA_ERROR("error preparing output pcm device, " << snd_strerror(result) << ".");
 				goto unlock;
 			}
 		}
 	}
-	if (    (    m_stream.mode == INPUT
-	          || m_stream.mode == DUPLEX)
+	if (    (    m_stream.mode == airtaudio::mode_input
+	          || m_stream.mode == airtaudio::mode_duplex)
 	     && !apiInfo->synchronized) {
+		if (handle[1] == nullptr) {
+			ATA_ERROR("send nullptr to alsa ...");
+			if (handle[0] != nullptr) {
+				ATA_ERROR("note : 0 is not null");
+			}
+		}
 		state = snd_pcm_state(handle[1]);
 		if (state != SND_PCM_STATE_PREPARED) {
 			result = snd_pcm_prepare(handle[1]);
 			if (result < 0) {
-				ATA_ERROR("airtaudio::api::Alsa::startStream: error preparing input pcm device, " << snd_strerror(result) << ".");
+				ATA_ERROR("error preparing input pcm device, " << snd_strerror(result) << ".");
 				goto unlock;
 			}
 		}
 	}
-	m_stream.state = STREAM_RUNNING;
+	m_stream.state = airtaudio::state_running;
 unlock:
 	apiInfo->runnable = true;
 	apiInfo->runnable_cv.notify_one();
 	if (result >= 0) {
-		return airtaudio::errorNone;
+		return airtaudio::error_none;
 	}
-	return airtaudio::errorSystemError;
+	return airtaudio::error_systemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Alsa::stopStream() {
-	if (verifyStream() != airtaudio::errorNone) {
-		return airtaudio::errorFail;
+enum airtaudio::error airtaudio::api::Alsa::stopStream() {
+	if (verifyStream() != airtaudio::error_none) {
+		return airtaudio::error_fail;
 	}
-	if (m_stream.state == STREAM_STOPPED) {
-		ATA_ERROR("airtaudio::api::Alsa::stopStream(): the stream is already stopped!");
-		return airtaudio::errorWarning;
+	if (m_stream.state == airtaudio::state_stopped) {
+		ATA_ERROR("the stream is already stopped!");
+		return airtaudio::error_warning;
 	}
-	m_stream.state = STREAM_STOPPED;
+	m_stream.state = airtaudio::state_stopped;
 	std::unique_lock<std::mutex> lck(m_stream.mutex);
 	int32_t result = 0;
 	AlsaHandle *apiInfo = (AlsaHandle *) m_stream.apiHandle;
 	snd_pcm_t **handle = (snd_pcm_t **) apiInfo->handles;
-	if (    m_stream.mode == OUTPUT
-	     || m_stream.mode == DUPLEX) {
+	if (    m_stream.mode == airtaudio::mode_output
+	     || m_stream.mode == airtaudio::mode_duplex) {
 		if (apiInfo->synchronized) {
 			result = snd_pcm_drop(handle[0]);
 		} else {
 			result = snd_pcm_drain(handle[0]);
 		}
 		if (result < 0) {
-			ATA_ERROR("airtaudio::api::Alsa::stopStream: error draining output pcm device, " << snd_strerror(result) << ".");
+			ATA_ERROR("error draining output pcm device, " << snd_strerror(result) << ".");
 			goto unlock;
 		}
 	}
-	if (    (    m_stream.mode == INPUT
-	          || m_stream.mode == DUPLEX)
+	if (    (    m_stream.mode == airtaudio::mode_input
+	          || m_stream.mode == airtaudio::mode_duplex)
 	     && !apiInfo->synchronized) {
 		result = snd_pcm_drop(handle[1]);
 		if (result < 0) {
-			ATA_ERROR("airtaudio::api::Alsa::stopStream: error stopping input pcm device, " << snd_strerror(result) << ".");
+			ATA_ERROR("error stopping input pcm device, " << snd_strerror(result) << ".");
 			goto unlock;
 		}
 	}
 unlock:
 	if (result >= 0) {
-		return airtaudio::errorNone;
+		return airtaudio::error_none;
 	}
-	return airtaudio::errorSystemError;
+	return airtaudio::error_systemError;
 }
 
-enum airtaudio::errorType airtaudio::api::Alsa::abortStream() {
-	if (verifyStream() != airtaudio::errorNone) {
-		return airtaudio::errorFail;
+enum airtaudio::error airtaudio::api::Alsa::abortStream() {
+	if (verifyStream() != airtaudio::error_none) {
+		return airtaudio::error_fail;
 	}
-	if (m_stream.state == STREAM_STOPPED) {
-		ATA_ERROR("airtaudio::api::Alsa::abortStream(): the stream is already stopped!");
-		return airtaudio::errorWarning;
+	if (m_stream.state == airtaudio::state_stopped) {
+		ATA_ERROR("the stream is already stopped!");
+		return airtaudio::error_warning;
 	}
-	m_stream.state = STREAM_STOPPED;
+	m_stream.state = airtaudio::state_stopped;
 	std::unique_lock<std::mutex> lck(m_stream.mutex);
 	int32_t result = 0;
 	AlsaHandle *apiInfo = (AlsaHandle *) m_stream.apiHandle;
 	snd_pcm_t **handle = (snd_pcm_t **) apiInfo->handles;
-	if (    m_stream.mode == OUTPUT
-	     || m_stream.mode == DUPLEX) {
+	if (    m_stream.mode == airtaudio::mode_output
+	     || m_stream.mode == airtaudio::mode_duplex) {
 		result = snd_pcm_drop(handle[0]);
 		if (result < 0) {
-			ATA_ERROR("airtaudio::api::Alsa::abortStream: error aborting output pcm device, " << snd_strerror(result) << ".");
+			ATA_ERROR("error aborting output pcm device, " << snd_strerror(result) << ".");
 			goto unlock;
 		}
 	}
-	if (    (    m_stream.mode == INPUT
-	          || m_stream.mode == DUPLEX)
+	if (    (    m_stream.mode == airtaudio::mode_input
+	          || m_stream.mode == airtaudio::mode_duplex)
 	     && !apiInfo->synchronized) {
 		result = snd_pcm_drop(handle[1]);
 		if (result < 0) {
-			ATA_ERROR("airtaudio::api::Alsa::abortStream: error aborting input pcm device, " << snd_strerror(result) << ".");
+			ATA_ERROR("error aborting input pcm device, " << snd_strerror(result) << ".");
 			goto unlock;
 		}
 	}
 unlock:
 	if (result >= 0) {
-		return airtaudio::errorNone;
+		return airtaudio::error_none;
 	}
-	return airtaudio::errorSystemError;
+	return airtaudio::error_systemError;
 }
 
 void airtaudio::api::Alsa::callbackEvent() {
 	AlsaHandle *apiInfo = (AlsaHandle *) m_stream.apiHandle;
-	if (m_stream.state == STREAM_STOPPED) {
+	if (m_stream.state == airtaudio::state_stopped) {
 		std::unique_lock<std::mutex> lck(m_stream.mutex);
 		// TODO : Set this back ....
 		/*
@@ -931,23 +942,23 @@ void airtaudio::api::Alsa::callbackEvent() {
 			apiInfo->runnable_cv.wait(lck);
 		}
 		*/
-		if (m_stream.state != STREAM_RUNNING) {
+		if (m_stream.state != airtaudio::state_running) {
 			return;
 		}
 	}
-	if (m_stream.state == STREAM_CLOSED) {
-		ATA_CRITICAL("airtaudio::api::Alsa::callbackEvent(): the stream is closed ... this shouldn't happen!");
-		return; // TODO : notify appl: airtaudio::errorWarning;
+	if (m_stream.state == airtaudio::state_closed) {
+		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
+		return; // TODO : notify appl: airtaudio::error_warning;
 	}
 	int32_t doStopStream = 0;
 	double streamTime = getStreamTime();
-	airtaudio::streamStatus status = 0;
-	if (m_stream.mode != INPUT && apiInfo->xrun[0] == true) {
-		status |= airtaudio::OUTPUT_UNDERFLOW;
+	enum airtaudio::status status = airtaudio::status_ok;
+	if (m_stream.mode != airtaudio::mode_input && apiInfo->xrun[0] == true) {
+		status = airtaudio::status_underflow;
 		apiInfo->xrun[0] = false;
 	}
-	if (m_stream.mode != OUTPUT && apiInfo->xrun[1] == true) {
-		status |= airtaudio::INPUT_OVERFLOW;
+	if (m_stream.mode != airtaudio::mode_output && apiInfo->xrun[1] == true) {
+		status = airtaudio::status_overflow;
 		apiInfo->xrun[1] = false;
 	}
 	doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[0],
@@ -961,7 +972,7 @@ void airtaudio::api::Alsa::callbackEvent() {
 	}
 	std::unique_lock<std::mutex> lck(m_stream.mutex);
 	// The state might change while waiting on a mutex.
-	if (m_stream.state == STREAM_STOPPED) {
+	if (m_stream.state == airtaudio::state_stopped) {
 		goto unlock;
 	}
 	int32_t result;
@@ -971,8 +982,8 @@ void airtaudio::api::Alsa::callbackEvent() {
 	snd_pcm_sframes_t frames;
 	audio::format format;
 	handle = (snd_pcm_t **) apiInfo->handles;
-	if (    m_stream.mode == airtaudio::api::INPUT
-	     || m_stream.mode == airtaudio::api::DUPLEX) {
+	if (    m_stream.mode == airtaudio::mode_input
+	     || m_stream.mode == airtaudio::mode_duplex) {
 		// Setup parameters.
 		if (m_stream.doConvertBuffer[1]) {
 			buffer = m_stream.deviceBuffer;
@@ -1001,15 +1012,15 @@ void airtaudio::api::Alsa::callbackEvent() {
 					apiInfo->xrun[1] = true;
 					result = snd_pcm_prepare(handle[1]);
 					if (result < 0) {
-						ATA_ERROR("airtaudio::api::Alsa::callbackEvent: error preparing device after overrun, " << snd_strerror(result) << ".");
+						ATA_ERROR("error preparing device after overrun, " << snd_strerror(result) << ".");
 					}
 				} else {
-					ATA_ERROR("airtaudio::api::Alsa::callbackEvent: error, current state is " << snd_pcm_state_name(state) << ", " << snd_strerror(result) << ".");
+					ATA_ERROR("error, current state is " << snd_pcm_state_name(state) << ", " << snd_strerror(result) << ".");
 				}
 			} else {
-				ATA_ERROR("airtaudio::api::Alsa::callbackEvent: audio read error, " << snd_strerror(result) << ".");
+				ATA_ERROR("audio read error, " << snd_strerror(result) << ".");
 			}
-			// TODO : Notify application ... airtaudio::errorWarning;
+			// TODO : Notify application ... airtaudio::error_warning;
 			goto tryOutput;
 		}
 		// Do byte swapping if necessary.
@@ -1028,8 +1039,8 @@ void airtaudio::api::Alsa::callbackEvent() {
 	}
 
 tryOutput:
-	if (    m_stream.mode == airtaudio::api::OUTPUT
-	     || m_stream.mode == airtaudio::api::DUPLEX) {
+	if (    m_stream.mode == airtaudio::mode_output
+	     || m_stream.mode == airtaudio::mode_duplex) {
 		// Setup parameters and do buffer conversion if necessary.
 		if (m_stream.doConvertBuffer[0]) {
 			buffer = m_stream.deviceBuffer;
@@ -1064,15 +1075,15 @@ tryOutput:
 					apiInfo->xrun[0] = true;
 					result = snd_pcm_prepare(handle[0]);
 					if (result < 0) {
-						ATA_ERROR("airtaudio::api::Alsa::callbackEvent: error preparing device after underrun, " << snd_strerror(result) << ".");
+						ATA_ERROR("error preparing device after underrun, " << snd_strerror(result) << ".");
 					}
 				} else {
-					ATA_ERROR("airtaudio::api::Alsa::callbackEvent: error, current state is " << snd_pcm_state_name(state) << ", " << snd_strerror(result) << ".");
+					ATA_ERROR("error, current state is " << snd_pcm_state_name(state) << ", " << snd_strerror(result) << ".");
 				}
 			} else {
-				ATA_ERROR("airtaudio::api::Alsa::callbackEvent: audio write error, " << snd_strerror(result) << ".");
+				ATA_ERROR("audio write error, " << snd_strerror(result) << ".");
 			}
-			// TODO : Notuify application airtaudio::errorWarning;
+			// TODO : Notuify application airtaudio::error_warning;
 			goto unlock;
 		}
 		// Check stream latency
