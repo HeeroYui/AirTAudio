@@ -727,7 +727,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
 	// Allocate necessary internal buffers
-	long bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * formatBytes(m_stream.userFormat);
+	long bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_stream.userFormat);
 	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
 	if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
 		ATA_ERROR("error allocating user buffer memory.");
@@ -735,10 +735,10 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 	}
 	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
 		bool makeBuffer = true;
-		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * formatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
+		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
 		if (_mode == airtaudio::mode_input) {
 			if (m_stream.mode == airtaudio::mode_output && m_stream.deviceBuffer) {
-				uint64_t bytesOut = m_stream.nDeviceChannels[0] * formatBytes(m_stream.deviceFormat[0]);
+				uint64_t bytesOut = m_stream.nDeviceChannels[0] * audio::getFormatBytes(m_stream.deviceFormat[0]);
 				if (bufferBytes <= (long) bytesOut) {
 					makeBuffer = false;
 				}
@@ -910,7 +910,7 @@ enum airtaudio::error airtaudio::api::Ds::startStream() {
 	m_duplexPrerollBytes = 0;
 	if (m_stream.mode == airtaudio::mode_duplex) {
 		// 0.5 seconds of silence in airtaudio::mode_duplex mode while the devices spin up and synchronize.
-		m_duplexPrerollBytes = (int) (0.5 * m_stream.sampleRate * formatBytes(m_stream.deviceFormat[1]) * m_stream.nDeviceChannels[1]);
+		m_duplexPrerollBytes = (int) (0.5 * m_stream.sampleRate * audio::getFormatBytes(m_stream.deviceFormat[1]) * m_stream.nDeviceChannels[1]);
 	}
 	HRESULT result = 0;
 	if (    m_stream.mode == airtaudio::mode_output
@@ -1168,7 +1168,7 @@ void airtaudio::api::Ds::callbackEvent() {
 		LPDIRECTSOUNDBUFFER dsBuffer = (LPDIRECTSOUNDBUFFER) handle->buffer[0];
 		if (handle->drainCounter > 1) { // write zeros to the output stream
 			bufferBytes = m_stream.bufferSize * m_stream.nUserChannels[0];
-			bufferBytes *= formatBytes(m_stream.userFormat);
+			bufferBytes *= audio::getFormatBytes(m_stream.userFormat);
 			memset(m_stream.userBuffer[0], 0, bufferBytes);
 		}
 		// Setup parameters and do buffer conversion if necessary.
@@ -1176,11 +1176,11 @@ void airtaudio::api::Ds::callbackEvent() {
 			buffer = m_stream.deviceBuffer;
 			convertBuffer(buffer, m_stream.userBuffer[0], m_stream.convertInfo[0]);
 			bufferBytes = m_stream.bufferSize * m_stream.nDeviceChannels[0];
-			bufferBytes *= formatBytes(m_stream.deviceFormat[0]);
+			bufferBytes *= audio::getFormatBytes(m_stream.deviceFormat[0]);
 		} else {
 			buffer = m_stream.userBuffer[0];
 			bufferBytes = m_stream.bufferSize * m_stream.nUserChannels[0];
-			bufferBytes *= formatBytes(m_stream.userFormat);
+			bufferBytes *= audio::getFormatBytes(m_stream.userFormat);
 		}
 		// No byte swapping necessary in DirectSound implementation.
 		// Ahhh ... windoze.	16-bit data is signed but 8-bit data is
@@ -1221,7 +1221,7 @@ void airtaudio::api::Ds::callbackEvent() {
 			// beyond the end of our next write region. We use the
 			// Sleep() function to suspend operation until that happens.
 			double millis = (endWrite - leadPointer) * 1000.0;
-			millis /= (formatBytes(m_stream.deviceFormat[0]) * m_stream.nDeviceChannels[0] * m_stream.sampleRate);
+			millis /= (audio::getFormatBytes(m_stream.deviceFormat[0]) * m_stream.nDeviceChannels[0] * m_stream.sampleRate);
 			if (millis < 1.0) {
 				millis = 1.0;
 			}
@@ -1274,11 +1274,11 @@ void airtaudio::api::Ds::callbackEvent() {
 		if (m_stream.doConvertBuffer[1]) {
 			buffer = m_stream.deviceBuffer;
 			bufferBytes = m_stream.bufferSize * m_stream.nDeviceChannels[1];
-			bufferBytes *= formatBytes(m_stream.deviceFormat[1]);
+			bufferBytes *= audio::getFormatBytes(m_stream.deviceFormat[1]);
 		} else {
 			buffer = m_stream.userBuffer[1];
 			bufferBytes = m_stream.bufferSize * m_stream.nUserChannels[1];
-			bufferBytes *= formatBytes(m_stream.userFormat);
+			bufferBytes *= audio::getFormatBytes(m_stream.userFormat);
 		}
 		LPDIRECTSOUNDCAPTUREBUFFER dsBuffer = (LPDIRECTSOUNDCAPTUREBUFFER) handle->buffer[1];
 		long nextReadPointer = handle->bufferPointer[1];
@@ -1338,7 +1338,7 @@ void airtaudio::api::Ds::callbackEvent() {
 			        && m_stream.callbackInfo.isRunning) {
 				// See comments for playback.
 				double millis = (endRead - safeReadPointer) * 1000.0;
-				millis /= (formatBytes(m_stream.deviceFormat[1]) * m_stream.nDeviceChannels[1] * m_stream.sampleRate);
+				millis /= (audio::getFormatBytes(m_stream.deviceFormat[1]) * m_stream.nDeviceChannels[1] * m_stream.sampleRate);
 				if (millis < 1.0) {
 					millis = 1.0;
 				}

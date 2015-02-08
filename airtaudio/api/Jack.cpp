@@ -6,7 +6,7 @@
  * @license like MIT (see license file)
  */
 
-
+// must run before :          
 #if defined(__UNIX_JACK__)
 #include <unistd.h>
 #include <limits.h>
@@ -29,26 +29,27 @@ airtaudio::Api* airtaudio::api::Jack::Create() {
 // well as allowing them to share audio between themselves.
 //
 // When using JACK with RtAudio, "devices" refer to JACK clients that
-// have ports connected to the server.	The JACK server is typically
+// have ports connected to the server. The JACK server is typically
 // started in a terminal as follows:
 //
 // .jackd -d alsa -d hw:0
 //
-// or through an interface program such as qjackctl.	Many of the
+// or through an interface program such as qjackctl. Many of the
 // parameters normally set for a stream are fixed by the JACK server
-// and can be specified when the JACK server is started.	In
+// and can be specified when the JACK server is started. In
 // particular,
 //
-// .jackd -d alsa -d hw:0 -r 44100 -p 512 -n 4
+// jackd -d alsa -d hw:0 -r 44100 -p 512 -n 4
+// jackd -r -d alsa -r 48000
 //
 // specifies a sample rate of 44100 Hz, a buffer size of 512 sample
-// frames, and number of buffers = 4.	Once the server is running, it
-// is not possible to override these values.	If the values are not
+// frames, and number of buffers = 4. Once the server is running, it
+// is not possible to override these values. If the values are not
 // specified in the command-line, the JACK server uses default values.
 //
 // The JACK server does not have to be running when an instance of
 // RtApiJack is created, though the function getDeviceCount() will
-// report 0 devices found until JACK has been started.	When no
+// report 0 devices found until JACK has been started. When no
 // devices are available (i.e., the JACK server is not running), a
 // stream cannot be opened.
 
@@ -351,7 +352,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	}
 	free(ports);
 	// The jack server always uses 32-bit floating-point data.
-	m_stream.deviceFormat[modeToIdTable(_mode)] = FLOAT32;
+	m_stream.deviceFormat[modeToIdTable(_mode)] = audio::format_float;
 	m_stream.userFormat = _format;
 	// Jack always uses non-interleaved buffers.
 	m_stream.deviceInterleaved[modeToIdTable(_mode)] = false;
@@ -385,7 +386,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	handle->deviceName[modeToIdTable(_mode)] = deviceName;
 	// Allocate necessary internal buffers.
 	uint64_t bufferBytes;
-	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * formatBytes(m_stream.userFormat);
+	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_stream.userFormat);
 	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
 	if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
 		ATA_ERROR("error allocating user buffer memory.");
@@ -394,11 +395,11 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
 		bool makeBuffer = true;
 		if (_mode == airtaudio::mode_output) {
-			bufferBytes = m_stream.nDeviceChannels[0] * formatBytes(m_stream.deviceFormat[0]);
+			bufferBytes = m_stream.nDeviceChannels[0] * audio::getFormatBytes(m_stream.deviceFormat[0]);
 		} else { // _mode == airtaudio::mode_input
-			bufferBytes = m_stream.nDeviceChannels[1] * formatBytes(m_stream.deviceFormat[1]);
+			bufferBytes = m_stream.nDeviceChannels[1] * audio::getFormatBytes(m_stream.deviceFormat[1]);
 			if (m_stream.mode == airtaudio::mode_output && m_stream.deviceBuffer) {
-				uint64_t bytesOut = m_stream.nDeviceChannels[0] * formatBytes(m_stream.deviceFormat[0]);
+				uint64_t bytesOut = m_stream.nDeviceChannels[0] * audio::getFormatBytes(m_stream.deviceFormat[0]);
 				if (bufferBytes < bytesOut) {
 					makeBuffer = false;
 				}
@@ -671,11 +672,11 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 		double streamTime = getStreamTime();
 		enum airtaudio::status status = airtaudio::status_ok;
 		if (m_stream.mode != airtaudio::mode_input && handle->xrun[0] == true) {
-			status |= airtaudio::status_underflow;
+			status = airtaudio::status_underflow;
 			handle->xrun[0] = false;
 		}
 		if (m_stream.mode != airtaudio::mode_output && handle->xrun[1] == true) {
-			status |= airtaudio::mode_input_OVERFLOW;
+			status = airtaudio::status_overflow;
 			handle->xrun[1] = false;
 		}
 		int32_t cbReturnValue = info->callback(m_stream.userBuffer[0],

@@ -6,7 +6,7 @@
  * @license like MIT (see license file)
  */
 
-#if defined(__AIRTAUDIO_DUMMY__)
+#if defined(__DUMMY__)
 #include <airtaudio/api/Dummy.h>
 #include <airtaudio/debug.h>
 
@@ -19,18 +19,16 @@ airtaudio::Api* airtaudio::api::Dummy::Create() {
 
 
 airtaudio::api::Dummy::Dummy() {
-	m_errorText = "This class provides no functionality.";
-	error(airtaudio::error_warning);
+	ATA_WARNING("This class provides no functionality.");
 }
 
 uint32_t airtaudio::api::Dummy::getDeviceCount() {
 	return 0;
 }
 
-rtaudio::DeviceInfo airtaudio::api::Dummy::getDeviceInfo(uint32_t _device) {
+airtaudio::DeviceInfo airtaudio::api::Dummy::getDeviceInfo(uint32_t _device) {
 	(void)_device;
-	rtaudio::DeviceInfo info;
-	return info;
+	return airtaudio::DeviceInfo();
 }
 
 enum airtaudio::error airtaudio::api::Dummy::closeStream() {

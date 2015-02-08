@@ -822,7 +822,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	handle->id[modeToIdTable(_mode)] = id;
 	// Allocate necessary internal buffers.
 	uint64_t bufferBytes;
-	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * formatBytes(m_stream.userFormat);
+	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_stream.userFormat);
 	//	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
 	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) malloc(bufferBytes * sizeof(char));
 	memset(m_stream.userBuffer[modeToIdTable(_mode)], 0, bufferBytes * sizeof(char));
@@ -836,11 +836,11 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	if (    m_stream.doConvertBuffer[modeToIdTable(_mode)]
 	     && handle->nStreams[modeToIdTable(_mode)] > 1) {
 		bool makeBuffer = true;
-		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * formatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
+		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
 		if (_mode == airtaudio::mode_input) {
 			if (    m_stream.mode == airtaudio::mode_output
 			     && m_stream.deviceBuffer) {
-				uint64_t bytesOut = m_stream.nDeviceChannels[0] * formatBytes(m_stream.deviceFormat[0]);
+				uint64_t bytesOut = m_stream.nDeviceChannels[0] * audio::getFormatBytes(m_stream.deviceFormat[0]);
 				if (bufferBytes <= bytesOut) {
 					makeBuffer = false;
 				}

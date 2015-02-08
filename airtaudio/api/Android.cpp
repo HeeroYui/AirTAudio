@@ -185,7 +185,7 @@ bool airtaudio::api::Android::probeDeviceOpen(uint32_t _device,
 	}
 	if (m_stream.doConvertBuffer[modeToIdTable(_mode)] == true) {
 		// Allocate necessary internal buffers.
-		uint64_t bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * m_stream.bufferSize * formatBytes(m_stream.userFormat);
+		uint64_t bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * m_stream.bufferSize * audio::getFormatBytes(m_stream.userFormat);
 		m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
 		if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
 			ATA_ERROR("airtaudio::api::Android::probeDeviceOpen: error allocating user buffer memory.");

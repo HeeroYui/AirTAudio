@@ -389,7 +389,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	// bytes) is given as 2^SSSS and the number of buffers as 2^MMMM.
 	// We'll check the actual value used near the end of the setup
 	// procedure.
-	int32_t ossBufferBytes = *_bufferSize * formatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]) * deviceChannels;
+	int32_t ossBufferBytes = *_bufferSize * audio::getFormatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]) * deviceChannels;
 	if (ossBufferBytes < 16) {
 		ossBufferBytes = 16;
 	}
@@ -413,7 +413,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	}
 	m_stream.nBuffers = buffers;
 	// Save buffer size (in sample frames).
-	*_bufferSize = ossBufferBytes / (formatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]) * deviceChannels);
+	*_bufferSize = ossBufferBytes / (audio::getFormatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]) * deviceChannels);
 	m_stream.bufferSize = *_bufferSize;
 	// Set the sample rate.
 	int32_t srate = _sampleRate;
@@ -465,7 +465,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	handle->id[modeToIdTable(_mode)] = fd;
 	// Allocate necessary internal buffers.
 	uint64_t bufferBytes;
-	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * formatBytes(m_stream.userFormat);
+	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_stream.userFormat);
 	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
 	if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
 		ATA_ERROR("error allocating user buffer memory.");
@@ -473,11 +473,11 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	}
 	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
 		bool makeBuffer = true;
-		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * formatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
+		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
 		if (_mode == airtaudio::mode_input) {
 			if (    m_stream._mode == airtaudio::mode_output
 			     && m_stream.deviceBuffer) {
-				uint64_t bytesOut = m_stream.nDeviceChannels[0] * formatBytes(m_stream.deviceFormat[0]);
+				uint64_t bytesOut = m_stream.nDeviceChannels[0] * audio::getFormatBytes(m_stream.deviceFormat[0]);
 				if (bufferBytes <= bytesOut) {
 					makeBuffer = false;
 				}
@@ -639,9 +639,9 @@ enum airtaudio::error airtaudio::api::Oss::stopStream() {
 			samples = m_stream.bufferSize * m_stream.nUserChannels[0];
 			format = m_stream.userFormat;
 		}
-		memset(buffer, 0, samples * formatBytes(format));
+		memset(buffer, 0, samples * audio::getFormatBytes(format));
 		for (uint32_t i=0; i<m_stream.nBuffers+1; i++) {
-			result = write(handle->id[0], buffer, samples * formatBytes(format));
+			result = write(handle->id[0], buffer, samples * audio::getFormatBytes(format));
 			if (result == -1) {
 				ATA_ERROR("audio write error.");
 				return airtaudio::error_warning;
@@ -778,13 +778,13 @@ void airtaudio::api::Oss::callbackEvent() {
 		     && handle->triggered == false) {
 			int32_t trig = 0;
 			ioctl(handle->id[0], SNDCTL_DSP_SETTRIGGER, &trig);
-			result = write(handle->id[0], buffer, samples * formatBytes(format));
+			result = write(handle->id[0], buffer, samples * audio::getFormatBytes(format));
 			trig = PCM_ENABLE_airtaudio::mode_input|PCM_ENABLE_airtaudio::mode_output;
 			ioctl(handle->id[0], SNDCTL_DSP_SETTRIGGER, &trig);
 			handle->triggered = true;
 		} else {
 			// Write samples to device.
-			result = write(handle->id[0], buffer, samples * formatBytes(format));
+			result = write(handle->id[0], buffer, samples * audio::getFormatBytes(format));
 		}
 		if (result == -1) {
 			// We'll assume this is an underrun, though there isn't a
@@ -808,7 +808,7 @@ void airtaudio::api::Oss::callbackEvent() {
 			format = m_stream.userFormat;
 		}
 		// Read samples from device.
-		result = read(handle->id[1], buffer, samples * formatBytes(format));
+		result = read(handle->id[1], buffer, samples * audio::getFormatBytes(format));
 		if (result == -1) {
 			// We'll assume this is an overrun, though there isn't a
 			// specific means for determining that.

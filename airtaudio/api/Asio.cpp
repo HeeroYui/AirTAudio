@@ -475,7 +475,7 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 	}
 	// Allocate necessary internal buffers
 	uint64_t bufferBytes;
-	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * formatBytes(m_stream.userFormat);
+	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_stream.userFormat);
 	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
 	if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
 		ATA_ERROR("error allocating user buffer memory.");
@@ -483,10 +483,10 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 	}
 	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
 		bool makeBuffer = true;
-		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * formatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
+		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
 		if (_mode == airtaudio::mode_input) {
 			if (m_stream.mode == airtaudio::mode_output && m_stream.deviceBuffer) {
-				uint64_t bytesOut = m_stream.nDeviceChannels[0] * formatBytes(m_stream.deviceFormat[0]);
+				uint64_t bytesOut = m_stream.nDeviceChannels[0] * audio::getFormatBytes(m_stream.deviceFormat[0]);
 				if (bufferBytes <= bytesOut) {
 					makeBuffer = false;
 				}
@@ -743,7 +743,7 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 	nChannels = m_stream.nDeviceChannels[0] + m_stream.nDeviceChannels[1];
 	if (    m_stream.mode == airtaudio::mode_output
 	     || m_stream.mode == airtaudio::mode_duplex) {
-		bufferBytes = m_stream.bufferSize * formatBytes(m_stream.deviceFormat[0]);
+		bufferBytes = m_stream.bufferSize * audio::getFormatBytes(m_stream.deviceFormat[0]);
 		if (handle->drainCounter > 1) { // write zeros to the output stream
 			for (i=0, j=0; i<nChannels; i++) {
 				if (handle->bufferInfos[i].isInput != ASIOTrue) {
@@ -785,7 +785,7 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 	}
 	if (    m_stream.mode == airtaudio::mode_input
 	     || m_stream.mode == airtaudio::mode_duplex) {
-		bufferBytes = m_stream.bufferSize * formatBytes(m_stream.deviceFormat[1]);
+		bufferBytes = m_stream.bufferSize * audio::getFormatBytes(m_stream.deviceFormat[1]);
 		if (m_stream.doConvertBuffer[1]) {
 			// Always interleave ASIO input data.
 			for (i=0, j=0; i<nChannels; i++) {
