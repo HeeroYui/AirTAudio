@@ -1,14 +1,14 @@
-/**
- * @author Gary P. SCAVONE
- * 
- * @copyright 2001-2013 Gary P. Scavone, all right reserved
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
 #if !defined(__AIRTAUDIO_API_JACK_H__) && defined(__UNIX_JACK__)
 #define __AIRTAUDIO_API_JACK_H__
 
+#include <jack/jack.h>
 namespace airtaudio {
 	namespace api {
 		class Jack: public airtaudio::Api {
@@ -32,6 +32,11 @@ namespace airtaudio {
 				// which is not a member of RtAudio.	External use of this function
 				// will most likely produce highly undesireable results!
 				bool callbackEvent(uint64_t _nframes);
+			private:
+				static int32_t jackXrun(void* _userData);
+				static void jackCloseStream(void* _userData);
+				static void jackShutdown(void* _userData);
+				static int32_t jackCallbackHandler(jack_nframes_t _nframes, void* _userData);
 			private:
 				bool probeDeviceOpen(uint32_t _device,
 				                     airtaudio::mode _mode,

@@ -1,9 +1,8 @@
-/**
- * @author Gary P. SCAVONE
- * 
- * @copyright 2001-2013 Gary P. Scavone, all right reserved
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
 #if !defined(__AIRTAUDIO_API_CORE_H__) && defined(__MACOSX_CORE__)
@@ -38,7 +37,14 @@ namespace airtaudio {
 				bool callbackEvent(AudioDeviceID _deviceId,
 				                   const AudioBufferList *_inBufferList,
 				                   const AudioBufferList *_outBufferList);
-				
+				static OSStatus callbackEvent(AudioDeviceID _inDevice,
+				                              const AudioTimeStamp* _inNow,
+				                              const AudioBufferList* _inInputData,
+				                              const AudioTimeStamp* _inInputTime,
+				                              AudioBufferList* _outOutputData,
+				                              const AudioTimeStamp* _inOutputTime,
+				                              void* _infoPointer);
+				void coreStopStream(void *_userData);
 			private:
 				bool probeDeviceOpen(uint32_t _device,
 				                     airtaudio::mode _mode,

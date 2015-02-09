@@ -1,9 +1,8 @@
-/**
- * @author Gary P. SCAVONE
- * 
- * @copyright 2001-2013 Gary P. Scavone, all right reserved
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
 #ifndef __AIRTAUDIO_CALLBACK_INFO_H__
@@ -19,7 +18,6 @@ namespace airtaudio {
 	// handling functions.
 	class CallbackInfo {
 		public:
-			void* object; // Used as a "this" pointer.
 			std::thread* thread;
 			airtaudio::AirTAudioCallback callback;
 			void* apiInfo; // void pointer for API specific callback information
@@ -29,7 +27,6 @@ namespace airtaudio {
 			
 			// Default constructor.
 			CallbackInfo() :
-			  object(nullptr),
 			  callback(nullptr),
 			  apiInfo(nullptr),
 			  isRunning(false),

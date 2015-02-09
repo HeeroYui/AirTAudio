@@ -1,7 +1,8 @@
-/**
- * @author Edouard DUPIN
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
 #ifdef __IOS_CORE__
@@ -128,15 +129,15 @@ void airtaudio::api::CoreIos::callBackEvent(void* _data,
 	int32_t doStopStream = 0;
 	double streamTime = getStreamTime();
 	enum airtaudio::status status = airtaudio::status_ok;
-	if (m_stream.doConvertBuffer[airtaudio::mode_output] == true) {
-		doStopStream = m_stream.callbackInfo.callback(m_stream.userBuffer[airtaudio::mode_output],
+	if (m_doConvertBuffer[airtaudio::mode_output] == true) {
+		doStopStream = m_callbackInfo.callback(m_userBuffer[airtaudio::mode_output],
 		                                              nullptr,
 		                                              _frameRate,
 		                                              streamTime,
 		                                              status);
-		convertBuffer((char*)_data, (char*)m_stream.userBuffer[airtaudio::mode_output], m_stream.convertInfo[airtaudio::mode_output]);
+		convertBuffer((char*)_data, (char*)m_userBuffer[airtaudio::mode_output], m_convertInfo[airtaudio::mode_output]);
 	} else {
-		doStopStream = m_stream.callbackInfo.callback(_data,
+		doStopStream = m_callbackInfo.callback(_data,
 		                                              nullptr,
 		                                              _frameRate,
 		                                              streamTime,
@@ -149,25 +150,25 @@ void airtaudio::api::CoreIos::callBackEvent(void* _data,
 	airtaudio::Api::tickStreamTime();
 }
 
-static OSStatus playbackCallback(void *_userData, 
-								 AudioUnitRenderActionFlags *ioActionFlags, 
-								 const AudioTimeStamp *inTimeStamp, 
-								 uint32_t inBusNumber, 
-								 uint32_t inNumberFrames, 
-								 AudioBufferList *ioData) {
+OSStatus airtaudio::api::CoreIos::playbackCallback(void *_userData,
+                                 AudioUnitRenderActionFlags* _ioActionFlags,
+                                 const AudioTimeStamp* _inTimeStamp,
+                                 uint32_t _inBusNumber,
+                                 uint32_t _inNumberFrames,
+                                 AudioBufferList* _ioData) {
 	if (_userData == nullptr) {
 		ATA_ERROR("callback event ... nullptr pointer");
 		return -1;
 	}
 	airtaudio::api::CoreIos* myClass = static_cast<airtaudio::api::CoreIos*>(_userData);
 	// get all requested buffer :
-	for (int32_t iii=0; iii < ioData->mNumberBuffers; iii++) {
-		AudioBuffer buffer = ioData->mBuffers[iii];
-		int32_t numberFrame =  buffer.mDataByteSize/2/*stereo*/ /sizeof(int16_t);
-		ATA_VERBOSE("request data size: " << numberFrame << " busNumber=" << inBusNumber);
+	for (int32_t iii=0; iii < _ioData->mNumberBuffers; iii++) {
+		AudioBuffer buffer = _ioData->mBuffers[iii];
+		int32_t numberFrame = buffer.mDataByteSize/2/*stereo*/ /sizeof(int16_t);
+		ATA_VERBOSE("request data size: " << numberFrame << " busNumber=" << _inBusNumber);
 		myClass->callBackEvent(buffer.mData, numberFrame);
 	}
-    return noErr;
+	return noErr;
 }
 
 
@@ -187,40 +188,40 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
 	bool ret = true;
 	
 	// configure Airtaudio internal configuration:
-	m_stream.userFormat = _format;
-	m_stream.nUserChannels[modeToIdTable(_mode)] = _channels;
-	m_stream.bufferSize = 8192;
-	m_stream.sampleRate = _sampleRate;
-	m_stream.doByteSwap[modeToIdTable(_mode)] = false; // for endienness ...
+	m_userFormat = _format;
+	m_nUserChannels[modeToIdTable(_mode)] = _channels;
+	m_bufferSize = 8192;
+	m_sampleRate = _sampleRate;
+	m_doByteSwap[modeToIdTable(_mode)] = false; // for endienness ...
 	
 	// TODO : For now, we write it in hard ==> to be update later ...
-	m_stream.deviceFormat[modeToIdTable(_mode)] = SINT16;
-	m_stream.nDeviceChannels[modeToIdTable(_mode)] = 2;
-	m_stream.deviceInterleaved[modeToIdTable(_mode)] =	true;
+	m_deviceFormat[modeToIdTable(_mode)] = SINT16;
+	m_nDeviceChannels[modeToIdTable(_mode)] = 2;
+	m_deviceInterleaved[modeToIdTable(_mode)] =	true;
 	
-	m_stream.doConvertBuffer[modeToIdTable(_mode)] = false;
-	if (m_stream.userFormat != m_stream.deviceFormat[modeToIdTable(_mode)]) {
-		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
+	m_doConvertBuffer[modeToIdTable(_mode)] = false;
+	if (m_userFormat != m_deviceFormat[modeToIdTable(_mode)]) {
+		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (m_stream.nUserChannels[modeToIdTable(_mode)] < m_stream.nDeviceChannels[modeToIdTable(_mode)]) {
-		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
+	if (m_nUserChannels[modeToIdTable(_mode)] < m_nDeviceChannels[modeToIdTable(_mode)]) {
+		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (    m_stream.deviceInterleaved[modeToIdTable(_mode)] == false
-	     && m_stream.nUserChannels[modeToIdTable(_mode)] > 1) {
-		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
+	if (    m_deviceInterleaved[modeToIdTable(_mode)] == false
+	     && m_nUserChannels[modeToIdTable(_mode)] > 1) {
+		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (m_stream.doConvertBuffer[modeToIdTable(_mode)] == true) {
+	if (m_doConvertBuffer[modeToIdTable(_mode)] == true) {
 		// Allocate necessary internal buffers.
-		uint64_t bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * m_stream.bufferSize * audio::getFormatBytes(m_stream.userFormat);
-		m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
-		if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
+		uint64_t bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * m_bufferSize * audio::getFormatBytes(m_userFormat);
+		m_userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
+		if (m_userBuffer[modeToIdTable(_mode)] == nullptr) {
 			ATA_ERROR("error allocating user buffer memory.");
 		}
 		setConvertInfo(_mode, _firstChannel);
 	}
-	ATA_INFO("device format : " << m_stream.deviceFormat[modeToIdTable(_mode)] << " user format : " << m_stream.userFormat);
-	ATA_INFO("device channels : " << m_stream.nDeviceChannels[modeToIdTable(_mode)] << " user channels : " << m_stream.nUserChannels[modeToIdTable(_mode)]);
-	ATA_INFO("do convert buffer : " << m_stream.doConvertBuffer[modeToIdTable(_mode)]);
+	ATA_INFO("device format : " << m_deviceFormat[modeToIdTable(_mode)] << " user format : " << m_userFormat);
+	ATA_INFO("device channels : " << m_nDeviceChannels[modeToIdTable(_mode)] << " user channels : " << m_nUserChannels[modeToIdTable(_mode)]);
+	ATA_INFO("do convert buffer : " << m_doConvertBuffer[modeToIdTable(_mode)]);
 	if (ret == false) {
 		ATA_ERROR("Can not open device.");
 	}
@@ -282,7 +283,7 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
 	
 	// Set output callback
 	AURenderCallbackStruct callbackStruct;
-	callbackStruct.inputProc = playbackCallback;
+	callbackStruct.inputProc = &airtaudio::api::CoreIos::playbackCallback;
 	callbackStruct.inputProcRefCon = this;
 	status = AudioUnitSetProperty(m_private->audioUnit, 
 								  kAudioUnitProperty_SetRenderCallback, 

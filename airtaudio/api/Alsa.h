@@ -1,9 +1,8 @@
-/**
- * @author Gary P. SCAVONE
- * 
- * @copyright 2001-2013 Gary P. Scavone, all right reserved
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
 #if !defined(__AIRTAUDIO_API_ALSA_H__) && defined(__LINUX_ALSA__)
@@ -31,6 +30,9 @@ namespace airtaudio {
 				// which is not a member of RtAudio.	External use of this function
 				// will most likely produce highly undesireable results!
 				void callbackEvent();
+				void callbackEventOneCycle();
+			private:
+				static void alsaCallbackEvent(void* _userData);
 			private:
 				std::vector<airtaudio::DeviceInfo> m_devices;
 				void saveDeviceInfo();

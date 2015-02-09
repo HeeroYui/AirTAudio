@@ -5,9 +5,5 @@
  * @fork from RTAudio
  */
 
+#include <airtaudio/Flags.h>
 #include <airtaudio/debug.h>
-
-int32_t airtaudio::getLogId() {
-	static int32_t g_val = etk::log::registerInstance("airtaudio");
-	return g_val;
-}

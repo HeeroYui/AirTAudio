@@ -1,7 +1,8 @@
-/**
- * @author Edouard DUPIN
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
 #if !defined(__AIRTAUDIO_API_ANDROID_H__) && defined(__ANDROID_JAVA__)

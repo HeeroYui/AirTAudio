@@ -1,9 +1,8 @@
-/**
- * @author Gary P. SCAVONE
- * 
- * @copyright 2001-2013 Gary P. Scavone, all right reserved
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
 #if !defined(__AIRTAUDIO_API_PULSE_H__) && defined(__LINUX_PULSE__)
@@ -29,6 +28,7 @@ namespace airtaudio {
 				// public because it is called by the internal callback handler,
 				// which is not a member of RtAudio.	External use of this function
 				// will most likely produce highly undesireable results!
+				void callbackEventOneCycle();
 				void callbackEvent();
 			private:
 				std::vector<airtaudio::DeviceInfo> m_devices;

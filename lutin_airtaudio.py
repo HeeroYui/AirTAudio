@@ -12,10 +12,16 @@ def create(target):
 	
 	myModule.add_src_file([
 		'airtaudio/debug.cpp',
+		'airtaudio/status.cpp',
+		'airtaudio/type.cpp',
+		'airtaudio/mode.cpp',
+		'airtaudio/state.cpp',
+		'airtaudio/error.cpp',
 		'airtaudio/base.cpp',
 		'airtaudio/Interface.cpp',
+		'airtaudio/Flags.cpp',
 		'airtaudio/Api.cpp',
-		'airtaudio/api/Dummy.cpp',
+		'airtaudio/api/Dummy.cpp'
 		])
 	myModule.add_module_depend(['audio', 'etk'])
 	

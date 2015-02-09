@@ -1,9 +1,8 @@
-/**
- * @author Gary P. SCAVONE
- * 
- * @copyright 2001-2013 Gary P. Scavone, all right reserved
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
 
@@ -83,7 +82,7 @@ airtaudio::api::Asio::Asio() {
 }
 
 airtaudio::api::Asio::~Asio() {
-	if (m_stream.state != airtaudio::state_closed) {
+	if (m_state != airtaudio::state_closed) {
 		closeStream();
 	}
 	if (m_coInitialized) {
@@ -109,7 +108,7 @@ rtaudio::DeviceInfo airtaudio::api::Asio::getDeviceInfo(uint32_t _device) {
 		return info;
 	}
 	// If a stream is already open, we cannot probe other devices.	Thus, use the saved results.
-	if (m_stream.state != airtaudio::state_closed) {
+	if (m_state != airtaudio::state_closed) {
 		if (_device >= m_devices.size()) {
 			ATA_ERROR("device ID was not present before stream was opened.");
 			return info;
@@ -222,8 +221,8 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
                                            airtaudio::StreamOptions *_options) {
 	// For ASIO, a duplex stream MUST use the same driver.
 	if (    _mode == airtaudio::mode_input
-	     && m_stream.mode == airtaudio::mode_output
-	     && m_stream.device[0] != _device) {
+	     && m_mode == airtaudio::mode_output
+	     && m_device[0] != _device) {
 		ATA_ERROR("an ASIO duplex stream must use the same device for input and output!");
 		return false;
 	}
@@ -235,7 +234,7 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 	}
 	// Only load the driver once for duplex stream.
 	if (    _mode != airtaudio::mode_input
-	     || m_stream.mode != airtaudio::mode_output) {
+	     || m_mode != airtaudio::mode_output) {
 		// The getDeviceInfo() function will not work when a stream is open
 		// because ASIO does not allow multiple devices to run at the same
 		// time.	Thus, we'll probe the system before opening a stream and
@@ -267,9 +266,9 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 		ATA_ERROR("driver (" << driverName << ") does not support requested channel count (" << _channels << ") + offset (" << _firstChannel << ").");
 		return false;
 	}
-	m_stream.nDeviceChannels[modeToIdTable(_mode)] = _channels;
-	m_stream.nUserChannels[modeToIdTable(_mode)] = _channels;
-	m_stream.channelOffset[modeToIdTable(_mode)] = _firstChannel;
+	m_nDeviceChannels[modeToIdTable(_mode)] = _channels;
+	m_nUserChannels[modeToIdTable(_mode)] = _channels;
+	m_channelOffset[modeToIdTable(_mode)] = _firstChannel;
 	// Verify the sample rate is supported.
 	result = ASIOCanSampleRate((ASIOSampleRate) _sampleRate);
 	if (result != ASE_OK) {
@@ -309,41 +308,41 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 		return false;
 	}
 	// Assuming WINDOWS host is always little-endian.
-	m_stream.doByteSwap[modeToIdTable(_mode)] = false;
-	m_stream.userFormat = _format;
-	m_stream.deviceFormat[modeToIdTable(_mode)] = 0;
+	m_doByteSwap[modeToIdTable(_mode)] = false;
+	m_userFormat = _format;
+	m_deviceFormat[modeToIdTable(_mode)] = 0;
 	if (    channelInfo.type == ASIOSTInt16MSB
 	     || channelInfo.type == ASIOSTInt16LSB) {
-		m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT16;
+		m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT16;
 		if (channelInfo.type == ASIOSTInt16MSB) {
-			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
+			m_doByteSwap[modeToIdTable(_mode)] = true;
 		}
 	} else if (    channelInfo.type == ASIOSTInt32MSB
 	            || channelInfo.type == ASIOSTInt32LSB) {
-		m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT32;
+		m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT32;
 		if (channelInfo.type == ASIOSTInt32MSB) {
-			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
+			m_doByteSwap[modeToIdTable(_mode)] = true;
 		}
 	} else if (    channelInfo.type == ASIOSTFloat32MSB
 	            || channelInfo.type == ASIOSTFloat32LSB) {
-		m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_FLOAT32;
+		m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_FLOAT32;
 		if (channelInfo.type == ASIOSTFloat32MSB) {
-			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
+			m_doByteSwap[modeToIdTable(_mode)] = true;
 		}
 	} else if (    channelInfo.type == ASIOSTFloat64MSB
 	            || channelInfo.type == ASIOSTFloat64LSB) {
-		m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_FLOAT64;
+		m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_FLOAT64;
 		if (channelInfo.type == ASIOSTFloat64MSB) {
-			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
+			m_doByteSwap[modeToIdTable(_mode)] = true;
 		}
 	} else if (    channelInfo.type == ASIOSTInt24MSB
 	            || channelInfo.type == ASIOSTInt24LSB) {
-		m_stream.deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT24;
+		m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT24;
 		if (channelInfo.type == ASIOSTInt24MSB) {
-			m_stream.doByteSwap[modeToIdTable(_mode)] = true;
+			m_doByteSwap[modeToIdTable(_mode)] = true;
 		}
 	}
-	if (m_stream.deviceFormat[modeToIdTable(_mode)] == 0) {
+	if (m_deviceFormat[modeToIdTable(_mode)] == 0) {
 		drivers.removeCurrentDriver();
 		ATA_ERROR("driver (" << driverName << ") data format not supported by RtAudio.");
 		return false;
@@ -394,18 +393,18 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 		*_bufferSize = (*_bufferSize + granularity-1) / granularity * granularity;
 	}
 	if (    _mode == airtaudio::mode_input
-	     && m_stream.mode == airtaudio::mode_output
-	     && m_stream.bufferSize != *_bufferSize) {
+	     && m_mode == airtaudio::mode_output
+	     && m_bufferSize != *_bufferSize) {
 		drivers.removeCurrentDriver();
 		ATA_ERROR("input/output buffersize discrepancy!");
 		return false;
 	}
-	m_stream.bufferSize = *_bufferSize;
-	m_stream.nBuffers = 2;
+	m_bufferSize = *_bufferSize;
+	m_nBuffers = 2;
 	// ASIO always uses non-interleaved buffers.
-	m_stream.deviceInterleaved[modeToIdTable(_mode)] = false;
+	m_deviceInterleaved[modeToIdTable(_mode)] = false;
 	// Allocate, if necessary, our AsioHandle structure for the stream.
-	AsioHandle *handle = (AsioHandle *) m_stream.apiHandle;
+	AsioHandle *handle = (AsioHandle *) m_apiHandle;
 	if (handle == nullptr) {
 		handle = new AsioHandle;
 		if (handle == nullptr) {
@@ -419,14 +418,14 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 		                                TRUE,  // manual-reset
 		                                FALSE, // non-signaled initially
 		                                nullptr); // unnamed
-		m_stream.apiHandle = (void *) handle;
+		m_apiHandle = (void *) handle;
 	}
 	// Create the ASIO internal buffers.	Since RtAudio sets up input
 	// and output separately, we'll have to dispose of previously
 	// created output buffers for a duplex stream.
 	long inputLatency, outputLatency;
 	if (    _mode == airtaudio::mode_input
-	     && m_stream.mode == airtaudio::mode_output) {
+	     && m_mode == airtaudio::mode_output) {
 		ASIODisposeBuffers();
 		if (handle->bufferInfos == nullptr) {
 			free(handle->bufferInfos);
@@ -435,7 +434,7 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 	}
 	// Allocate, initialize, and save the bufferInfos in our stream callbackInfo structure.
 	bool buffersAllocated = false;
-	uint32_t i, nChannels = m_stream.nDeviceChannels[0] + m_stream.nDeviceChannels[1];
+	uint32_t i, nChannels = m_nDeviceChannels[0] + m_nDeviceChannels[1];
 	handle->bufferInfos = (ASIOBufferInfo *) malloc(nChannels * sizeof(ASIOBufferInfo));
 	if (handle->bufferInfos == nullptr) {
 		ATA_ERROR("error allocating bufferInfo memory for driver (" << driverName << ").");
@@ -443,14 +442,14 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 	}
 	ASIOBufferInfo *infos;
 	infos = handle->bufferInfos;
-	for (i=0; i<m_stream.nDeviceChannels[0]; i++, infos++) {
+	for (i=0; i<m_nDeviceChannels[0]; i++, infos++) {
 		infos->isInput = ASIOFalse;
-		infos->channelNum = i + m_stream.channelOffset[0];
+		infos->channelNum = i + m_channelOffset[0];
 		infos->buffers[0] = infos->buffers[1] = 0;
 	}
-	for (i=0; i<m_stream.nDeviceChannels[1]; i++, infos++) {
+	for (i=0; i<m_nDeviceChannels[1]; i++, infos++) {
 		infos->isInput = ASIOTrue;
-		infos->channelNum = i + m_stream.channelOffset[1];
+		infos->channelNum = i + m_channelOffset[1];
 		infos->buffers[0] = infos->buffers[1] = 0;
 	}
 	// Set up the ASIO callback structure and create the ASIO data buffers.
@@ -458,35 +457,35 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 	asioCallbacks.sampleRateDidChange = &sampleRateChanged;
 	asioCallbacks.asioMessage = &asioMessages;
 	asioCallbacks.bufferSwitchTimeInfo = nullptr;
-	result = ASIOCreateBuffers(handle->bufferInfos, nChannels, m_stream.bufferSize, &asioCallbacks);
+	result = ASIOCreateBuffers(handle->bufferInfos, nChannels, m_bufferSize, &asioCallbacks);
 	if (result != ASE_OK) {
 		ATA_ERROR("driver (" << driverName << ") error (" << getAsioErrorString(result) << ") creating buffers.");
 		goto error;
 	}
 	buffersAllocated = true;
 	// Set flags for buffer conversion.
-	m_stream.doConvertBuffer[modeToIdTable(_mode)] = false;
-	if (m_stream.userFormat != m_stream.deviceFormat[modeToIdTable(_mode)]) {
-		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
+	m_doConvertBuffer[modeToIdTable(_mode)] = false;
+	if (m_userFormat != m_deviceFormat[modeToIdTable(_mode)]) {
+		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (    m_stream.deviceInterleaved[modeToIdTable(_mode)] == false
-	     && m_stream.nUserChannels[modeToIdTable(_mode)] > 1) {
-		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
+	if (    m_deviceInterleaved[modeToIdTable(_mode)] == false
+	     && m_nUserChannels[modeToIdTable(_mode)] > 1) {
+		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
 	// Allocate necessary internal buffers
 	uint64_t bufferBytes;
-	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_stream.userFormat);
-	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
-	if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
+	bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_userFormat);
+	m_userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
+	if (m_userBuffer[modeToIdTable(_mode)] == nullptr) {
 		ATA_ERROR("error allocating user buffer memory.");
 		goto error;
 	}
-	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
+	if (m_doConvertBuffer[modeToIdTable(_mode)]) {
 		bool makeBuffer = true;
-		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
+		bufferBytes = m_nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_deviceFormat[modeToIdTable(_mode)]);
 		if (_mode == airtaudio::mode_input) {
-			if (m_stream.mode == airtaudio::mode_output && m_stream.deviceBuffer) {
-				uint64_t bytesOut = m_stream.nDeviceChannels[0] * audio::getFormatBytes(m_stream.deviceFormat[0]);
+			if (m_mode == airtaudio::mode_output && m_deviceBuffer) {
+				uint64_t bytesOut = m_nDeviceChannels[0] * audio::getFormatBytes(m_deviceFormat[0]);
 				if (bufferBytes <= bytesOut) {
 					makeBuffer = false;
 				}
@@ -494,41 +493,41 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 		}
 		if (makeBuffer) {
 			bufferBytes *= *_bufferSize;
-			if (m_stream.deviceBuffer) {
-				free(m_stream.deviceBuffer);
-				m_stream.deviceBuffer = nullptr;
+			if (m_deviceBuffer) {
+				free(m_deviceBuffer);
+				m_deviceBuffer = nullptr;
 			}
-			m_stream.deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_stream.deviceBuffer == nullptr) {
+			m_deviceBuffer = (char *) calloc(bufferBytes, 1);
+			if (m_deviceBuffer == nullptr) {
 				ATA_ERROR("error allocating device buffer memory.");
 				goto error;
 			}
 		}
 	}
-	m_stream.sampleRate = _sampleRate;
-	m_stream.device[modeToIdTable(_mode)] = _device;
-	m_stream.state = airtaudio::state_stopped;
-	asioCallbackInfo = &m_stream.callbackInfo;
-	m_stream.callbackInfo.object = (void*)this;
-	if (    m_stream.mode == airtaudio::mode_output
+	m_sampleRate = _sampleRate;
+	m_device[modeToIdTable(_mode)] = _device;
+	m_state = airtaudio::state_stopped;
+	asioCallbackInfo = &m_callbackInfo;
+	m_callbackInfo.object = (void*)this;
+	if (    m_mode == airtaudio::mode_output
 	     && _mode == airtaudio::mode_input) {
 		// We had already set up an output stream.
-		m_stream.mode = airtaudio::mode_duplex;
+		m_mode = airtaudio::mode_duplex;
 	} else {
-		m_stream.mode = _mode;
+		m_mode = _mode;
 	}
 	// Determine device latencies
 	result = ASIOGetLatencies(&inputLatency, &outputLatency);
 	if (result != ASE_OK) {
 		ATA_ERROR("driver (" << driverName << ") error (" << getAsioErrorString(result) << ") getting latency.");
 	} else {
-		m_stream.latency[0] = outputLatency;
-		m_stream.latency[1] = inputLatency;
+		m_latency[0] = outputLatency;
+		m_latency[1] = inputLatency;
 	}
 	// Setup the buffer conversion information structure.	We don't use
 	// buffers to do channel offsets, so we override that parameter
 	// here.
-	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
+	if (m_doConvertBuffer[modeToIdTable(_mode)]) {
 		setConvertInfo(_mode, 0);
 	}
 	return true;
@@ -545,53 +544,53 @@ error:
 		}
 		delete handle;
 		handle = nullptr;
-		m_stream.apiHandle = 0;
+		m_apiHandle = 0;
 	}
 	for (int32_t i=0; i<2; i++) {
-		if (m_stream.userBuffer[i]) {
-			free(m_stream.userBuffer[i]);
-			m_stream.userBuffer[i] = 0;
+		if (m_userBuffer[i]) {
+			free(m_userBuffer[i]);
+			m_userBuffer[i] = 0;
 		}
 	}
-	if (m_stream.deviceBuffer) {
-		free(m_stream.deviceBuffer);
-		m_stream.deviceBuffer = 0;
+	if (m_deviceBuffer) {
+		free(m_deviceBuffer);
+		m_deviceBuffer = 0;
 	}
 	return false;
 }
 
 enum airtaudio::error airtaudio::api::Asio::closeStream() {
-	if (m_stream.state == airtaudio::state_closed) {
+	if (m_state == airtaudio::state_closed) {
 		ATA_ERROR("no open stream to close!");
 		return airtaudio::error_warning;
 	}
-	if (m_stream.state == airtaudio::state_running) {
-		m_stream.state = airtaudio::state_stopped;
+	if (m_state == airtaudio::state_running) {
+		m_state = airtaudio::state_stopped;
 		ASIOStop();
 	}
 	ASIODisposeBuffers();
 	drivers.removeCurrentDriver();
-	AsioHandle *handle = (AsioHandle *) m_stream.apiHandle;
+	AsioHandle *handle = (AsioHandle *) m_apiHandle;
 	if (handle) {
 		CloseHandle(handle->condition);
 		if (handle->bufferInfos) {
 			free(handle->bufferInfos);
 		}
 		delete handle;
-		m_stream.apiHandle = 0;
+		m_apiHandle = 0;
 	}
 	for (int32_t i=0; i<2; i++) {
-		if (m_stream.userBuffer[i]) {
-			free(m_stream.userBuffer[i]);
-			m_stream.userBuffer[i] = 0;
+		if (m_userBuffer[i]) {
+			free(m_userBuffer[i]);
+			m_userBuffer[i] = 0;
 		}
 	}
-	if (m_stream.deviceBuffer) {
-		free(m_stream.deviceBuffer);
-		m_stream.deviceBuffer = 0;
+	if (m_deviceBuffer) {
+		free(m_deviceBuffer);
+		m_deviceBuffer = 0;
 	}
-	m_stream.mode = airtaudio::mode_unknow;
-	m_stream.state = airtaudio::state_closed;
+	m_mode = airtaudio::mode_unknow;
+	m_state = airtaudio::state_closed;
 	return airtaudio::error_none;
 }
 
@@ -601,11 +600,11 @@ enum airtaudio::error airtaudio::api::Asio::startStream() {
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
 	}
-	if (m_stream.state == airtaudio::state_running) {
+	if (m_state == airtaudio::state_running) {
 		ATA_ERROR("the stream is already running!");
 		return airtaudio::error_warning;
 	}
-	AsioHandle *handle = (AsioHandle *) m_stream.apiHandle;
+	AsioHandle *handle = (AsioHandle *) m_apiHandle;
 	ASIOError result = ASIOStart();
 	if (result != ASE_OK) {
 		ATA_ERROR("error (" << getAsioErrorString(result) << ") starting device.");
@@ -614,7 +613,7 @@ enum airtaudio::error airtaudio::api::Asio::startStream() {
 	handle->drainCounter = 0;
 	handle->internalDrain = false;
 	ResetEvent(handle->condition);
-	m_stream.state = airtaudio::state_running;
+	m_state = airtaudio::state_running;
 	asioXRun = false;
 unlock:
 	stopThreadCalled = false;
@@ -628,18 +627,18 @@ enum airtaudio::error airtaudio::api::Asio::stopStream() {
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
 	}
-	if (m_stream.state == airtaudio::state_stopped) {
+	if (m_state == airtaudio::state_stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return airtaudio::error_warning;
 	}
-	AsioHandle *handle = (AsioHandle *) m_stream.apiHandle;
-	if (m_stream.mode == airtaudio::mode_output || m_stream.mode == airtaudio::mode_duplex) {
+	AsioHandle *handle = (AsioHandle *) m_apiHandle;
+	if (m_mode == airtaudio::mode_output || m_mode == airtaudio::mode_duplex) {
 		if (handle->drainCounter == 0) {
 			handle->drainCounter = 2;
 			WaitForSingleObject(handle->condition, INFINITE);	// block until signaled
 		}
 	}
-	m_stream.state = airtaudio::state_stopped;
+	m_state = airtaudio::state_stopped;
 	ASIOError result = ASIOStop();
 	if (result != ASE_OK) {
 		ATA_ERROR("error (" << getAsioErrorString(result) << ") stopping device.");
@@ -654,7 +653,7 @@ enum airtaudio::error airtaudio::api::Asio::abortStream() {
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
 	}
-	if (m_stream.state == airtaudio::state_stopped) {
+	if (m_state == airtaudio::state_stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		error(airtaudio::error_warning);
 		return;
@@ -664,7 +663,7 @@ enum airtaudio::error airtaudio::api::Asio::abortStream() {
 	// noted where the device buffers need to be zeroed to avoid
 	// continuing sound, even when the device buffers are completely
 	// disposed.	So now, calling abort is the same as calling stop.
-	// AsioHandle *handle = (AsioHandle *) m_stream.apiHandle;
+	// AsioHandle *handle = (AsioHandle *) m_apiHandle;
 	// handle->drainCounter = 2;
 	return stopStream();
 }
@@ -683,25 +682,25 @@ static unsigned __stdcall asioStopStream(void *_ptr) {
 }
 
 bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
-	if (    m_stream.state == airtaudio::state_stopped
-	     || m_stream.state == airtaudio::state_stopping) {
+	if (    m_state == airtaudio::state_stopped
+	     || m_state == airtaudio::state_stopping) {
 		return true;
 	}
-	if (m_stream.state == airtaudio::state_closed) {
+	if (m_state == airtaudio::state_closed) {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return false;
 	}
-	CallbackInfo *info = (CallbackInfo *) &m_stream.callbackInfo;
-	AsioHandle *handle = (AsioHandle *) m_stream.apiHandle;
+	CallbackInfo *info = (CallbackInfo *) &m_callbackInfo;
+	AsioHandle *handle = (AsioHandle *) m_apiHandle;
 	// Check if we were draining the stream and signal if finished.
 	if (handle->drainCounter > 3) {
-		m_stream.state = airtaudio::state_stopping;
+		m_state = airtaudio::state_stopping;
 		if (handle->internalDrain == false) {
 			SetEvent(handle->condition);
 		} else { // spawn a thread to stop the stream
 			unsigned threadId;
-			m_stream.callbackInfo.thread = _beginthreadex(nullptr, 0, &asioStopStream,
-			                                              &m_stream.callbackInfo, 0, &threadId);
+			m_callbackInfo.thread = _beginthreadex(nullptr, 0, &asioStopStream,
+			                                              &m_callbackInfo, 0, &threadId);
 		}
 		return true;
 	}
@@ -710,27 +709,27 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 	if (handle->drainCounter == 0) {
 		double streamTime = getStreamTime();
 		rtaudio::streamStatus status = 0;
-		if (m_stream.mode != airtaudio::mode_input && asioXRun == true) {
+		if (m_mode != airtaudio::mode_input && asioXRun == true) {
 			status |= RTAUDIO_airtaudio::status_underflow;
 			asioXRun = false;
 		}
-		if (m_stream.mode != airtaudio::mode_output && asioXRun == true) {
+		if (m_mode != airtaudio::mode_output && asioXRun == true) {
 			status |= RTAUDIO_airtaudio::mode_input_OVERFLOW;
 			asioXRun = false;
 		}
-		int32_t cbReturnValue = info->callback(m_stream.userBuffer[0],
-		                                       m_stream.userBuffer[1],
-		                                       m_stream.bufferSize,
+		int32_t cbReturnValue = info->callback(m_userBuffer[0],
+		                                       m_userBuffer[1],
+		                                       m_bufferSize,
 		                                       streamTime,
 		                                       status);
 		if (cbReturnValue == 2) {
-			m_stream.state = airtaudio::state_stopping;
+			m_state = airtaudio::state_stopping;
 			handle->drainCounter = 2;
 			unsigned threadId;
-			m_stream.callbackInfo.thread = _beginthreadex(nullptr,
+			m_callbackInfo.thread = _beginthreadex(nullptr,
 			                                              0,
 			                                              &asioStopStream,
-			                                              &m_stream.callbackInfo,
+			                                              &m_callbackInfo,
 			                                              0,
 			                                              &threadId);
 			return true;
@@ -740,40 +739,40 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 		}
 	}
 	uint32_t nChannels, bufferBytes, i, j;
-	nChannels = m_stream.nDeviceChannels[0] + m_stream.nDeviceChannels[1];
-	if (    m_stream.mode == airtaudio::mode_output
-	     || m_stream.mode == airtaudio::mode_duplex) {
-		bufferBytes = m_stream.bufferSize * audio::getFormatBytes(m_stream.deviceFormat[0]);
+	nChannels = m_nDeviceChannels[0] + m_nDeviceChannels[1];
+	if (    m_mode == airtaudio::mode_output
+	     || m_mode == airtaudio::mode_duplex) {
+		bufferBytes = m_bufferSize * audio::getFormatBytes(m_deviceFormat[0]);
 		if (handle->drainCounter > 1) { // write zeros to the output stream
 			for (i=0, j=0; i<nChannels; i++) {
 				if (handle->bufferInfos[i].isInput != ASIOTrue) {
 					memset(handle->bufferInfos[i].buffers[bufferIndex], 0, bufferBytes);
 				}
 			}
-		} else if (m_stream.doConvertBuffer[0]) {
-			convertBuffer(m_stream.deviceBuffer, m_stream.userBuffer[0], m_stream.convertInfo[0]);
-			if (m_stream.doByteSwap[0]) {
-				byteSwapBuffer(m_stream.deviceBuffer,
-				               m_stream.bufferSize * m_stream.nDeviceChannels[0],
-				               m_stream.deviceFormat[0]);
+		} else if (m_doConvertBuffer[0]) {
+			convertBuffer(m_deviceBuffer, m_userBuffer[0], m_convertInfo[0]);
+			if (m_doByteSwap[0]) {
+				byteSwapBuffer(m_deviceBuffer,
+				               m_bufferSize * m_nDeviceChannels[0],
+				               m_deviceFormat[0]);
 			}
 			for (i=0, j=0; i<nChannels; i++) {
 				if (handle->bufferInfos[i].isInput != ASIOTrue) {
 					memcpy(handle->bufferInfos[i].buffers[bufferIndex],
-					       &m_stream.deviceBuffer[j++*bufferBytes],
+					       &m_deviceBuffer[j++*bufferBytes],
 					       bufferBytes);
 				}
 			}
 		} else {
-			if (m_stream.doByteSwap[0]) {
-				byteSwapBuffer(m_stream.userBuffer[0],
-				               m_stream.bufferSize * m_stream.nUserChannels[0],
-				               m_stream.userFormat);
+			if (m_doByteSwap[0]) {
+				byteSwapBuffer(m_userBuffer[0],
+				               m_bufferSize * m_nUserChannels[0],
+				               m_userFormat);
 			}
 			for (i=0, j=0; i<nChannels; i++) {
 				if (handle->bufferInfos[i].isInput != ASIOTrue) {
 					memcpy(handle->bufferInfos[i].buffers[bufferIndex],
-					       &m_stream.userBuffer[0][bufferBytes*j++],
+					       &m_userBuffer[0][bufferBytes*j++],
 					       bufferBytes);
 				}
 			}
@@ -783,38 +782,38 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 			goto unlock;
 		}
 	}
-	if (    m_stream.mode == airtaudio::mode_input
-	     || m_stream.mode == airtaudio::mode_duplex) {
-		bufferBytes = m_stream.bufferSize * audio::getFormatBytes(m_stream.deviceFormat[1]);
-		if (m_stream.doConvertBuffer[1]) {
+	if (    m_mode == airtaudio::mode_input
+	     || m_mode == airtaudio::mode_duplex) {
+		bufferBytes = m_bufferSize * audio::getFormatBytes(m_deviceFormat[1]);
+		if (m_doConvertBuffer[1]) {
 			// Always interleave ASIO input data.
 			for (i=0, j=0; i<nChannels; i++) {
 				if (handle->bufferInfos[i].isInput == ASIOTrue) {
-					memcpy(&m_stream.deviceBuffer[j++*bufferBytes],
+					memcpy(&m_deviceBuffer[j++*bufferBytes],
 					       handle->bufferInfos[i].buffers[bufferIndex],
 					       bufferBytes);
 				}
 			}
-			if (m_stream.doByteSwap[1]) {
-				byteSwapBuffer(m_stream.deviceBuffer,
-				               m_stream.bufferSize * m_stream.nDeviceChannels[1],
-				               m_stream.deviceFormat[1]);
+			if (m_doByteSwap[1]) {
+				byteSwapBuffer(m_deviceBuffer,
+				               m_bufferSize * m_nDeviceChannels[1],
+				               m_deviceFormat[1]);
 			}
-			convertBuffer(m_stream.userBuffer[1],
-			              m_stream.deviceBuffer,
-			              m_stream.convertInfo[1]);
+			convertBuffer(m_userBuffer[1],
+			              m_deviceBuffer,
+			              m_convertInfo[1]);
 		} else {
 			for (i=0, j=0; i<nChannels; i++) {
 				if (handle->bufferInfos[i].isInput == ASIOTrue) {
-					memcpy(&m_stream.userBuffer[1][bufferBytes*j++],
+					memcpy(&m_userBuffer[1][bufferBytes*j++],
 					       handle->bufferInfos[i].buffers[bufferIndex],
 					       bufferBytes);
 				}
 			}
-			if (m_stream.doByteSwap[1]) {
-				byteSwapBuffer(m_stream.userBuffer[1],
-				               m_stream.bufferSize * m_stream.nUserChannels[1],
-				               m_stream.userFormat);
+			if (m_doByteSwap[1]) {
+				byteSwapBuffer(m_userBuffer[1],
+				               m_bufferSize * m_nUserChannels[1],
+				               m_userFormat);
 			}
 		}
 	}

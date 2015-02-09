@@ -1,9 +1,8 @@
-/**
- * @author Gary P. SCAVONE
- * 
- * @copyright 2001-2013 Gary P. Scavone, all right reserved
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
 
@@ -95,7 +94,7 @@ airtaudio::api::Core::~Core() {
 	// The subclass destructor gets called before the base class
 	// destructor, so close an existing stream before deallocating
 	// apiDeviceId memory.
-	if (m_stream.state != airtaudio::state_closed) {
+	if (m_state != airtaudio::state_closed) {
 		closeStream();
 	}
 }
@@ -385,16 +384,15 @@ airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 	return info;
 }
 
-static OSStatus callbackHandler(AudioDeviceID _inDevice,
-                                const AudioTimeStamp* _inNow,
-                                const AudioBufferList* _inInputData,
-                                const AudioTimeStamp* _inInputTime,
-                                AudioBufferList* _outOutputData,
-                                const AudioTimeStamp* _inOutputTime,
-                                void* _infoPointer) {
-	airtaudio::CallbackInfo* info = (airtaudio::CallbackInfo*)_infoPointer;
-	airtaudio::api::Core* object = (airtaudio::api::Core*)info->object;
-	if (object->callbackEvent(_inDevice, _inInputData, _outOutputData) == false) {
+OSStatus airtaudio::api::Core::callbackEvent(AudioDeviceID _inDevice,
+                                             const AudioTimeStamp* _inNow,
+                                             const AudioBufferList* _inInputData,
+                                             const AudioTimeStamp* _inInputTime,
+                                             AudioBufferList* _outOutputData,
+                                             const AudioTimeStamp* _inOutputTime,
+                                             void* _userData) {
+	airtaudio::api::Core* myClass = reinterpret_cast<airtaudio::api::Core*>(_userData);
+	if (myClass->callbackEvent(_inDevice, _inInputData, _outOutputData) == false) {
 		return kAudioHardwareUnspecifiedError;
 	} else {
 		return kAudioHardwareNoError;
@@ -598,14 +596,14 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	// If attempting to setup a duplex stream, the bufferSize parameter
 	// MUST be the same in both directions!
 	*_bufferSize = theSize;
-	if (    m_stream.mode == airtaudio::mode_output
+	if (    m_mode == airtaudio::mode_output
 	     && _mode == airtaudio::mode_input
-	     && *_bufferSize != m_stream.bufferSize) {
+	     && *_bufferSize != m_bufferSize) {
 		ATA_ERROR("system error setting buffer size for duplex stream on device (" << _device << ").");
 		return false;
 	}
-	m_stream.bufferSize = *_bufferSize;
-	m_stream.nBuffers = 1;
+	m_bufferSize = *_bufferSize;
+	m_nBuffers = 1;
 	// Try to set "hog" mode ... it's not clear to me this is working.
 	if (    _options != nullptr
 	     && _options->flags & HOG_DEVICE) {
@@ -763,7 +761,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	if (AudioObjectHasProperty(id, &property) == true) {
 		result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &latency);
 		if (result == kAudioHardwareNoError) {
-			m_stream.latency[ _mode ] = latency;
+			m_latency[ _mode ] = latency;
 		} else {
 			ATA_ERROR("system error (" << getErrorCode(result) << ") getting device latency for device (" << _device << ").");
 			return false;
@@ -772,75 +770,75 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	// Byte-swapping: According to AudioHardware.h, the stream data will
 	// always be presented in native-endian format, so we should never
 	// need to byte swap.
-	m_stream.doByteSwap[modeToIdTable(_mode)] = false;
+	m_doByteSwap[modeToIdTable(_mode)] = false;
 	// From the CoreAudio documentation, PCM data must be supplied as
 	// 32-bit floats.
-	m_stream.userFormat = _format;
-	m_stream.deviceFormat[modeToIdTable(_mode)] = FLOAT32;
+	m_userFormat = _format;
+	m_deviceFormat[modeToIdTable(_mode)] = FLOAT32;
 	if (streamCount == 1) {
-		m_stream.nDeviceChannels[modeToIdTable(_mode)] = description.mChannelsPerFrame;
+		m_nDeviceChannels[modeToIdTable(_mode)] = description.mChannelsPerFrame;
 	} else {
 		// multiple streams
-		m_stream.nDeviceChannels[modeToIdTable(_mode)] = _channels;
+		m_nDeviceChannels[modeToIdTable(_mode)] = _channels;
 	}
-	m_stream.nUserChannels[modeToIdTable(_mode)] = _channels;
-	m_stream.channelOffset[modeToIdTable(_mode)] = channelOffset;	// offset within a CoreAudio stream
-	m_stream.deviceInterleaved[modeToIdTable(_mode)] = true;
+	m_nUserChannels[modeToIdTable(_mode)] = _channels;
+	m_channelOffset[modeToIdTable(_mode)] = channelOffset;	// offset within a CoreAudio stream
+	m_deviceInterleaved[modeToIdTable(_mode)] = true;
 	if (monoMode == true) {
-		m_stream.deviceInterleaved[modeToIdTable(_mode)] = false;
+		m_deviceInterleaved[modeToIdTable(_mode)] = false;
 	}
 	// Set flags for buffer conversion.
-	m_stream.doConvertBuffer[modeToIdTable(_mode)] = false;
-	if (m_stream.userFormat != m_stream.deviceFormat[modeToIdTable(_mode)]) {
-		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
+	m_doConvertBuffer[modeToIdTable(_mode)] = false;
+	if (m_userFormat != m_deviceFormat[modeToIdTable(_mode)]) {
+		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	if (m_stream.nUserChannels[modeToIdTable(_mode)] < m_stream.nDeviceChannels[modeToIdTable(_mode)]) {
-		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
+	if (m_nUserChannels[modeToIdTable(_mode)] < m_nDeviceChannels[modeToIdTable(_mode)]) {
+		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
 	if (streamCount == 1) {
-		if (    m_stream.nUserChannels[modeToIdTable(_mode)] > 1
-		     && m_stream.deviceInterleaved[modeToIdTable(_mode)] == false) {
-			m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
+		if (    m_nUserChannels[modeToIdTable(_mode)] > 1
+		     && m_deviceInterleaved[modeToIdTable(_mode)] == false) {
+			m_doConvertBuffer[modeToIdTable(_mode)] = true;
 		}
 	} else if (monoMode) {
-		m_stream.doConvertBuffer[modeToIdTable(_mode)] = true;
+		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
 	// Allocate our CoreHandle structure for the stream.
 	CoreHandle *handle = 0;
-	if (m_stream.apiHandle == 0) {
+	if (m_apiHandle == 0) {
 		handle = new CoreHandle;
 		if (handle == nullptr) {
 			ATA_ERROR("error allocating CoreHandle memory.");
 			return false;
 		}
-		m_stream.apiHandle = (void *) handle;
+		m_apiHandle = (void *) handle;
 	} else {
-		handle = (CoreHandle *) m_stream.apiHandle;
+		handle = (CoreHandle *) m_apiHandle;
 	}
 	handle->iStream[modeToIdTable(_mode)] = firstStream;
 	handle->nStreams[modeToIdTable(_mode)] = streamCount;
 	handle->id[modeToIdTable(_mode)] = id;
 	// Allocate necessary internal buffers.
 	uint64_t bufferBytes;
-	bufferBytes = m_stream.nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_stream.userFormat);
-	//	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
-	m_stream.userBuffer[modeToIdTable(_mode)] = (char *) malloc(bufferBytes * sizeof(char));
-	memset(m_stream.userBuffer[modeToIdTable(_mode)], 0, bufferBytes * sizeof(char));
-	if (m_stream.userBuffer[modeToIdTable(_mode)] == nullptr) {
+	bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_userFormat);
+	//	m_userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
+	m_userBuffer[modeToIdTable(_mode)] = (char *) malloc(bufferBytes * sizeof(char));
+	memset(m_userBuffer[modeToIdTable(_mode)], 0, bufferBytes * sizeof(char));
+	if (m_userBuffer[modeToIdTable(_mode)] == nullptr) {
 		ATA_ERROR("error allocating user buffer memory.");
 		goto error;
 	}
 	// If possible, we will make use of the CoreAudio stream buffers as
 	// "device buffers".	However, we can't do this if using multiple
 	// streams.
-	if (    m_stream.doConvertBuffer[modeToIdTable(_mode)]
+	if (    m_doConvertBuffer[modeToIdTable(_mode)]
 	     && handle->nStreams[modeToIdTable(_mode)] > 1) {
 		bool makeBuffer = true;
-		bufferBytes = m_stream.nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_stream.deviceFormat[modeToIdTable(_mode)]);
+		bufferBytes = m_nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_deviceFormat[modeToIdTable(_mode)]);
 		if (_mode == airtaudio::mode_input) {
-			if (    m_stream.mode == airtaudio::mode_output
-			     && m_stream.deviceBuffer) {
-				uint64_t bytesOut = m_stream.nDeviceChannels[0] * audio::getFormatBytes(m_stream.deviceFormat[0]);
+			if (    m_mode == airtaudio::mode_output
+			     && m_deviceBuffer) {
+				uint64_t bytesOut = m_nDeviceChannels[0] * audio::getFormatBytes(m_deviceFormat[0]);
 				if (bufferBytes <= bytesOut) {
 					makeBuffer = false;
 				}
@@ -848,23 +846,23 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		}
 		if (makeBuffer) {
 			bufferBytes *= *_bufferSize;
-			if (m_stream.deviceBuffer) {
-				free(m_stream.deviceBuffer);
-				m_stream.deviceBuffer = nullptr;
+			if (m_deviceBuffer) {
+				free(m_deviceBuffer);
+				m_deviceBuffer = nullptr;
 			}
-			m_stream.deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_stream.deviceBuffer == nullptr) {
+			m_deviceBuffer = (char *) calloc(bufferBytes, 1);
+			if (m_deviceBuffer == nullptr) {
 				ATA_ERROR("error allocating device buffer memory.");
 				goto error;
 			}
 		}
 	}
-	m_stream.sampleRate = _sampleRate;
-	m_stream.device[modeToIdTable(_mode)] = _device;
-	m_stream.state = airtaudio::state_stopped;
-	m_stream.callbackInfo.object = (void *) this;
+	m_sampleRate = _sampleRate;
+	m_device[modeToIdTable(_mode)] = _device;
+	m_state = airtaudio::state_stopped;
+	m_callbackInfo.object = (void *) this;
 	// Setup the buffer conversion information structure.
-	if (m_stream.doConvertBuffer[modeToIdTable(_mode)]) {
+	if (m_doConvertBuffer[modeToIdTable(_mode)]) {
 		if (streamCount > 1) {
 			setConvertInfo(_mode, 0);
 		} else {
@@ -872,26 +870,26 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		}
 	}
 	if (    _mode == airtaudio::mode_input
-	     && m_stream.mode == airtaudio::mode_output
-	     && m_stream.device[0] == _device) {
+	     && m_mode == airtaudio::mode_output
+	     && m_device[0] == _device) {
 		// Only one callback procedure per device.
-		m_stream.mode = airtaudio::mode_duplex;
+		m_mode = airtaudio::mode_duplex;
 	} else {
 #if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
-		result = AudioDeviceCreateIOProcID(id, callbackHandler, (void *) &m_stream.callbackInfo, &handle->procId[modeToIdTable(_mode)]);
+		result = AudioDeviceCreateIOProcID(id, &airtaudio::api::Core::callbackEvent, (void *) &m_callbackInfo, &handle->procId[modeToIdTable(_mode)]);
 #else
 		// deprecated in favor of AudioDeviceCreateIOProcID()
-		result = AudioDeviceAddIOProc(id, callbackHandler, (void *) &m_stream.callbackInfo);
+		result = AudioDeviceAddIOProc(id, &airtaudio::api::Core::callbackEvent, (void *) &m_callbackInfo);
 #endif
 		if (result != noErr) {
 			ATA_ERROR("system error setting callback for device (" << _device << ").");
 			goto error;
 		}
-		if (    m_stream.mode == airtaudio::mode_output
+		if (    m_mode == airtaudio::mode_output
 		     && _mode == airtaudio::mode_input) {
-			m_stream.mode = airtaudio::mode_duplex;
+			m_mode = airtaudio::mode_duplex;
 		} else {
-			m_stream.mode = _mode;
+			m_mode = _mode;
 		}
 	}
 	// Setup the device property listener for over/underload.
@@ -901,67 +899,67 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 error:
 	if (handle) {
 		delete handle;
-		m_stream.apiHandle = 0;
+		m_apiHandle = 0;
 	}
 	for (int32_t i=0; i<2; i++) {
-		if (m_stream.userBuffer[i]) {
-			free(m_stream.userBuffer[i]);
-			m_stream.userBuffer[i] = 0;
+		if (m_userBuffer[i]) {
+			free(m_userBuffer[i]);
+			m_userBuffer[i] = 0;
 		}
 	}
-	if (m_stream.deviceBuffer) {
-		free(m_stream.deviceBuffer);
-		m_stream.deviceBuffer = 0;
+	if (m_deviceBuffer) {
+		free(m_deviceBuffer);
+		m_deviceBuffer = 0;
 	}
-	m_stream.state = airtaudio::state_closed;
+	m_state = airtaudio::state_closed;
 	return false;
 }
 
 enum airtaudio::error airtaudio::api::Core::closeStream() {
-	if (m_stream.state == airtaudio::state_closed) {
+	if (m_state == airtaudio::state_closed) {
 		ATA_ERROR("no open stream to close!");
 		return airtaudio::error_warning;
 	}
-	CoreHandle *handle = (CoreHandle *) m_stream.apiHandle;
-	if (    m_stream.mode == airtaudio::mode_output
-	     || m_stream.mode == airtaudio::mode_duplex) {
-		if (m_stream.state == airtaudio::state_running) {
-			AudioDeviceStop(handle->id[0], callbackHandler);
+	CoreHandle *handle = (CoreHandle *) m_apiHandle;
+	if (    m_mode == airtaudio::mode_output
+	     || m_mode == airtaudio::mode_duplex) {
+		if (m_state == airtaudio::state_running) {
+			AudioDeviceStop(handle->id[0], &airtaudio::api::Core::callbackEvent);
 		}
 #if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
 		AudioDeviceDestroyIOProcID(handle->id[0], handle->procId[0]);
 #else
 		// deprecated in favor of AudioDeviceDestroyIOProcID()
-		AudioDeviceRemoveIOProc(handle->id[0], callbackHandler);
+		AudioDeviceRemoveIOProc(handle->id[0], &airtaudio::api::Core::callbackEvent);
 #endif
 	}
-	if (    m_stream.mode == airtaudio::mode_input
-	     || (    m_stream.mode == airtaudio::mode_duplex
-	          && m_stream.device[0] != m_stream.device[1])) {
-		if (m_stream.state == airtaudio::state_running) {
-			AudioDeviceStop(handle->id[1], callbackHandler);
+	if (    m_mode == airtaudio::mode_input
+	     || (    m_mode == airtaudio::mode_duplex
+	          && m_device[0] != m_device[1])) {
+		if (m_state == airtaudio::state_running) {
+			AudioDeviceStop(handle->id[1], &airtaudio::api::Core::callbackEvent);
 		}
 #if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
 		AudioDeviceDestroyIOProcID(handle->id[1], handle->procId[1]);
 #else
 		// deprecated in favor of AudioDeviceDestroyIOProcID()
-		AudioDeviceRemoveIOProc(handle->id[1], callbackHandler);
+		AudioDeviceRemoveIOProc(handle->id[1], &airtaudio::api::Core::callbackEvent);
 #endif
 	}
 	for (int32_t i=0; i<2; i++) {
-		if (m_stream.userBuffer[i]) {
-			free(m_stream.userBuffer[i]);
-			m_stream.userBuffer[i] = nullptr;
+		if (m_userBuffer[i]) {
+			free(m_userBuffer[i]);
+			m_userBuffer[i] = nullptr;
 		}
 	}
-	if (m_stream.deviceBuffer) {
-		free(m_stream.deviceBuffer);
-		m_stream.deviceBuffer = nullptr;
+	if (m_deviceBuffer) {
+		free(m_deviceBuffer);
+		m_deviceBuffer = nullptr;
 	}
 	delete handle;
-	m_stream.apiHandle = 0;
-	m_stream.mode = airtaudio::mode_unknow;
-	m_stream.state = airtaudio::state_closed;
+	m_apiHandle = 0;
+	m_mode = airtaudio::mode_unknow;
+	m_state = airtaudio::state_closed;
 	return airtaudio::error_none;
 }
 
@@ -969,32 +967,32 @@ enum airtaudio::error airtaudio::api::Core::startStream() {
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
 	}
-	if (m_stream.state == airtaudio::state_running) {
+	if (m_state == airtaudio::state_running) {
 		ATA_ERROR("the stream is already running!");
 		return airtaudio::error_warning;
 	}
 	OSStatus result = noErr;
-	CoreHandle *handle = (CoreHandle *) m_stream.apiHandle;
-	if (    m_stream.mode == airtaudio::mode_output
-	     || m_stream.mode == airtaudio::mode_duplex) {
-		result = AudioDeviceStart(handle->id[0], callbackHandler);
+	CoreHandle *handle = (CoreHandle *) m_apiHandle;
+	if (    m_mode == airtaudio::mode_output
+	     || m_mode == airtaudio::mode_duplex) {
+		result = AudioDeviceStart(handle->id[0], &airtaudio::api::Core::callbackEvent);
 		if (result != noErr) {
-			ATA_ERROR("system error (" << getErrorCode(result) << ") starting callback procedure on device (" << m_stream.device[0] << ").");
+			ATA_ERROR("system error (" << getErrorCode(result) << ") starting callback procedure on device (" << m_device[0] << ").");
 			goto unlock;
 		}
 	}
-	if (    m_stream.mode == airtaudio::mode_input
-	     || (    m_stream.mode == airtaudio::mode_duplex
-	          && m_stream.device[0] != m_stream.device[1])) {
-		result = AudioDeviceStart(handle->id[1], callbackHandler);
+	if (    m_mode == airtaudio::mode_input
+	     || (    m_mode == airtaudio::mode_duplex
+	          && m_device[0] != m_device[1])) {
+		result = AudioDeviceStart(handle->id[1], &airtaudio::api::Core::callbackEvent);
 		if (result != noErr) {
-			ATA_ERROR("system error starting input callback procedure on device (" << m_stream.device[1] << ").");
+			ATA_ERROR("system error starting input callback procedure on device (" << m_device[1] << ").");
 			goto unlock;
 		}
 	}
 	handle->drainCounter = 0;
 	handle->internalDrain = false;
-	m_stream.state = airtaudio::state_running;
+	m_state = airtaudio::state_running;
 unlock:
 	if (result == noErr) {
 		return airtaudio::error_none;
@@ -1006,35 +1004,35 @@ enum airtaudio::error airtaudio::api::Core::stopStream() {
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
 	}
-	if (m_stream.state == airtaudio::state_stopped) {
+	if (m_state == airtaudio::state_stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return airtaudio::error_warning;
 	}
 	OSStatus result = noErr;
-	CoreHandle *handle = (CoreHandle *) m_stream.apiHandle;
-	if (    m_stream.mode == airtaudio::mode_output
-	     || m_stream.mode == airtaudio::mode_duplex) {
+	CoreHandle *handle = (CoreHandle *) m_apiHandle;
+	if (    m_mode == airtaudio::mode_output
+	     || m_mode == airtaudio::mode_duplex) {
 		if (handle->drainCounter == 0) {
-			std::unique_lock<std::mutex> lck(m_stream.mutex);
+			std::unique_lock<std::mutex> lck(m_mutex);
 			handle->drainCounter = 2;
 			handle->condition.wait(lck);
 		}
-		result = AudioDeviceStop(handle->id[0], callbackHandler);
+		result = AudioDeviceStop(handle->id[0], &airtaudio::api::Core::callbackEvent);
 		if (result != noErr) {
-			ATA_ERROR("system error (" << getErrorCode(result) << ") stopping callback procedure on device (" << m_stream.device[0] << ").");
+			ATA_ERROR("system error (" << getErrorCode(result) << ") stopping callback procedure on device (" << m_device[0] << ").");
 			goto unlock;
 		}
 	}
-	if (    m_stream.mode == airtaudio::mode_input
-	     || (    m_stream.mode == airtaudio::mode_duplex
-	          && m_stream.device[0] != m_stream.device[1])) {
-		result = AudioDeviceStop(handle->id[1], callbackHandler);
+	if (    m_mode == airtaudio::mode_input
+	     || (    m_mode == airtaudio::mode_duplex
+	          && m_device[0] != m_device[1])) {
+		result = AudioDeviceStop(handle->id[1], &airtaudio::api::Core::callbackEvent);
 		if (result != noErr) {
-			ATA_ERROR("system error (" << getErrorCode(result) << ") stopping input callback procedure on device (" << m_stream.device[1] << ").");
+			ATA_ERROR("system error (" << getErrorCode(result) << ") stopping input callback procedure on device (" << m_device[1] << ").");
 			goto unlock;
 		}
 	}
-	m_stream.state = airtaudio::state_stopped;
+	m_state = airtaudio::state_stopped;
 unlock:
 	if (result == noErr) {
 		return airtaudio::error_none;
@@ -1046,11 +1044,11 @@ enum airtaudio::error airtaudio::api::Core::abortStream() {
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
 	}
-	if (m_stream.state == airtaudio::state_stopped) {
+	if (m_state == airtaudio::state_stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return airtaudio::error_warning;
 	}
-	CoreHandle* handle = (CoreHandle*)m_stream.apiHandle;
+	CoreHandle* handle = (CoreHandle*)m_apiHandle;
 	handle->drainCounter = 2;
 	return stopStream();
 }
@@ -1060,30 +1058,29 @@ enum airtaudio::error airtaudio::api::Core::abortStream() {
 // aborted.	It is better to handle it this way because the
 // callbackEvent() function probably should return before the AudioDeviceStop()
 // function is called.
-static void coreStopStream(void *_ptr) {
-	airtaudio::CallbackInfo* info = (airtaudio::CallbackInfo*)_ptr;
-	airtaudio::api::Core* object = (airtaudio::api::Core*)info->object;
-	object->stopStream();
+void airtaudio::api::Core::coreStopStream(void *_userData) {
+	airtaudio::api::Core* myClass = reinterpret_cast<airtaudio::api::Core*>(_userData);
+	myClass->stopStream();
 }
 
 bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
                                          const AudioBufferList *_inBufferList,
                                          const AudioBufferList *_outBufferList) {
-	if (    m_stream.state == airtaudio::state_stopped
-	     || m_stream.state == airtaudio::state_stopping) {
+	if (    m_state == airtaudio::state_stopped
+	     || m_state == airtaudio::state_stopping) {
 		return true;
 	}
-	if (m_stream.state == airtaudio::state_closed) {
+	if (m_state == airtaudio::state_closed) {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return false;
 	}
-	CallbackInfo *info = (CallbackInfo *) &m_stream.callbackInfo;
-	CoreHandle *handle = (CoreHandle *) m_stream.apiHandle;
+	CallbackInfo *info = (CallbackInfo *) &m_callbackInfo;
+	CoreHandle *handle = (CoreHandle *) m_apiHandle;
 	// Check if we were draining the stream and signal is finished.
 	if (handle->drainCounter > 3) {
-		m_stream.state = airtaudio::state_stopping;
+		m_state = airtaudio::state_stopping;
 		if (handle->internalDrain == true) {
-			new std::thread(coreStopStream, info);
+			new std::thread(&airtaudio::api::Core::coreStopStream, this);
 		} else {
 			// external call to stopStream()
 			handle->condition.notify_one();
@@ -1094,26 +1091,26 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 	// Invoke user callback to get fresh output data UNLESS we are
 	// draining stream or duplex mode AND the input/output devices are
 	// different AND this function is called for the input device.
-	if (handle->drainCounter == 0 && (m_stream.mode != airtaudio::mode_duplex || _deviceId == outputDevice)) {
+	if (handle->drainCounter == 0 && (m_mode != airtaudio::mode_duplex || _deviceId == outputDevice)) {
 		double streamTime = getStreamTime();
 		enum airtaudio::status status = airtaudio::status_ok;
-		if (    m_stream.mode != airtaudio::mode_input
+		if (    m_mode != airtaudio::mode_input
 		     && handle->xrun[0] == true) {
 			status |= airtaudio::status_underflow;
 			handle->xrun[0] = false;
 		}
-		if (    m_stream.mode != airtaudio::mode_output
+		if (    m_mode != airtaudio::mode_output
 		     && handle->xrun[1] == true) {
 			status |= airtaudio::mode_input_OVERFLOW;
 			handle->xrun[1] = false;
 		}
-		int32_t cbReturnValue = info->callback(m_stream.userBuffer[0],
-		                                       m_stream.userBuffer[1],
-		                                       m_stream.bufferSize,
+		int32_t cbReturnValue = info->callback(m_userBuffer[0],
+		                                       m_userBuffer[1],
+		                                       m_bufferSize,
 		                                       streamTime,
 		                                       status);
 		if (cbReturnValue == 2) {
-			m_stream.state = airtaudio::state_stopping;
+			m_state = airtaudio::state_stopping;
 			handle->drainCounter = 2;
 			abortStream();
 			return true;
@@ -1122,8 +1119,8 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 			handle->internalDrain = true;
 		}
 	}
-	if (    m_stream.mode == airtaudio::mode_output
-	     || (    m_stream.mode == airtaudio::mode_duplex
+	if (    m_mode == airtaudio::mode_output
+	     || (    m_mode == airtaudio::mode_duplex
 	          && _deviceId == outputDevice)) {
 		if (handle->drainCounter > 1) {
 			// write zeros to the output stream
@@ -1140,29 +1137,29 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 				}
 			}
 		} else if (handle->nStreams[0] == 1) {
-			if (m_stream.doConvertBuffer[0]) {
+			if (m_doConvertBuffer[0]) {
 				// convert directly to CoreAudio stream buffer
 				convertBuffer((char*)_outBufferList->mBuffers[handle->iStream[0]].mData,
-				              m_stream.userBuffer[0],
-				              m_stream.convertInfo[0]);
+				              m_userBuffer[0],
+				              m_convertInfo[0]);
 			} else {
 				// copy from user buffer
 				memcpy(_outBufferList->mBuffers[handle->iStream[0]].mData,
-				       m_stream.userBuffer[0],
+				       m_userBuffer[0],
 				       _outBufferList->mBuffers[handle->iStream[0]].mDataByteSize);
 			}
 		} else {
 			// fill multiple streams
-			float *inBuffer = (float *) m_stream.userBuffer[0];
-			if (m_stream.doConvertBuffer[0]) {
-				convertBuffer(m_stream.deviceBuffer, m_stream.userBuffer[0], m_stream.convertInfo[0]);
-				inBuffer = (float *) m_stream.deviceBuffer;
+			float *inBuffer = (float *) m_userBuffer[0];
+			if (m_doConvertBuffer[0]) {
+				convertBuffer(m_deviceBuffer, m_userBuffer[0], m_convertInfo[0]);
+				inBuffer = (float *) m_deviceBuffer;
 			}
-			if (m_stream.deviceInterleaved[0] == false) { // mono mode
+			if (m_deviceInterleaved[0] == false) { // mono mode
 				uint32_t bufferBytes = _outBufferList->mBuffers[handle->iStream[0]].mDataByteSize;
-				for (uint32_t i=0; i<m_stream.nUserChannels[0]; i++) {
+				for (uint32_t i=0; i<m_nUserChannels[0]; i++) {
 					memcpy(_outBufferList->mBuffers[handle->iStream[0]+i].mData,
-					       (void *)&inBuffer[i*m_stream.bufferSize],
+					       (void *)&inBuffer[i*m_bufferSize],
 					       bufferBytes);
 				}
 			} else {
@@ -1170,15 +1167,15 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 				uint32_t streamChannels, channelsLeft, inJump, outJump, inOffset;
 				float *out, *in;
 				bool inInterleaved = true;
-				uint32_t inChannels = m_stream.nUserChannels[0];
-				if (m_stream.doConvertBuffer[0]) {
+				uint32_t inChannels = m_nUserChannels[0];
+				if (m_doConvertBuffer[0]) {
 					inInterleaved = true; // device buffer will always be interleaved for nStreams > 1 and not mono mode
-					inChannels = m_stream.nDeviceChannels[0];
+					inChannels = m_nDeviceChannels[0];
 				}
 				if (inInterleaved) {
 					inOffset = 1;
 				} else {
-					inOffset = m_stream.bufferSize;
+					inOffset = m_bufferSize;
 				}
 				channelsLeft = inChannels;
 				for (uint32_t i=0; i<handle->nStreams[0]; i++) {
@@ -1187,9 +1184,9 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 					streamChannels = _outBufferList->mBuffers[handle->iStream[0]+i].mNumberChannels;
 					outJump = 0;
 					// Account for possible channel offset in first stream
-					if (i == 0 && m_stream.channelOffset[0] > 0) {
-						streamChannels -= m_stream.channelOffset[0];
-						outJump = m_stream.channelOffset[0];
+					if (i == 0 && m_channelOffset[0] > 0) {
+						streamChannels -= m_channelOffset[0];
+						outJump = m_channelOffset[0];
 						out += outJump;
 					}
 					// Account for possible unfilled channels at end of the last stream
@@ -1205,7 +1202,7 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 						inJump = 1;
 						in += (inChannels - channelsLeft) * inOffset;
 					}
-					for (uint32_t i=0; i<m_stream.bufferSize; i++) {
+					for (uint32_t i=0; i<m_bufferSize; i++) {
 						for (uint32_t j=0; j<streamChannels; j++) {
 							*out++ = in[j*inOffset];
 						}
@@ -1223,30 +1220,30 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 	}
 	AudioDeviceID inputDevice;
 	inputDevice = handle->id[1];
-	if (    m_stream.mode == airtaudio::mode_input
-	     || (    m_stream.mode == airtaudio::mode_duplex
+	if (    m_mode == airtaudio::mode_input
+	     || (    m_mode == airtaudio::mode_duplex
 	          && _deviceId == inputDevice)) {
 		if (handle->nStreams[1] == 1) {
-			if (m_stream.doConvertBuffer[1]) {
+			if (m_doConvertBuffer[1]) {
 				// convert directly from CoreAudio stream buffer
-				convertBuffer(m_stream.userBuffer[1],
+				convertBuffer(m_userBuffer[1],
 				              (char *) _inBufferList->mBuffers[handle->iStream[1]].mData,
-				              m_stream.convertInfo[1]);
+				              m_convertInfo[1]);
 			} else { // copy to user buffer
-				memcpy(m_stream.userBuffer[1],
+				memcpy(m_userBuffer[1],
 				       _inBufferList->mBuffers[handle->iStream[1]].mData,
 				       _inBufferList->mBuffers[handle->iStream[1]].mDataByteSize);
 			}
 		} else { // read from multiple streams
-			float *outBuffer = (float *) m_stream.userBuffer[1];
-			if (m_stream.doConvertBuffer[1]) {
-				outBuffer = (float *) m_stream.deviceBuffer;
+			float *outBuffer = (float *) m_userBuffer[1];
+			if (m_doConvertBuffer[1]) {
+				outBuffer = (float *) m_deviceBuffer;
 			}
-			if (m_stream.deviceInterleaved[1] == false) {
+			if (m_deviceInterleaved[1] == false) {
 				// mono mode
 				uint32_t bufferBytes = _inBufferList->mBuffers[handle->iStream[1]].mDataByteSize;
-				for (uint32_t i=0; i<m_stream.nUserChannels[1]; i++) {
-					memcpy((void *)&outBuffer[i*m_stream.bufferSize],
+				for (uint32_t i=0; i<m_nUserChannels[1]; i++) {
+					memcpy((void *)&outBuffer[i*m_bufferSize],
 					       _inBufferList->mBuffers[handle->iStream[1]+i].mData,
 					       bufferBytes);
 				}
@@ -1255,15 +1252,15 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 				uint32_t streamChannels, channelsLeft, inJump, outJump, outOffset;
 				float *out, *in;
 				bool outInterleaved = true;
-				uint32_t outChannels = m_stream.nUserChannels[1];
-				if (m_stream.doConvertBuffer[1]) {
+				uint32_t outChannels = m_nUserChannels[1];
+				if (m_doConvertBuffer[1]) {
 					outInterleaved = true; // device buffer will always be interleaved for nStreams > 1 and not mono mode
-					outChannels = m_stream.nDeviceChannels[1];
+					outChannels = m_nDeviceChannels[1];
 				}
 				if (outInterleaved) {
 					outOffset = 1;
 				} else {
-					outOffset = m_stream.bufferSize;
+					outOffset = m_bufferSize;
 				}
 				channelsLeft = outChannels;
 				for (uint32_t i=0; i<handle->nStreams[1]; i++) {
@@ -1272,9 +1269,9 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 					streamChannels = _inBufferList->mBuffers[handle->iStream[1]+i].mNumberChannels;
 					inJump = 0;
 					// Account for possible channel offset in first stream
-					if (i == 0 && m_stream.channelOffset[1] > 0) {
-						streamChannels -= m_stream.channelOffset[1];
-						inJump = m_stream.channelOffset[1];
+					if (i == 0 && m_channelOffset[1] > 0) {
+						streamChannels -= m_channelOffset[1];
+						inJump = m_channelOffset[1];
 						in += inJump;
 					}
 					// Account for possible unread channels at end of the last stream
@@ -1290,7 +1287,7 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 						outJump = 1;
 						out += (outChannels - channelsLeft) * outOffset;
 					}
-					for (uint32_t i=0; i<m_stream.bufferSize; i++) {
+					for (uint32_t i=0; i<m_bufferSize; i++) {
 						for (uint32_t j=0; j<streamChannels; j++) {
 							out[j*outOffset] = *in++;
 						}
@@ -1300,16 +1297,16 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 					channelsLeft -= streamChannels;
 				}
 			}
-			if (m_stream.doConvertBuffer[1]) { // convert from our internal "device" buffer
-				convertBuffer(m_stream.userBuffer[1],
-				              m_stream.deviceBuffer,
-				              m_stream.convertInfo[1]);
+			if (m_doConvertBuffer[1]) { // convert from our internal "device" buffer
+				convertBuffer(m_userBuffer[1],
+				              m_deviceBuffer,
+				              m_convertInfo[1]);
 			}
 		}
 	}
 
 unlock:
-	//m_stream.mutex.unlock();
+	//m_mutex.unlock();
 	airtaudio::Api::tickStreamTime();
 	return true;
 }

@@ -1,13 +1,12 @@
-/**
- * @author Gary P. SCAVONE
- * 
- * @copyright 2001-2013 Gary P. Scavone, all right reserved
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
-#ifndef __AIRTAUDIO_ERROR_H__
-#define __AIRTAUDIO_ERROR_H__
+#ifndef __AIRTAUDIO_CB_H__
+#define __AIRTAUDIO_CB_H__
 
 #include <thread>
 #include <condition_variable>
@@ -15,6 +14,9 @@
 #include <functional>
 #include <audio/channel.h>
 #include <audio/format.h>
+#include <airtaudio/error.h>
+#include <airtaudio/status.h>
+#include <airtaudio/Flags.h>
 
 // defien type : uintXX_t and intXX_t
 #define __STDC_LIMIT_MACROS
@@ -28,28 +30,7 @@
 
 namespace airtaudio {
 	//! Defined error types.
-	enum error {
-		error_none, //!< No error
-		error_fail, //!< An error occure in the operation
-		error_warning, //!< A non-critical error.
-		error_inputNull, //!< null input or internal errror
-		error_invalidUse, //!< The function was called incorrectly.
-		error_systemError //!< A system error occured.
-	};
 	
-	class Flags {
-		public:
-			bool m_minimizeLatency; // Simple example ==> TODO ...
-			Flags() :
-			  m_minimizeLatency(false) {
-				// nothing to do ...
-			}
-	};
-	enum status {
-		status_ok, //!< nothing...
-		status_overflow, //!< Internal buffer has more data than they can accept
-		status_underflow //!< The internal buffer is empty
-	};
 	/**
 	 * @brief RtAudio callback function prototype.
 	 *

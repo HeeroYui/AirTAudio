@@ -1,7 +1,8 @@
-/**
- * @author Edouard DUPIN
- * 
- * @license like MIT (see license file)
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
  */
 
 #if !defined(__AIRTAUDIO_API_CORE_IOS_H__) && defined(__IOS_CORE__)
@@ -46,6 +47,12 @@ namespace airtaudio {
 				                   int32_t _frameRate);
 			private:
 				CoreIosPrivate* m_private;
+				static OSStatus playbackCallback(void *_userData,
+				                                 AudioUnitRenderActionFlags* _ioActionFlags,
+				                                 const AudioTimeStamp* _inTimeStamp,
+				                                 uint32_t _inBusNumber,
+				                                 uint32_t _inNumberFrames,
+				                                 AudioBufferList* _ioData);
 		};
 	};
 };
