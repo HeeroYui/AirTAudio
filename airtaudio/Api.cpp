@@ -341,7 +341,6 @@ void airtaudio::Api::convertBuffer(char *_outBuffer, char *_inBuffer, airtaudio:
 	     && m_nDeviceChannels[0] < m_nDeviceChannels[1]) {
 		memset(_outBuffer, 0, m_bufferSize * _info.outJump * audio::getFormatBytes(_info.outFormat));
 	}
-	int j;
 	switch (audio::getFormatBytes(_info.outFormat)) {
 		case 1:
 			{

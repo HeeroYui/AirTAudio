@@ -373,7 +373,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	if (    m_deviceInterleaved[modeToIdTable(_mode)] == false
 	     && m_nUserChannels[modeToIdTable(_mode)] > 1) {
 		ATA_ERROR("Reorder channel for the interleaving properties ...");
-		//m_doConvertBuffer[modeToIdTable(_mode)] = true;
+		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
 	// Allocate our JackHandle structure for the stream.
 	if (handle == 0) {
