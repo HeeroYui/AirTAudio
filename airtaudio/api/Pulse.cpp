@@ -150,7 +150,7 @@ void airtaudio::api::Pulse::callbackEventOneCycle() {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return;
 	}
-	double streamTime = getStreamTime();
+	std::chrono::system_clock::time_point streamTime = getStreamTime();
 	enum airtaudio::status status = airtaudio::status_ok;
 	int32_t doStopStream = m_callbackInfo.callback(&m_userBuffer[airtaudio::modeToIdTable(airtaudio::mode_output)][0],
 	                                               &m_userBuffer[airtaudio::modeToIdTable(airtaudio::mode_input)][0],
@@ -211,6 +211,8 @@ unlock:
 }
 
 enum airtaudio::error airtaudio::api::Pulse::startStream() {
+	// TODO : Check return ...
+	airtaudio::Api::startStream();
 	if (m_state == airtaudio::state_closed) {
 		ATA_ERROR("the stream is not open!");
 		return airtaudio::error_invalidUse;

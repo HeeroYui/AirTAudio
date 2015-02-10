@@ -578,6 +578,8 @@ enum airtaudio::error airtaudio::api::Oss::closeStream() {
 }
 
 enum airtaudio::error airtaudio::api::Oss::startStream() {
+	// TODO : Check return ...
+	airtaudio::Api::startStream();
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
 	}
@@ -709,7 +711,7 @@ void airtaudio::api::Oss::callbackEvent() {
 	}
 	// Invoke user callback to get fresh output data.
 	int32_t doStopStream = 0;
-	double streamTime = getStreamTime();
+	std::chrono::system_clock::time_point streamTime = getStreamTime();
 	rtaudio::streamStatus status = 0;
 	if (    m_mode != airtaudio::mode_input
 	     && m_private->xrun[0] == true) {

@@ -91,6 +91,8 @@ enum airtaudio::error airtaudio::api::CoreIos::closeStream(void) {
 
 enum airtaudio::error airtaudio::api::CoreIos::startStream(void) {
 	ATA_INFO("Start Stream");
+	// TODO : Check return ...
+	airtaudio::Api::startStream();
 	OSStatus status = AudioOutputUnitStart(m_private->audioUnit);
 	// Can not close the stream now...
 	return airtaudio::error_none;
@@ -127,7 +129,7 @@ void airtaudio::api::CoreIos::callBackEvent(void* _data,
 	return;
 	#endif
 	int32_t doStopStream = 0;
-	double streamTime = getStreamTime();
+	std::chrono::system_clock::time_point streamTime = getStreamTime();
 	enum airtaudio::status status = airtaudio::status_ok;
 	if (m_doConvertBuffer[airtaudio::mode_output] == true) {
 		doStopStream = m_callbackInfo.callback(m_userBuffer[airtaudio::mode_output],

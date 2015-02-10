@@ -9,6 +9,7 @@
 #define __AIRTAUDIO_API_H__
 
 #include <sstream>
+#include <chrono>
 #include <airtaudio/debug.h>
 #include <airtaudio/type.h>
 #include <airtaudio/state.h>
@@ -46,12 +47,12 @@ namespace airtaudio {
 			                                 airtaudio::AirTAudioCallback _callback,
 			                                 airtaudio::StreamOptions* _options);
 			virtual enum airtaudio::error closeStream();
-			virtual enum airtaudio::error startStream() = 0;
+			virtual enum airtaudio::error startStream();
 			virtual enum airtaudio::error stopStream() = 0;
 			virtual enum airtaudio::error abortStream() = 0;
 			long getStreamLatency();
 			uint32_t getStreamSampleRate();
-			virtual double getStreamTime();
+			virtual std::chrono::time_point<std::chrono::system_clock> getStreamTime();
 			bool isStreamOpen() const {
 				return m_state != airtaudio::state_closed;
 			}
@@ -81,8 +82,10 @@ namespace airtaudio {
 			// TODO : Remove this ...
 			airtaudio::CallbackInfo m_callbackInfo;
 			airtaudio::ConvertInfo m_convertInfo[2];
-			// TODO : use : std::chrono::system_clock::time_point ...
-			double m_streamTime; // Number of elapsed seconds since the stream started.
+			
+			//std::chrono::system_clock::time_point
+			std::chrono::time_point<std::chrono::system_clock> m_startTime; //!< start time of the stream (restart at every stop, pause ...)
+			std::chrono::duration<int64_t, std::micro> m_duration; //!< duration from wich the stream is started
 			
 			/**
 			 * @brief api-specific method that attempts to open a device

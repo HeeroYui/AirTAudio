@@ -512,6 +512,8 @@ enum airtaudio::error airtaudio::api::Jack::closeStream() {
 }
 
 enum airtaudio::error airtaudio::api::Jack::startStream() {
+	// TODO : Check return ...
+	airtaudio::Api::startStream();
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
 	}
@@ -649,7 +651,7 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 	}
 	// Invoke user callback first, to get fresh output data.
 	if (m_private->drainCounter == 0) {
-		double streamTime = getStreamTime();
+		std::chrono::time_point<std::chrono::system_clock> streamTime = getStreamTime();
 		enum airtaudio::status status = airtaudio::status_ok;
 		if (m_mode != airtaudio::mode_input && m_private->xrun[0] == true) {
 			status = airtaudio::status_underflow;

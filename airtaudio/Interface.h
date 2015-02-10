@@ -266,9 +266,9 @@ namespace airtaudio {
 			 * @brief If a stream is not open, an RtError (type = INVALID_USE) will be thrown.
 			 * @return the number of elapsed seconds since the stream was started.
 			 */
-			double getStreamTime() {
+			std::chrono::time_point<std::chrono::system_clock> getStreamTime() {
 				if (m_rtapi == nullptr) {
-					return 0.0;
+					return std::chrono::time_point<std::chrono::system_clock>();
 				}
 				return m_rtapi->getStreamTime();
 			}

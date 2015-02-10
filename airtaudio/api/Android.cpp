@@ -85,6 +85,8 @@ enum airtaudio::error airtaudio::api::Android::closeStream() {
 
 enum airtaudio::error airtaudio::api::Android::startStream() {
 	ATA_INFO("Start Stream");
+	// TODO : Check return ...
+	airtaudio::Api::startStream();
 	// Can not close the stream now...
 	return airtaudio::error_none;
 }
@@ -108,7 +110,7 @@ enum airtaudio::error airtaudio::api::Android::abortStream() {
 void airtaudio::api::Android::callBackEvent(void* _data,
                                             int32_t _frameRate) {
 	int32_t doStopStream = 0;
-	double streamTime = getStreamTime();
+	std::chrono::system_clock::time_point streamTime = getStreamTime();
 	enum airtaudio::status status = airtaudio::status_ok;
 	if (m_doConvertBuffer[airtaudio::mode_output] == true) {
 		doStopStream = m_callbackInfo.callback(m_userBuffer[airtaudio::mode_output],

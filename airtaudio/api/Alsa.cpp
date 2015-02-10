@@ -771,6 +771,8 @@ enum airtaudio::error airtaudio::api::Alsa::closeStream() {
 }
 
 enum airtaudio::error airtaudio::api::Alsa::startStream() {
+	// TODO : Check return ...
+	airtaudio::Api::startStream();
 	// This method calls snd_pcm_prepare if the device isn't already in that state.
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
@@ -934,7 +936,7 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 		return; // TODO : notify appl: airtaudio::error_warning;
 	}
 	int32_t doStopStream = 0;
-	double streamTime = getStreamTime();
+	std::chrono::system_clock::time_point streamTime = getStreamTime();
 	enum airtaudio::status status = airtaudio::status_ok;
 	if (m_mode != airtaudio::mode_input && m_private->xrun[0] == true) {
 		status = airtaudio::status_underflow;

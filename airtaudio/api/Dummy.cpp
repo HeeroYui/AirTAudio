@@ -35,6 +35,8 @@ enum airtaudio::error airtaudio::api::Dummy::closeStream() {
 }
 
 enum airtaudio::error airtaudio::api::Dummy::startStream() {
+	// TODO : Check return ...
+	airtaudio::Api::startStream();
 	return airtaudio::error_none;
 }
 

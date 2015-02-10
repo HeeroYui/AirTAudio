@@ -43,7 +43,6 @@ const std::vector<uint32_t>& airtaudio::genericSampleRate() {
 
 
 airtaudio::Api::Api() :
-  m_apiHandle(nullptr),
   m_deviceBuffer(nullptr) {
 	m_device[0] = 11111;
 	m_device[1] = 11111;
@@ -53,6 +52,12 @@ airtaudio::Api::Api() :
 
 airtaudio::Api::~Api() {
 	
+}
+
+enum airtaudio::error airtaudio::Api::startStream() {
+	m_startTime = std::chrono::system_clock::now();
+	m_duration = std::chrono::duration<int64_t, std::micro>(0);
+	return airtaudio::error_none;
 }
 
 enum airtaudio::error airtaudio::Api::openStream(airtaudio::StreamParameters *oParams,
@@ -168,13 +173,7 @@ bool airtaudio::Api::probeDeviceOpen(uint32_t /*device*/,
 }
 
 void airtaudio::Api::tickStreamTime() {
-	// Subclasses that do not provide their own implementation of
-	// getStreamTime should call this function once per buffer I/O to
-	// provide basic stream time support.
-	m_streamTime += (m_bufferSize * 1.0 / m_sampleRate);
-#if defined(HAVE_GETTIMEOFDAY)
-	gettimeofday(&m_lastTickTimestamp, nullptr);
-#endif
+	m_duration += std::chrono::duration<int64_t, std::micro>((m_bufferSize * 1000000) / m_sampleRate);
 }
 
 long airtaudio::Api::getStreamLatency() {
@@ -193,26 +192,11 @@ long airtaudio::Api::getStreamLatency() {
 	return totalLatency;
 }
 
-double airtaudio::Api::getStreamTime() {
+std::chrono::system_clock::time_point airtaudio::Api::getStreamTime() {
 	if (verifyStream() != airtaudio::error_none) {
-		return 0.0f;
+		return std::chrono::system_clock::time_point();
 	}
-#if defined(HAVE_GETTIMEOFDAY)
-	// Return a very accurate estimate of the stream time by
-	// adding in the elapsed time since the last tick.
-	struct timeval then;
-	struct timeval now;
-	if (m_state != airtaudio::state_running || m_streamTime == 0.0) {
-		return m_streamTime;
-	}
-	gettimeofday(&now, nullptr);
-	then = m_lastTickTimestamp;
-	return   m_streamTime
-	       + ((now.tv_sec + 0.000001 * now.tv_usec)
-	       - (then.tv_sec + 0.000001 * then.tv_usec));
-#else
-	return m_streamTime;
-#endif
+	return m_startTime + m_duration;
 }
 
 uint32_t airtaudio::Api::getStreamSampleRate() {
@@ -237,8 +221,8 @@ void airtaudio::Api::clearStreamInfo() {
 	m_bufferSize = 0;
 	m_nBuffers = 0;
 	m_userFormat = audio::format_unknow;
-	m_streamTime = 0.0;
-	m_apiHandle = nullptr;
+	m_startTime = std::chrono::system_clock::time_point();
+	m_duration = std::chrono::duration<int64_t, std::micro>(0);
 	m_deviceBuffer = nullptr;
 	m_callbackInfo.callback = 0;
 	m_callbackInfo.isRunning = false;

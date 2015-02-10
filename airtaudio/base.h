@@ -32,9 +32,9 @@ namespace airtaudio {
 	//! Defined error types.
 	
 	/**
-	 * @brief RtAudio callback function prototype.
+	 * @brief airtaudio callback function prototype.
 	 *
-	 * All RtAudio clients must create a function of type RtAudioCallback
+	 * All airtaudio clients must create a function of type AirTAudioCallback
 	 * to read and/or write data from/to the audio stream. When the
 	 * underlying audio system is ready for new input or output data, this
 	 * function will be invoked.
@@ -51,11 +51,11 @@ namespace airtaudio {
 	 *          stream was opened.	For output-only streams, this argument
 	 *          will be nullptr.
 	 * 
-	 * @param _nFrames The number of sample frames of input or output
+	 * @param _nbChunk The number of chunk of input or output
 	 *          data in the buffers. The actual buffer size in bytes is
 	 *          dependent on the data type and number of channels in use.
 	 * 
-	 * @param _streamTime The number of seconds that have elapsed since the
+	 * @param _time The number of seconds that have elapsed since the
 	 *          stream was started.
 	 * 
 	 * @param _status If non-zero, this argument indicates a data overflow
@@ -70,8 +70,8 @@ namespace airtaudio {
 	 */
 	typedef std::function<int32_t (void* _outputBuffer,
 	                               void* _inputBuffer,
-	                               uint32_t _nFrames,
-	                               double _streamTime,
+	                               uint32_t _nbChunk,
+	                               const std::chrono::system_clock::time_point& _time,
 	                               airtaudio::status _status)> AirTAudioCallback;
 }
 

@@ -934,6 +934,8 @@ enum airtaudio::error airtaudio::api::Core::closeStream() {
 }
 
 enum airtaudio::error airtaudio::api::Core::startStream() {
+	// TODO : Check return ...
+	airtaudio::Api::startStream();
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
 	}
@@ -1058,7 +1060,7 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 	// draining stream or duplex mode AND the input/output devices are
 	// different AND this function is called for the input device.
 	if (m_private->drainCounter == 0 && (m_mode != airtaudio::mode_duplex || _deviceId == outputDevice)) {
-		double streamTime = getStreamTime();
+		std::chrono::system_clock::time_point streamTime = getStreamTime();
 		enum airtaudio::status status = airtaudio::status_ok;
 		if (    m_mode != airtaudio::mode_input
 		     && m_private->xrun[0] == true) {

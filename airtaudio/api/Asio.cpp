@@ -582,6 +582,8 @@ enum airtaudio::error airtaudio::api::Asio::closeStream() {
 bool stopThreadCalled = false;
 
 enum airtaudio::error airtaudio::api::Asio::startStream() {
+	// TODO : Check return ...
+	airtaudio::Api::startStream();
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
 	}
@@ -692,7 +694,7 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 	// Invoke user callback to get fresh output data UNLESS we are
 	// draining stream.
 	if (m_private->drainCounter == 0) {
-		double streamTime = getStreamTime();
+		std::chrono::system_clock::time_point streamTime = getStreamTime();
 		rtaudio::streamStatus status = 0;
 		if (m_mode != airtaudio::mode_input && asioXRun == true) {
 			status |= RTAUDIO_airtaudio::status_underflow;
