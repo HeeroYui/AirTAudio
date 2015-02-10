@@ -46,7 +46,7 @@ namespace airtaudio {
 				void callBackEvent(void* _data,
 				                   int32_t _frameRate);
 			private:
-				CoreIosPrivate* m_private;
+				std::unique_ptr<CoreIosPrivate> m_private;
 				static OSStatus playbackCallback(void *_userData,
 				                                 AudioUnitRenderActionFlags* _ioActionFlags,
 				                                 const AudioTimeStamp* _inTimeStamp,

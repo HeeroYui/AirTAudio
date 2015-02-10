@@ -24,49 +24,38 @@ airtaudio::Api* airtaudio::api::Core::Create() {
 #undef __class__
 #define __class__ "api::Core"
 
-// The OS X CoreAudio API is designed to use a separate callback
-// procedure for each of its audio devices.	A single RtAudio duplex
-// stream using two different devices is supported here, though it
-// cannot be guaranteed to always behave correctly because we cannot
-// synchronize these two callbacks.
-//
-// A property listener is installed for over/underrun information.
-// However, no functionality is currently provided to allow property
-// listeners to trigger user handlers because it is unclear what could
-// be done if a critical stream parameter (buffer size, sample rate,
-// device disconnect) notification arrived.	The listeners entail
-// quite a bit of extra code and most likely, a user program wouldn't
-// be prepared for the result anyway.	However, we do provide a flag
-// to the client callback function to inform of an over/underrun.
-
-// A structure to hold various information related to the CoreAudio API
-// implementation.
-struct CoreHandle {
-	AudioDeviceID id[2]; // device ids
-#if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
-	AudioDeviceIOProcID procId[2];
-#endif
-	uint32_t iStream[2]; // device stream index (or first if using multiple)
-	uint32_t nStreams[2]; // number of streams to use
-	bool xrun[2];
-	char *deviceBuffer;
-	std::condition_variable condition;
-	int32_t drainCounter; // Tracks callback counts when draining
-	bool internalDrain; // Indicates if stop is initiated from callback or not.
-	CoreHandle() :
-	  deviceBuffer(0),
-	  drainCounter(0),
-	  internalDrain(false) {
-		nStreams[0] = 1;
-		nStreams[1] = 1;
-		id[0] = 0;
-		id[1] = 0;
-		xrun[0] = false;
-		xrun[1] = false;
+namespace airtaudio {
+	namespace api {
+		class CorePrivate {
+			public:
+				AudioDeviceID id[2]; // device ids
+				#if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
+					AudioDeviceIOProcID procId[2];
+				#endif
+				uint32_t iStream[2]; // device stream index (or first if using multiple)
+				uint32_t nStreams[2]; // number of streams to use
+				bool xrun[2];
+				char *deviceBuffer;
+				std::condition_variable condition;
+				int32_t drainCounter; // Tracks callback counts when draining
+				bool internalDrain; // Indicates if stop is initiated from callback or not.
+				CorePrivate() :
+				  deviceBuffer(0),
+				  drainCounter(0),
+				  internalDrain(false) {
+					nStreams[0] = 1;
+					nStreams[1] = 1;
+					id[0] = 0;
+					id[1] = 0;
+					xrun[0] = false;
+					xrun[1] = false;
+				}
+		};
 	}
-};
+}
 
-airtaudio::api::Core::Core() {
+airtaudio::api::Core::Core() :
+  m_private(new airtaudio::api::CorePrivate()) {
 #if defined(AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER)
 	// This is a largely undocumented but absolutely necessary
 	// requirement starting with OS-X 10.6.	If not called, queries and
@@ -402,14 +391,14 @@ OSStatus airtaudio::api::Core::callbackEvent(AudioDeviceID _inDevice,
 static OSStatus xrunListener(AudioObjectID _inDevice,
                              uint32_t _nAddresses,
                              const AudioObjectPropertyAddress _properties[],
-                             void* _handlePointer) {
-	CoreHandle* handle = (CoreHandle*)_handlePointer;
+                             void* _userData) {
+	airtaudio::api::Core* myClass = reinterpret_cast<airtaudio::api::Core*>(_userData);
 	for (uint32_t i=0; i<_nAddresses; i++) {
 		if (_properties[i].mSelector == kAudioDeviceProcessorOverload) {
 			if (_properties[i].mScope == kAudioDevicePropertyScopeInput) {
-				handle->xrun[1] = true;
+				myClass->m_private->xrun[1] = true;
 			} else {
-				handle->xrun[0] = true;
+				myClass->m_private->xrun[0] = true;
 			}
 		}
 	}
@@ -803,21 +792,9 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	} else if (monoMode) {
 		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	// Allocate our CoreHandle structure for the stream.
-	CoreHandle *handle = 0;
-	if (m_apiHandle == 0) {
-		handle = new CoreHandle;
-		if (handle == nullptr) {
-			ATA_ERROR("error allocating CoreHandle memory.");
-			return false;
-		}
-		m_apiHandle = (void *) handle;
-	} else {
-		handle = (CoreHandle *) m_apiHandle;
-	}
-	handle->iStream[modeToIdTable(_mode)] = firstStream;
-	handle->nStreams[modeToIdTable(_mode)] = streamCount;
-	handle->id[modeToIdTable(_mode)] = id;
+	m_private->iStream[modeToIdTable(_mode)] = firstStream;
+	m_private->nStreams[modeToIdTable(_mode)] = streamCount;
+	m_private->id[modeToIdTable(_mode)] = id;
 	// Allocate necessary internal buffers.
 	uint64_t bufferBytes;
 	bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_userFormat);
@@ -832,7 +809,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	// "device buffers".	However, we can't do this if using multiple
 	// streams.
 	if (    m_doConvertBuffer[modeToIdTable(_mode)]
-	     && handle->nStreams[modeToIdTable(_mode)] > 1) {
+	     && m_private->nStreams[modeToIdTable(_mode)] > 1) {
 		bool makeBuffer = true;
 		bufferBytes = m_nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_deviceFormat[modeToIdTable(_mode)]);
 		if (_mode == airtaudio::mode_input) {
@@ -876,7 +853,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		m_mode = airtaudio::mode_duplex;
 	} else {
 #if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
-		result = AudioDeviceCreateIOProcID(id, &airtaudio::api::Core::callbackEvent, (void *) &m_callbackInfo, &handle->procId[modeToIdTable(_mode)]);
+		result = AudioDeviceCreateIOProcID(id, &airtaudio::api::Core::callbackEvent, (void *) &m_callbackInfo, &m_private->procId[modeToIdTable(_mode)]);
 #else
 		// deprecated in favor of AudioDeviceCreateIOProcID()
 		result = AudioDeviceAddIOProc(id, &airtaudio::api::Core::callbackEvent, (void *) &m_callbackInfo);
@@ -894,13 +871,9 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	}
 	// Setup the device property listener for over/underload.
 	property.mSelector = kAudioDeviceProcessorOverload;
-	result = AudioObjectAddPropertyListener(id, &property, xrunListener, (void *) handle);
+	result = AudioObjectAddPropertyListener(id, &property, xrunListener, this);
 	return true;
 error:
-	if (handle) {
-		delete handle;
-		m_apiHandle = 0;
-	}
 	for (int32_t i=0; i<2; i++) {
 		if (m_userBuffer[i]) {
 			free(m_userBuffer[i]);
@@ -920,30 +893,29 @@ enum airtaudio::error airtaudio::api::Core::closeStream() {
 		ATA_ERROR("no open stream to close!");
 		return airtaudio::error_warning;
 	}
-	CoreHandle *handle = (CoreHandle *) m_apiHandle;
 	if (    m_mode == airtaudio::mode_output
 	     || m_mode == airtaudio::mode_duplex) {
 		if (m_state == airtaudio::state_running) {
-			AudioDeviceStop(handle->id[0], &airtaudio::api::Core::callbackEvent);
+			AudioDeviceStop(m_private->id[0], &airtaudio::api::Core::callbackEvent);
 		}
 #if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
-		AudioDeviceDestroyIOProcID(handle->id[0], handle->procId[0]);
+		AudioDeviceDestroyIOProcID(m_private->id[0], m_private->procId[0]);
 #else
 		// deprecated in favor of AudioDeviceDestroyIOProcID()
-		AudioDeviceRemoveIOProc(handle->id[0], &airtaudio::api::Core::callbackEvent);
+		AudioDeviceRemoveIOProc(m_private->id[0], &airtaudio::api::Core::callbackEvent);
 #endif
 	}
 	if (    m_mode == airtaudio::mode_input
 	     || (    m_mode == airtaudio::mode_duplex
 	          && m_device[0] != m_device[1])) {
 		if (m_state == airtaudio::state_running) {
-			AudioDeviceStop(handle->id[1], &airtaudio::api::Core::callbackEvent);
+			AudioDeviceStop(m_private->id[1], &airtaudio::api::Core::callbackEvent);
 		}
 #if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
-		AudioDeviceDestroyIOProcID(handle->id[1], handle->procId[1]);
+		AudioDeviceDestroyIOProcID(m_private->id[1], m_private->procId[1]);
 #else
 		// deprecated in favor of AudioDeviceDestroyIOProcID()
-		AudioDeviceRemoveIOProc(handle->id[1], &airtaudio::api::Core::callbackEvent);
+		AudioDeviceRemoveIOProc(m_private->id[1], &airtaudio::api::Core::callbackEvent);
 #endif
 	}
 	for (int32_t i=0; i<2; i++) {
@@ -956,8 +928,6 @@ enum airtaudio::error airtaudio::api::Core::closeStream() {
 		free(m_deviceBuffer);
 		m_deviceBuffer = nullptr;
 	}
-	delete handle;
-	m_apiHandle = 0;
 	m_mode = airtaudio::mode_unknow;
 	m_state = airtaudio::state_closed;
 	return airtaudio::error_none;
@@ -972,10 +942,9 @@ enum airtaudio::error airtaudio::api::Core::startStream() {
 		return airtaudio::error_warning;
 	}
 	OSStatus result = noErr;
-	CoreHandle *handle = (CoreHandle *) m_apiHandle;
 	if (    m_mode == airtaudio::mode_output
 	     || m_mode == airtaudio::mode_duplex) {
-		result = AudioDeviceStart(handle->id[0], &airtaudio::api::Core::callbackEvent);
+		result = AudioDeviceStart(m_private->id[0], &airtaudio::api::Core::callbackEvent);
 		if (result != noErr) {
 			ATA_ERROR("system error (" << getErrorCode(result) << ") starting callback procedure on device (" << m_device[0] << ").");
 			goto unlock;
@@ -984,14 +953,14 @@ enum airtaudio::error airtaudio::api::Core::startStream() {
 	if (    m_mode == airtaudio::mode_input
 	     || (    m_mode == airtaudio::mode_duplex
 	          && m_device[0] != m_device[1])) {
-		result = AudioDeviceStart(handle->id[1], &airtaudio::api::Core::callbackEvent);
+		result = AudioDeviceStart(m_private->id[1], &airtaudio::api::Core::callbackEvent);
 		if (result != noErr) {
 			ATA_ERROR("system error starting input callback procedure on device (" << m_device[1] << ").");
 			goto unlock;
 		}
 	}
-	handle->drainCounter = 0;
-	handle->internalDrain = false;
+	m_private->drainCounter = 0;
+	m_private->internalDrain = false;
 	m_state = airtaudio::state_running;
 unlock:
 	if (result == noErr) {
@@ -1009,15 +978,14 @@ enum airtaudio::error airtaudio::api::Core::stopStream() {
 		return airtaudio::error_warning;
 	}
 	OSStatus result = noErr;
-	CoreHandle *handle = (CoreHandle *) m_apiHandle;
 	if (    m_mode == airtaudio::mode_output
 	     || m_mode == airtaudio::mode_duplex) {
-		if (handle->drainCounter == 0) {
+		if (m_private->drainCounter == 0) {
 			std::unique_lock<std::mutex> lck(m_mutex);
-			handle->drainCounter = 2;
-			handle->condition.wait(lck);
+			m_private->drainCounter = 2;
+			m_private->condition.wait(lck);
 		}
-		result = AudioDeviceStop(handle->id[0], &airtaudio::api::Core::callbackEvent);
+		result = AudioDeviceStop(m_private->id[0], &airtaudio::api::Core::callbackEvent);
 		if (result != noErr) {
 			ATA_ERROR("system error (" << getErrorCode(result) << ") stopping callback procedure on device (" << m_device[0] << ").");
 			goto unlock;
@@ -1026,7 +994,7 @@ enum airtaudio::error airtaudio::api::Core::stopStream() {
 	if (    m_mode == airtaudio::mode_input
 	     || (    m_mode == airtaudio::mode_duplex
 	          && m_device[0] != m_device[1])) {
-		result = AudioDeviceStop(handle->id[1], &airtaudio::api::Core::callbackEvent);
+		result = AudioDeviceStop(m_private->id[1], &airtaudio::api::Core::callbackEvent);
 		if (result != noErr) {
 			ATA_ERROR("system error (" << getErrorCode(result) << ") stopping input callback procedure on device (" << m_device[1] << ").");
 			goto unlock;
@@ -1048,8 +1016,7 @@ enum airtaudio::error airtaudio::api::Core::abortStream() {
 		ATA_ERROR("the stream is already stopped!");
 		return airtaudio::error_warning;
 	}
-	CoreHandle* handle = (CoreHandle*)m_apiHandle;
-	handle->drainCounter = 2;
+	m_private->drainCounter = 2;
 	return stopStream();
 }
 
@@ -1075,34 +1042,33 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		return false;
 	}
 	CallbackInfo *info = (CallbackInfo *) &m_callbackInfo;
-	CoreHandle *handle = (CoreHandle *) m_apiHandle;
 	// Check if we were draining the stream and signal is finished.
-	if (handle->drainCounter > 3) {
+	if (m_private->drainCounter > 3) {
 		m_state = airtaudio::state_stopping;
-		if (handle->internalDrain == true) {
+		if (m_private->internalDrain == true) {
 			new std::thread(&airtaudio::api::Core::coreStopStream, this);
 		} else {
 			// external call to stopStream()
-			handle->condition.notify_one();
+			m_private->condition.notify_one();
 		}
 		return true;
 	}
-	AudioDeviceID outputDevice = handle->id[0];
+	AudioDeviceID outputDevice = m_private->id[0];
 	// Invoke user callback to get fresh output data UNLESS we are
 	// draining stream or duplex mode AND the input/output devices are
 	// different AND this function is called for the input device.
-	if (handle->drainCounter == 0 && (m_mode != airtaudio::mode_duplex || _deviceId == outputDevice)) {
+	if (m_private->drainCounter == 0 && (m_mode != airtaudio::mode_duplex || _deviceId == outputDevice)) {
 		double streamTime = getStreamTime();
 		enum airtaudio::status status = airtaudio::status_ok;
 		if (    m_mode != airtaudio::mode_input
-		     && handle->xrun[0] == true) {
+		     && m_private->xrun[0] == true) {
 			status |= airtaudio::status_underflow;
-			handle->xrun[0] = false;
+			m_private->xrun[0] = false;
 		}
 		if (    m_mode != airtaudio::mode_output
-		     && handle->xrun[1] == true) {
+		     && m_private->xrun[1] == true) {
 			status |= airtaudio::mode_input_OVERFLOW;
-			handle->xrun[1] = false;
+			m_private->xrun[1] = false;
 		}
 		int32_t cbReturnValue = info->callback(m_userBuffer[0],
 		                                       m_userBuffer[1],
@@ -1111,42 +1077,42 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		                                       status);
 		if (cbReturnValue == 2) {
 			m_state = airtaudio::state_stopping;
-			handle->drainCounter = 2;
+			m_private->drainCounter = 2;
 			abortStream();
 			return true;
 		} else if (cbReturnValue == 1) {
-			handle->drainCounter = 1;
-			handle->internalDrain = true;
+			m_private->drainCounter = 1;
+			m_private->internalDrain = true;
 		}
 	}
 	if (    m_mode == airtaudio::mode_output
 	     || (    m_mode == airtaudio::mode_duplex
 	          && _deviceId == outputDevice)) {
-		if (handle->drainCounter > 1) {
+		if (m_private->drainCounter > 1) {
 			// write zeros to the output stream
-			if (handle->nStreams[0] == 1) {
-				memset(_outBufferList->mBuffers[handle->iStream[0]].mData,
+			if (m_private->nStreams[0] == 1) {
+				memset(_outBufferList->mBuffers[m_private->iStream[0]].mData,
 				       0,
-				       _outBufferList->mBuffers[handle->iStream[0]].mDataByteSize);
+				       _outBufferList->mBuffers[m_private->iStream[0]].mDataByteSize);
 			} else {
 				// fill multiple streams with zeros
-				for (uint32_t i=0; i<handle->nStreams[0]; i++) {
-					memset(_outBufferList->mBuffers[handle->iStream[0]+i].mData,
+				for (uint32_t i=0; i<m_private->nStreams[0]; i++) {
+					memset(_outBufferList->mBuffers[m_private->iStream[0]+i].mData,
 					       0,
-					       _outBufferList->mBuffers[handle->iStream[0]+i].mDataByteSize);
+					       _outBufferList->mBuffers[m_private->iStream[0]+i].mDataByteSize);
 				}
 			}
-		} else if (handle->nStreams[0] == 1) {
+		} else if (m_private->nStreams[0] == 1) {
 			if (m_doConvertBuffer[0]) {
 				// convert directly to CoreAudio stream buffer
-				convertBuffer((char*)_outBufferList->mBuffers[handle->iStream[0]].mData,
+				convertBuffer((char*)_outBufferList->mBuffers[m_private->iStream[0]].mData,
 				              m_userBuffer[0],
 				              m_convertInfo[0]);
 			} else {
 				// copy from user buffer
-				memcpy(_outBufferList->mBuffers[handle->iStream[0]].mData,
+				memcpy(_outBufferList->mBuffers[m_private->iStream[0]].mData,
 				       m_userBuffer[0],
-				       _outBufferList->mBuffers[handle->iStream[0]].mDataByteSize);
+				       _outBufferList->mBuffers[m_private->iStream[0]].mDataByteSize);
 			}
 		} else {
 			// fill multiple streams
@@ -1156,9 +1122,9 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 				inBuffer = (float *) m_deviceBuffer;
 			}
 			if (m_deviceInterleaved[0] == false) { // mono mode
-				uint32_t bufferBytes = _outBufferList->mBuffers[handle->iStream[0]].mDataByteSize;
+				uint32_t bufferBytes = _outBufferList->mBuffers[m_private->iStream[0]].mDataByteSize;
 				for (uint32_t i=0; i<m_nUserChannels[0]; i++) {
-					memcpy(_outBufferList->mBuffers[handle->iStream[0]+i].mData,
+					memcpy(_outBufferList->mBuffers[m_private->iStream[0]+i].mData,
 					       (void *)&inBuffer[i*m_bufferSize],
 					       bufferBytes);
 				}
@@ -1178,10 +1144,10 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 					inOffset = m_bufferSize;
 				}
 				channelsLeft = inChannels;
-				for (uint32_t i=0; i<handle->nStreams[0]; i++) {
+				for (uint32_t i=0; i<m_private->nStreams[0]; i++) {
 					in = inBuffer;
-					out = (float *) _outBufferList->mBuffers[handle->iStream[0]+i].mData;
-					streamChannels = _outBufferList->mBuffers[handle->iStream[0]+i].mNumberChannels;
+					out = (float *) _outBufferList->mBuffers[m_private->iStream[0]+i].mData;
+					streamChannels = _outBufferList->mBuffers[m_private->iStream[0]+i].mNumberChannels;
 					outJump = 0;
 					// Account for possible channel offset in first stream
 					if (i == 0 && m_channelOffset[0] > 0) {
@@ -1213,26 +1179,26 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 				}
 			}
 		}
-		if (handle->drainCounter) {
-			handle->drainCounter++;
+		if (m_private->drainCounter) {
+			m_private->drainCounter++;
 			goto unlock;
 		}
 	}
 	AudioDeviceID inputDevice;
-	inputDevice = handle->id[1];
+	inputDevice = m_private->id[1];
 	if (    m_mode == airtaudio::mode_input
 	     || (    m_mode == airtaudio::mode_duplex
 	          && _deviceId == inputDevice)) {
-		if (handle->nStreams[1] == 1) {
+		if (m_private->nStreams[1] == 1) {
 			if (m_doConvertBuffer[1]) {
 				// convert directly from CoreAudio stream buffer
 				convertBuffer(m_userBuffer[1],
-				              (char *) _inBufferList->mBuffers[handle->iStream[1]].mData,
+				              (char *) _inBufferList->mBuffers[m_private->iStream[1]].mData,
 				              m_convertInfo[1]);
 			} else { // copy to user buffer
 				memcpy(m_userBuffer[1],
-				       _inBufferList->mBuffers[handle->iStream[1]].mData,
-				       _inBufferList->mBuffers[handle->iStream[1]].mDataByteSize);
+				       _inBufferList->mBuffers[m_private->iStream[1]].mData,
+				       _inBufferList->mBuffers[m_private->iStream[1]].mDataByteSize);
 			}
 		} else { // read from multiple streams
 			float *outBuffer = (float *) m_userBuffer[1];
@@ -1241,10 +1207,10 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 			}
 			if (m_deviceInterleaved[1] == false) {
 				// mono mode
-				uint32_t bufferBytes = _inBufferList->mBuffers[handle->iStream[1]].mDataByteSize;
+				uint32_t bufferBytes = _inBufferList->mBuffers[m_private->iStream[1]].mDataByteSize;
 				for (uint32_t i=0; i<m_nUserChannels[1]; i++) {
 					memcpy((void *)&outBuffer[i*m_bufferSize],
-					       _inBufferList->mBuffers[handle->iStream[1]+i].mData,
+					       _inBufferList->mBuffers[m_private->iStream[1]+i].mData,
 					       bufferBytes);
 				}
 			} else {
@@ -1263,10 +1229,10 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 					outOffset = m_bufferSize;
 				}
 				channelsLeft = outChannels;
-				for (uint32_t i=0; i<handle->nStreams[1]; i++) {
+				for (uint32_t i=0; i<m_private->nStreams[1]; i++) {
 					out = outBuffer;
-					in = (float *) _inBufferList->mBuffers[handle->iStream[1]+i].mData;
-					streamChannels = _inBufferList->mBuffers[handle->iStream[1]+i].mNumberChannels;
+					in = (float *) _inBufferList->mBuffers[m_private->iStream[1]+i].mData;
+					streamChannels = _inBufferList->mBuffers[m_private->iStream[1]+i].mNumberChannels;
 					inJump = 0;
 					// Account for possible channel offset in first stream
 					if (i == 0 && m_channelOffset[1] > 0) {

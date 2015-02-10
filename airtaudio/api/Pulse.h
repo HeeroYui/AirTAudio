@@ -10,10 +10,12 @@
 
 namespace airtaudio {
 	namespace api {
+		class PulsePrivate;
 		class Pulse: public airtaudio::Api {
 			public:
 				static airtaudio::Api* Create();
 			public:
+				Pulse();
 				virtual ~Pulse();
 				enum airtaudio::type getCurrentApi() {
 					return airtaudio::type_pulse;
@@ -31,6 +33,7 @@ namespace airtaudio {
 				void callbackEventOneCycle();
 				void callbackEvent();
 			private:
+				std::unique_ptr<PulsePrivate> m_private;
 				std::vector<airtaudio::DeviceInfo> m_devices;
 				void saveDeviceInfo();
 				bool probeDeviceOpen(uint32_t _device,

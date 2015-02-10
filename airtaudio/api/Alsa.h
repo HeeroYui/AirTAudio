@@ -10,6 +10,7 @@
 
 namespace airtaudio {
 	namespace api {
+		class AlsaPrivate;
 		class Alsa: public airtaudio::Api {
 			public:
 				static airtaudio::Api* Create();
@@ -34,6 +35,7 @@ namespace airtaudio {
 			private:
 				static void alsaCallbackEvent(void* _userData);
 			private:
+				std::unique_ptr<AlsaPrivate> m_private;
 				std::vector<airtaudio::DeviceInfo> m_devices;
 				void saveDeviceInfo();
 				bool probeDeviceOpen(uint32_t _device,

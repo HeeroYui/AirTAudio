@@ -38,13 +38,13 @@ namespace airtaudio {
 			virtual airtaudio::DeviceInfo getDeviceInfo(uint32_t _device) = 0;
 			virtual uint32_t getDefaultInputDevice();
 			virtual uint32_t getDefaultOutputDevice();
-			enum airtaudio::error openStream(airtaudio::StreamParameters *_outputParameters,
-			                                 airtaudio::StreamParameters *_inputParameters,
+			enum airtaudio::error openStream(airtaudio::StreamParameters* _outputParameters,
+			                                 airtaudio::StreamParameters* _inputParameters,
 			                                 audio::format _format,
 			                                 uint32_t _sampleRate,
-			                                 uint32_t *_bufferFrames,
+			                                 uint32_t* _bufferFrames,
 			                                 airtaudio::AirTAudioCallback _callback,
-			                                 airtaudio::StreamOptions *_options);
+			                                 airtaudio::StreamOptions* _options);
 			virtual enum airtaudio::error closeStream();
 			virtual enum airtaudio::error startStream() = 0;
 			virtual enum airtaudio::error stopStream() = 0;
@@ -62,8 +62,6 @@ namespace airtaudio {
 		protected:
 			mutable std::mutex m_mutex;
 			uint32_t m_device[2]; // Playback and record, respectively.
-			// TODO : Remove this use derivative property of the c++ class ...
-			void *m_apiHandle; // void pointer for API specific stream handle information
 			enum airtaudio::mode m_mode; // airtaudio::mode_output, airtaudio::mode_input, or airtaudio::mode_duplex.
 			enum airtaudio::state m_state; // STOPPED, RUNNING, or CLOSED
 			std::vector<char> m_userBuffer[2]; // Playback and record, respectively.

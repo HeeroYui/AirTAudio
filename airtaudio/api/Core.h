@@ -12,6 +12,7 @@
 
 namespace airtaudio {
 	namespace api {
+		class CorePrivate;
 		class Core: public airtaudio::Api {
 			public:
 				static airtaudio::Api* Create();
@@ -46,6 +47,7 @@ namespace airtaudio {
 				                              void* _infoPointer);
 				void coreStopStream(void *_userData);
 			private:
+				std::unique_ptr<CorePrivate> m_private;
 				bool probeDeviceOpen(uint32_t _device,
 				                     airtaudio::mode _mode,
 				                     uint32_t _channels,

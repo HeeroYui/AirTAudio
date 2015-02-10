@@ -49,7 +49,6 @@ airtaudio::Api::Api() :
 	m_device[1] = 11111;
 	m_state = airtaudio::state_closed;
 	m_mode = airtaudio::mode_unknow;
-	m_apiHandle = 0;
 }
 
 airtaudio::Api::~Api() {

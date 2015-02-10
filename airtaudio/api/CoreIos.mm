@@ -38,7 +38,7 @@ namespace airtaudio {
 
 
 airtaudio::api::CoreIos::CoreIos(void) :
-  m_private(new airtaudio::api::CoreIosPrivate) {
+  m_private(new airtaudio::api::CoreIosPrivate()) {
 	ATA_INFO("new CoreIos");
 	int32_t deviceCount = 2;
 	ATA_ERROR("Get count devices : " << 2);

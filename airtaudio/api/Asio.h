@@ -10,6 +10,7 @@
 
 namespace airtaudio {
 	namespace api {
+		class AsioPrivate:
 		class Asio: public airtaudio::Api {
 			public:
 				static airtaudio::Api* Create();
@@ -32,6 +33,7 @@ namespace airtaudio {
 				// will most likely produce highly undesireable results!
 				bool callbackEvent(long _bufferIndex);
 			private:
+				std::unique_ptr<AsioPrivate> m_private;
 				std::vector<airtaudio::DeviceInfo> m_devices;
 				void saveDeviceInfo();
 				bool m_coInitialized;

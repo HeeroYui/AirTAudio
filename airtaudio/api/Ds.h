@@ -10,6 +10,7 @@
 
 namespace airtaudio {
 	namespace api {
+		class DsPrivate;
 		class Ds: public airtaudio::Api {
 			public:
 				static airtaudio::Api* Create();
@@ -34,6 +35,7 @@ namespace airtaudio {
 				// will most likely produce highly undesireable results!
 				void callbackEvent();
 			private:
+				std::unique_ptr<DsPrivate> m_private;
 				bool m_coInitialized;
 				bool m_buffersRolling;
 				long m_duplexPrerollBytes;

@@ -56,32 +56,36 @@ static inline DWORD dsPointerBetween(DWORD _pointer, DWORD _laterPointer, DWORD 
 	return _pointer >= _earlierPointer && _pointer < _laterPointer;
 }
 
-// A structure to hold various information related to the DirectSound
-// API implementation.
-struct DsHandle {
-	uint32_t drainCounter; // Tracks callback counts when draining
-	bool internalDrain; // Indicates if stop is initiated from callback or not.
-	void *id[2];
-	void *buffer[2];
-	bool xrun[2];
-	UINT bufferPointer[2];	
-	DWORD dsBufferSize[2];
-	DWORD dsPointerLeadTime[2]; // the number of bytes ahead of the safe pointer to lead by.
-	HANDLE condition;
 
-	DsHandle() :
-	  drainCounter(0),
-	  internalDrain(false) {
-		id[0] = 0;
-		id[1] = 0;
-		buffer[0] = 0;
-		buffer[1] = 0;
-		xrun[0] = false;
-		xrun[1] = false;
-		bufferPointer[0] = 0;
-		bufferPointer[1] = 0;
+namespace airtaudio {
+	namespace api {
+		class DsPrivate {
+			public:
+				uint32_t drainCounter; // Tracks callback counts when draining
+				bool internalDrain; // Indicates if stop is initiated from callback or not.
+				void *id[2];
+				void *buffer[2];
+				bool xrun[2];
+				UINT bufferPointer[2];	
+				DWORD dsBufferSize[2];
+				DWORD dsPointerLeadTime[2]; // the number of bytes ahead of the safe pointer to lead by.
+				HANDLE condition;
+				
+				DsPrivate() :
+				  drainCounter(0),
+				  internalDrain(false) {
+					id[0] = 0;
+					id[1] = 0;
+					buffer[0] = 0;
+					buffer[1] = 0;
+					xrun[0] = false;
+					xrun[1] = false;
+					bufferPointer[0] = 0;
+					bufferPointer[1] = 0;
+				}
+		};
 	}
-};
+}
 
 // Declarations for utility functions, callbacks, and structures
 // specific to the DirectSound implementation.
@@ -111,7 +115,8 @@ struct DsProbeData {
 	std::vector<struct DsDevice>* dsDevices;
 };
 
-airtaudio::api::Ds::Ds() {
+airtaudio::api::Ds::Ds() :
+  m_private(new airtaudio::api::DsPrivate()) {
 	// Dsound will run both-threaded. If CoInitialize fails, then just
 	// accept whatever the mainline chose for a threading model.
 	m_coInitialized = false;
@@ -755,26 +760,15 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 			}
 		}
 	}
-	// Allocate our DsHandle structures for the stream.
-	if (m_apiHandle == 0) {
-		handle = new DsHandle;
-		if (handle == nullptr) {
-			ATA_ERROR("error allocating AsioHandle memory.");
-			goto error;
-		}
-		// Create a manual-reset event.
-		handle->condition = CreateEvent(nullptr,  // no security
-		                                TRUE,  // manual-reset
-		                                FALSE, // non-signaled initially
-		                                nullptr); // unnamed
-		m_apiHandle = (void *) handle;
-	} else {
-		handle = (DsHandle *) m_apiHandle;
-	}
-	handle->id[modeToIdTable(_mode)] = ohandle;
-	handle->buffer[modeToIdTable(_mode)] = bhandle;
-	handle->dsBufferSize[modeToIdTable(_mode)] = dsBufferSize;
-	handle->dsPointerLeadTime[modeToIdTable(_mode)] = dsPointerLeadTime;
+	// Create a manual-reset event.
+	m_private->condition = CreateEvent(nullptr,  // no security
+	                                TRUE,  // manual-reset
+	                                FALSE, // non-signaled initially
+	                                nullptr); // unnamed
+	m_private->id[modeToIdTable(_mode)] = ohandle;
+	m_private->buffer[modeToIdTable(_mode)] = bhandle;
+	m_private->dsBufferSize[modeToIdTable(_mode)] = dsBufferSize;
+	m_private->dsPointerLeadTime[modeToIdTable(_mode)] = dsPointerLeadTime;
 	m_device[modeToIdTable(_mode)] = _device;
 	m_state = airtaudio::state_stopped;
 	if (    m_mode == airtaudio::mode_output
@@ -810,27 +804,23 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 	}
 	return true;
 error:
-	if (handle) {
-		if (handle->buffer[0]) {
-			// the object pointer can be nullptr and valid
-			LPDIRECTSOUND object = (LPDIRECTSOUND) handle->id[0];
-			LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) handle->buffer[0];
-			if (buffer) {
-				buffer->Release();
-			}
-			object->Release();
+	if (m_private->buffer[0]) {
+		// the object pointer can be nullptr and valid
+		LPDIRECTSOUND object = (LPDIRECTSOUND) m_private->id[0];
+		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
+		if (buffer) {
+			buffer->Release();
 		}
-		if (handle->buffer[1]) {
-			LPDIRECTSOUNDCAPTURE object = (LPDIRECTSOUNDCAPTURE) handle->id[1];
-			LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) handle->buffer[1];
-			if (buffer != nullptr) {
-				buffer->Release();
-			}
-		}
-		CloseHandle(handle->condition);
-		delete handle;
-		m_apiHandle = 0;
+		object->Release();
 	}
+	if (m_private->buffer[1]) {
+		LPDIRECTSOUNDCAPTURE object = (LPDIRECTSOUNDCAPTURE) m_private->id[1];
+		LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
+		if (buffer != nullptr) {
+			buffer->Release();
+		}
+	}
+	CloseHandle(m_private->condition);
 	for (int32_t i=0; i<2; i++) {
 		if (m_userBuffer[i]) {
 			free(m_userBuffer[i]);
@@ -854,30 +844,25 @@ enum airtaudio::error airtaudio::api::Ds::closeStream() {
 	m_callbackInfo.isRunning = false;
 	WaitForSingleObject((HANDLE) m_callbackInfo.thread, INFINITE);
 	CloseHandle((HANDLE) m_callbackInfo.thread);
-	DsHandle *handle = (DsHandle *) m_apiHandle;
-	if (handle) {
-		if (handle->buffer[0]) { // the object pointer can be nullptr and valid
-			LPDIRECTSOUND object = (LPDIRECTSOUND) handle->id[0];
-			LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) handle->buffer[0];
-			if (buffer) {
-				buffer->Stop();
-				buffer->Release();
-			}
-			object->Release();
+	if (m_private->buffer[0]) { // the object pointer can be nullptr and valid
+		LPDIRECTSOUND object = (LPDIRECTSOUND) m_private->id[0];
+		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
+		if (buffer) {
+			buffer->Stop();
+			buffer->Release();
 		}
-		if (handle->buffer[1]) {
-			LPDIRECTSOUNDCAPTURE object = (LPDIRECTSOUNDCAPTURE) handle->id[1];
-			LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) handle->buffer[1];
-			if (buffer) {
-				buffer->Stop();
-				buffer->Release();
-			}
-			object->Release();
-		}
-		CloseHandle(handle->condition);
-		delete handle;
-		m_apiHandle = 0;
+		object->Release();
 	}
+	if (m_private->buffer[1]) {
+		LPDIRECTSOUNDCAPTURE object = (LPDIRECTSOUNDCAPTURE) m_private->id[1];
+		LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
+		if (buffer) {
+			buffer->Stop();
+			buffer->Release();
+		}
+		object->Release();
+	}
+	CloseHandle(m_private->condition);
 	for (int32_t i=0; i<2; i++) {
 		if (m_userBuffer[i]) {
 			free(m_userBuffer[i]);
@@ -900,7 +885,6 @@ enum airtaudio::error airtaudio::api::Ds::startStream() {
 		ATA_ERROR("the stream is already running!");
 		return airtaudio::error_warning;
 	}
-	DsHandle *handle = (DsHandle *) m_apiHandle;
 	// Increase scheduler frequency on lesser windows (a side-effect of
 	// increasing timer accuracy).	On greater windows (Win2K or later),
 	// this is already in effect.
@@ -914,7 +898,7 @@ enum airtaudio::error airtaudio::api::Ds::startStream() {
 	HRESULT result = 0;
 	if (    m_mode == airtaudio::mode_output
 	     || m_mode == airtaudio::mode_duplex) {
-		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) handle->buffer[0];
+		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
 		result = buffer->Play(0, 0, DSBPLAY_LOOPING);
 		if (FAILED(result)) {
 			ATA_ERROR("error (" << getErrorString(result) << ") starting output buffer!");
@@ -923,16 +907,16 @@ enum airtaudio::error airtaudio::api::Ds::startStream() {
 	}
 	if (    m_mode == airtaudio::mode_input
 	     || m_mode == airtaudio::mode_duplex) {
-		LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) handle->buffer[1];
+		LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
 		result = buffer->Start(DSCBSTART_LOOPING);
 		if (FAILED(result)) {
 			ATA_ERROR("error (" << getErrorString(result) << ") starting input buffer!");
 			goto unlock;
 		}
 	}
-	handle->drainCounter = 0;
-	handle->internalDrain = false;
-	ResetEvent(handle->condition);
+	m_private->drainCounter = 0;
+	m_private->internalDrain = false;
+	ResetEvent(m_private->condition);
 	m_state = airtaudio::state_running;
 unlock:
 	if (FAILED(result)) {
@@ -952,16 +936,15 @@ enum airtaudio::error airtaudio::api::Ds::stopStream() {
 	HRESULT result = 0;
 	LPVOID audioPtr;
 	DWORD dataLen;
-	DsHandle *handle = (DsHandle *) m_apiHandle;
 	if (    m_mode == airtaudio::mode_output
 	     || m_mode == airtaudio::mode_duplex) {
-		if (handle->drainCounter == 0) {
-			handle->drainCounter = 2;
-			WaitForSingleObject(handle->condition, INFINITE);	// block until signaled
+		if (m_private->drainCounter == 0) {
+			m_private->drainCounter = 2;
+			WaitForSingleObject(m_private->condition, INFINITE);	// block until signaled
 		}
 		m_state = airtaudio::state_stopped;
 		// Stop the buffer and clear memory
-		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) handle->buffer[0];
+		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
 		result = buffer->Stop();
 		if (FAILED(result)) {
 			ATA_ERROR("error (" << getErrorString(result) << ") stopping output buffer!");
@@ -969,7 +952,7 @@ enum airtaudio::error airtaudio::api::Ds::stopStream() {
 		}
 		// Lock the buffer and clear it so that if we start to play again,
 		// we won't have old data playing.
-		result = buffer->Lock(0, handle->dsBufferSize[0], &audioPtr, &dataLen, nullptr, nullptr, 0);
+		result = buffer->Lock(0, m_private->dsBufferSize[0], &audioPtr, &dataLen, nullptr, nullptr, 0);
 		if (FAILED(result)) {
 			ATA_ERROR("error (" << getErrorString(result) << ") locking output buffer!");
 			goto unlock;
@@ -983,11 +966,11 @@ enum airtaudio::error airtaudio::api::Ds::stopStream() {
 			goto unlock;
 		}
 		// If we start playing again, we must begin at beginning of buffer.
-		handle->bufferPointer[0] = 0;
+		m_private->bufferPointer[0] = 0;
 	}
 	if (    m_mode == airtaudio::mode_input
 	     || m_mode == airtaudio::mode_duplex) {
-		LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) handle->buffer[1];
+		LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
 		audioPtr = nullptr;
 		dataLen = 0;
 		m_state = airtaudio::state_stopped;
@@ -998,7 +981,7 @@ enum airtaudio::error airtaudio::api::Ds::stopStream() {
 		}
 		// Lock the buffer and clear it so that if we start to play again,
 		// we won't have old data playing.
-		result = buffer->Lock(0, handle->dsBufferSize[1], &audioPtr, &dataLen, nullptr, nullptr, 0);
+		result = buffer->Lock(0, m_private->dsBufferSize[1], &audioPtr, &dataLen, nullptr, nullptr, 0);
 		if (FAILED(result)) {
 			ATA_ERROR("error (" << getErrorString(result) << ") locking input buffer!");
 			goto unlock;
@@ -1012,7 +995,7 @@ enum airtaudio::error airtaudio::api::Ds::stopStream() {
 			goto unlock;
 		}
 		// If we start recording again, we must begin at beginning of buffer.
-		handle->bufferPointer[1] = 0;
+		m_private->bufferPointer[1] = 0;
 	}
 unlock:
 	timeEndPeriod(1); // revert to normal scheduler frequency on lesser windows.
@@ -1030,8 +1013,7 @@ enum airtaudio::error airtaudio::api::Ds::abortStream() {
 		ATA_ERROR("the stream is already stopped!");
 		return airtaudio::error_warning;
 	}
-	DsHandle *handle = (DsHandle *) m_apiHandle;
-	handle->drainCounter = 2;
+	m_private->drainCounter = 2;
 	return stopStream();
 }
 
@@ -1045,12 +1027,11 @@ void airtaudio::api::Ds::callbackEvent() {
 		return;
 	}
 	CallbackInfo *info = (CallbackInfo *) &m_callbackInfo;
-	DsHandle *handle = (DsHandle *) m_apiHandle;
 	// Check if we were draining the stream and signal is finished.
-	if (handle->drainCounter > m_nBuffers + 2) {
+	if (m_private->drainCounter > m_nBuffers + 2) {
 		m_state = airtaudio::state_stopping;
-		if (handle->internalDrain == false) {
-			SetEvent(handle->condition);
+		if (m_private->internalDrain == false) {
+			SetEvent(m_private->condition);
 		} else {
 			stopStream();
 		}
@@ -1058,18 +1039,18 @@ void airtaudio::api::Ds::callbackEvent() {
 	}
 	// Invoke user callback to get fresh output data UNLESS we are
 	// draining stream.
-	if (handle->drainCounter == 0) {
+	if (m_private->drainCounter == 0) {
 		double streamTime = getStreamTime();
 		rtaudio::streamStatus status = 0;
 		if (    m_mode != airtaudio::mode_input
-		     && handle->xrun[0] == true) {
+		     && m_private->xrun[0] == true) {
 			status |= RTAUDIO_airtaudio::status_underflow;
-			handle->xrun[0] = false;
+			m_private->xrun[0] = false;
 		}
 		if (    m_mode != airtaudio::mode_output
-		     && handle->xrun[1] == true) {
+		     && m_private->xrun[1] == true) {
 			status |= RTAUDIO_airtaudio::mode_input_OVERFLOW;
-			handle->xrun[1] = false;
+			m_private->xrun[1] = false;
 		}
 		int32_t cbReturnValue = info->callback(m_userBuffer[0],
 		                                       m_userBuffer[1],
@@ -1078,12 +1059,12 @@ void airtaudio::api::Ds::callbackEvent() {
 		                                       status);
 		if (cbReturnValue == 2) {
 			m_state = airtaudio::state_stopping;
-			handle->drainCounter = 2;
+			m_private->drainCounter = 2;
 			abortStream();
 			return;
 		} else if (cbReturnValue == 1) {
-			handle->drainCounter = 1;
-			handle->internalDrain = true;
+			m_private->drainCounter = 1;
+			m_private->internalDrain = true;
 		}
 	}
 	HRESULT result;
@@ -1098,7 +1079,7 @@ void airtaudio::api::Ds::callbackEvent() {
 	long bufferBytes;
 	if (m_buffersRolling == false) {
 		if (m_mode == airtaudio::mode_duplex) {
-			//assert(handle->dsBufferSize[0] == handle->dsBufferSize[1]);
+			//assert(m_private->dsBufferSize[0] == m_private->dsBufferSize[1]);
 			// It takes a while for the devices to get rolling. As a result,
 			// there's no guarantee that the capture and write device pointers
 			// will move in lockstep.	Wait here for both devices to start
@@ -1111,8 +1092,8 @@ void airtaudio::api::Ds::callbackEvent() {
 			// Realtime priority, maybe; but I'm not sure what priority the
 			// DirectSound service threads run at. We *should* be roughly
 			// within a ms or so of correct.
-			LPDIRECTSOUNDBUFFER dsWriteBuffer = (LPDIRECTSOUNDBUFFER) handle->buffer[0];
-			LPDIRECTSOUNDCAPTUREBUFFER dsCaptureBuffer = (LPDIRECTSOUNDCAPTUREBUFFER) handle->buffer[1];
+			LPDIRECTSOUNDBUFFER dsWriteBuffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
+			LPDIRECTSOUNDCAPTUREBUFFER dsCaptureBuffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
 			DWORD startSafeWritePointer, startSafeReadPointer;
 			result = dsWriteBuffer->GetCurrentPosition(nullptr, &startSafeWritePointer);
 			if (FAILED(result)) {
@@ -1141,31 +1122,31 @@ void airtaudio::api::Ds::callbackEvent() {
 				}
 				Sleep(1);
 			}
-			//assert(handle->dsBufferSize[0] == handle->dsBufferSize[1]);
-			handle->bufferPointer[0] = safeWritePointer + handle->dsPointerLeadTime[0];
-			if (handle->bufferPointer[0] >= handle->dsBufferSize[0]) {
-				handle->bufferPointer[0] -= handle->dsBufferSize[0];
+			//assert(m_private->dsBufferSize[0] == m_private->dsBufferSize[1]);
+			m_private->bufferPointer[0] = safeWritePointer + m_private->dsPointerLeadTime[0];
+			if (m_private->bufferPointer[0] >= m_private->dsBufferSize[0]) {
+				m_private->bufferPointer[0] -= m_private->dsBufferSize[0];
 			}
-			handle->bufferPointer[1] = safeReadPointer;
+			m_private->bufferPointer[1] = safeReadPointer;
 		} else if (m_mode == airtaudio::mode_output) {
 			// Set the proper nextWritePosition after initial startup.
-			LPDIRECTSOUNDBUFFER dsWriteBuffer = (LPDIRECTSOUNDBUFFER) handle->buffer[0];
+			LPDIRECTSOUNDBUFFER dsWriteBuffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
 			result = dsWriteBuffer->GetCurrentPosition(&currentWritePointer, &safeWritePointer);
 			if (FAILED(result)) {
 				ATA_ERROR("error (" << getErrorString(result) << ") getting current write position!");
 				return;
 			}
-			handle->bufferPointer[0] = safeWritePointer + handle->dsPointerLeadTime[0];
-			if (handle->bufferPointer[0] >= handle->dsBufferSize[0]) {
-				handle->bufferPointer[0] -= handle->dsBufferSize[0];
+			m_private->bufferPointer[0] = safeWritePointer + m_private->dsPointerLeadTime[0];
+			if (m_private->bufferPointer[0] >= m_private->dsBufferSize[0]) {
+				m_private->bufferPointer[0] -= m_private->dsBufferSize[0];
 			}
 		}
 		m_buffersRolling = true;
 	}
 	if (    m_mode == airtaudio::mode_output
 	     || m_mode == airtaudio::mode_duplex) {
-		LPDIRECTSOUNDBUFFER dsBuffer = (LPDIRECTSOUNDBUFFER) handle->buffer[0];
-		if (handle->drainCounter > 1) { // write zeros to the output stream
+		LPDIRECTSOUNDBUFFER dsBuffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
+		if (m_private->drainCounter > 1) { // write zeros to the output stream
 			bufferBytes = m_bufferSize * m_nUserChannels[0];
 			bufferBytes *= audio::getFormatBytes(m_userFormat);
 			memset(m_userBuffer[0], 0, bufferBytes);
@@ -1190,8 +1171,8 @@ void airtaudio::api::Ds::callbackEvent() {
 				buffer[i] = (unsigned char) (buffer[i] + 128);
 			}
 		}
-		DWORD dsBufferSize = handle->dsBufferSize[0];
-		nextWritePointer = handle->bufferPointer[0];
+		DWORD dsBufferSize = m_private->dsBufferSize[0];
+		nextWritePointer = m_private->bufferPointer[0];
 		DWORD endWrite, leadPointer;
 		while (true) {
 			// Find out where the read and "safe write" pointers are.
@@ -1203,7 +1184,7 @@ void airtaudio::api::Ds::callbackEvent() {
 			// We will copy our output buffer into the region between
 			// safeWritePointer and leadPointer.	If leadPointer is not
 			// beyond the next endWrite position, wait until it is.
-			leadPointer = safeWritePointer + handle->dsPointerLeadTime[0];
+			leadPointer = safeWritePointer + m_private->dsPointerLeadTime[0];
 			//std::cout << "safeWritePointer = " << safeWritePointer << ", leadPointer = " << leadPointer << ", nextWritePointer = " << nextWritePointer << std::endl;
 			if (leadPointer > dsBufferSize) {
 				leadPointer -= dsBufferSize;
@@ -1229,12 +1210,12 @@ void airtaudio::api::Ds::callbackEvent() {
 		if (    dsPointerBetween(nextWritePointer, safeWritePointer, currentWritePointer, dsBufferSize)
 		     || dsPointerBetween(endWrite, safeWritePointer, currentWritePointer, dsBufferSize)) { 
 			// We've strayed into the forbidden zone ... resync the read pointer.
-			handle->xrun[0] = true;
-			nextWritePointer = safeWritePointer + handle->dsPointerLeadTime[0] - bufferBytes;
+			m_private->xrun[0] = true;
+			nextWritePointer = safeWritePointer + m_private->dsPointerLeadTime[0] - bufferBytes;
 			if (nextWritePointer >= dsBufferSize) {
 				nextWritePointer -= dsBufferSize;
 			}
-			handle->bufferPointer[0] = nextWritePointer;
+			m_private->bufferPointer[0] = nextWritePointer;
 			endWrite = nextWritePointer + bufferBytes;
 		}
 		// Lock free space in the buffer
@@ -1261,9 +1242,9 @@ void airtaudio::api::Ds::callbackEvent() {
 			return;
 		}
 		nextWritePointer = (nextWritePointer + bufferSize1 + bufferSize2) % dsBufferSize;
-		handle->bufferPointer[0] = nextWritePointer;
-		if (handle->drainCounter) {
-			handle->drainCounter++;
+		m_private->bufferPointer[0] = nextWritePointer;
+		if (m_private->drainCounter) {
+			m_private->drainCounter++;
 			goto unlock;
 		}
 	}
@@ -1279,9 +1260,9 @@ void airtaudio::api::Ds::callbackEvent() {
 			bufferBytes = m_bufferSize * m_nUserChannels[1];
 			bufferBytes *= audio::getFormatBytes(m_userFormat);
 		}
-		LPDIRECTSOUNDCAPTUREBUFFER dsBuffer = (LPDIRECTSOUNDCAPTUREBUFFER) handle->buffer[1];
-		long nextReadPointer = handle->bufferPointer[1];
-		DWORD dsBufferSize = handle->dsBufferSize[1];
+		LPDIRECTSOUNDCAPTUREBUFFER dsBuffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
+		long nextReadPointer = m_private->bufferPointer[1];
+		DWORD dsBufferSize = m_private->dsBufferSize[1];
 		// Find out where the write and "safe read" pointers are.
 		result = dsBuffer->GetCurrentPosition(&currentReadPointer, &safeReadPointer);
 		if (FAILED(result)) {
@@ -1310,7 +1291,7 @@ void airtaudio::api::Ds::callbackEvent() {
 				if (m_duplexPrerollBytes <= 0) {
 					// Pre-roll time over. Be more agressive.
 					int32_t adjustment = endRead-safeReadPointer;
-					handle->xrun[1] = true;
+					m_private->xrun[1] = true;
 					// Two cases:
 					//	 - large adjustments: we've probably run out of CPU cycles, so just resync exactly,
 					//		 and perform fine adjustments later.
@@ -1386,7 +1367,7 @@ void airtaudio::api::Ds::callbackEvent() {
 			ATA_ERROR("error (" << getErrorString(result) << ") unlocking capture buffer!");
 			return;
 		}
-		handle->bufferPointer[1] = nextReadPointer;
+		m_private->bufferPointer[1] = nextReadPointer;
 		// No byte swapping necessary in DirectSound implementation.
 		// If necessary, convert 8-bit data from unsigned to signed.
 		if (m_deviceFormat[1] == RTAUDIO_SINT8) {

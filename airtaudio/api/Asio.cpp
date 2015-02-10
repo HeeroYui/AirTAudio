@@ -47,25 +47,31 @@ static ASIODriverInfo driverInfo;
 static CallbackInfo *asioCallbackInfo;
 static bool asioXRun;
 
-struct AsioHandle {
-	int32_t drainCounter; // Tracks callback counts when draining
-	bool internalDrain; // Indicates if stop is initiated from callback or not.
-	ASIOBufferInfo *bufferInfos;
-	HANDLE condition;
-	AsioHandle() :
-	  drainCounter(0),
-	  internalDrain(false),
-	  bufferInfos(0) {
-		
+namespace airtaudio {
+	namespace api {
+		class AsioPrivate {
+			public:
+				int32_t drainCounter; // Tracks callback counts when draining
+				bool internalDrain; // Indicates if stop is initiated from callback or not.
+				ASIOBufferInfo *bufferInfos;
+				HANDLE condition;
+				AsioPrivate() :
+				  drainCounter(0),
+				  internalDrain(false),
+				  bufferInfos(0) {
+					
+				}
+		};
 	}
-};
+}
 
 // Function declarations (definitions at end of section)
 static const char* getAsioErrorString(ASIOError _result);
 static void sampleRateChanged(ASIOSampleRate _sRate);
 static long asioMessages(long _selector, long _value, void* _message, double* _opt);
 
-airtaudio::api::Asio::Asio() {
+airtaudio::api::Asio::Asio() :
+  m_private(new airtaudio::api::AsioPrivate()) {
 	// ASIO cannot run on a multi-threaded appartment. You can call
 	// CoInitialize beforehand, but it must be for appartment threading
 	// (in which case, CoInitilialize will return S_FALSE here).
@@ -403,23 +409,12 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 	m_nBuffers = 2;
 	// ASIO always uses non-interleaved buffers.
 	m_deviceInterleaved[modeToIdTable(_mode)] = false;
-	// Allocate, if necessary, our AsioHandle structure for the stream.
-	AsioHandle *handle = (AsioHandle *) m_apiHandle;
-	if (handle == nullptr) {
-		handle = new AsioHandle;
-		if (handle == nullptr) {
-			drivers.removeCurrentDriver();
-			ATA_ERROR("error allocating AsioHandle memory.");
-			return false;
-		}
-		handle->bufferInfos = 0;
-		// Create a manual-reset event.
-		handle->condition = CreateEvent(nullptr,  // no security
-		                                TRUE,  // manual-reset
-		                                FALSE, // non-signaled initially
-		                                nullptr); // unnamed
-		m_apiHandle = (void *) handle;
-	}
+	m_private->bufferInfos = 0;
+	// Create a manual-reset event.
+	m_private->condition = CreateEvent(nullptr,  // no security
+	                                   TRUE,  // manual-reset
+	                                   FALSE, // non-signaled initially
+	                                   nullptr); // unnamed
 	// Create the ASIO internal buffers.	Since RtAudio sets up input
 	// and output separately, we'll have to dispose of previously
 	// created output buffers for a duplex stream.
@@ -427,21 +422,21 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 	if (    _mode == airtaudio::mode_input
 	     && m_mode == airtaudio::mode_output) {
 		ASIODisposeBuffers();
-		if (handle->bufferInfos == nullptr) {
-			free(handle->bufferInfos);
-			handle->bufferInfos = nullptr;
+		if (m_private->bufferInfos == nullptr) {
+			free(m_private->bufferInfos);
+			m_private->bufferInfos = nullptr;
 		}
 	}
 	// Allocate, initialize, and save the bufferInfos in our stream callbackInfo structure.
 	bool buffersAllocated = false;
 	uint32_t i, nChannels = m_nDeviceChannels[0] + m_nDeviceChannels[1];
-	handle->bufferInfos = (ASIOBufferInfo *) malloc(nChannels * sizeof(ASIOBufferInfo));
-	if (handle->bufferInfos == nullptr) {
+	m_private->bufferInfos = (ASIOBufferInfo *) malloc(nChannels * sizeof(ASIOBufferInfo));
+	if (m_private->bufferInfos == nullptr) {
 		ATA_ERROR("error allocating bufferInfo memory for driver (" << driverName << ").");
 		goto error;
 	}
 	ASIOBufferInfo *infos;
-	infos = handle->bufferInfos;
+	infos = m_private->bufferInfos;
 	for (i=0; i<m_nDeviceChannels[0]; i++, infos++) {
 		infos->isInput = ASIOFalse;
 		infos->channelNum = i + m_channelOffset[0];
@@ -457,7 +452,7 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 	asioCallbacks.sampleRateDidChange = &sampleRateChanged;
 	asioCallbacks.asioMessage = &asioMessages;
 	asioCallbacks.bufferSwitchTimeInfo = nullptr;
-	result = ASIOCreateBuffers(handle->bufferInfos, nChannels, m_bufferSize, &asioCallbacks);
+	result = ASIOCreateBuffers(m_private->bufferInfos, nChannels, m_bufferSize, &asioCallbacks);
 	if (result != ASE_OK) {
 		ATA_ERROR("driver (" << driverName << ") error (" << getAsioErrorString(result) << ") creating buffers.");
 		goto error;
@@ -536,15 +531,10 @@ error:
 		ASIODisposeBuffers();
 	}
 	drivers.removeCurrentDriver();
-	if (handle) {
-		CloseHandle(handle->condition);
-		if (handle->bufferInfos) {
-			free(handle->bufferInfos);
-			handle->bufferInfos = nullptr;
-		}
-		delete handle;
-		handle = nullptr;
-		m_apiHandle = 0;
+	CloseHandle(m_private->condition);
+	if (m_private->bufferInfos != nullptr) {
+		free(m_private->bufferInfos);
+		m_private->bufferInfos = nullptr;
 	}
 	for (int32_t i=0; i<2; i++) {
 		if (m_userBuffer[i]) {
@@ -570,14 +560,9 @@ enum airtaudio::error airtaudio::api::Asio::closeStream() {
 	}
 	ASIODisposeBuffers();
 	drivers.removeCurrentDriver();
-	AsioHandle *handle = (AsioHandle *) m_apiHandle;
-	if (handle) {
-		CloseHandle(handle->condition);
-		if (handle->bufferInfos) {
-			free(handle->bufferInfos);
-		}
-		delete handle;
-		m_apiHandle = 0;
+	CloseHandle(m_private->condition);
+	if (m_private->bufferInfos) {
+		free(m_private->bufferInfos);
 	}
 	for (int32_t i=0; i<2; i++) {
 		if (m_userBuffer[i]) {
@@ -604,15 +589,14 @@ enum airtaudio::error airtaudio::api::Asio::startStream() {
 		ATA_ERROR("the stream is already running!");
 		return airtaudio::error_warning;
 	}
-	AsioHandle *handle = (AsioHandle *) m_apiHandle;
 	ASIOError result = ASIOStart();
 	if (result != ASE_OK) {
 		ATA_ERROR("error (" << getAsioErrorString(result) << ") starting device.");
 		goto unlock;
 	}
-	handle->drainCounter = 0;
-	handle->internalDrain = false;
-	ResetEvent(handle->condition);
+	m_private->drainCounter = 0;
+	m_private->internalDrain = false;
+	ResetEvent(m_private->condition);
 	m_state = airtaudio::state_running;
 	asioXRun = false;
 unlock:
@@ -631,11 +615,10 @@ enum airtaudio::error airtaudio::api::Asio::stopStream() {
 		ATA_ERROR("the stream is already stopped!");
 		return airtaudio::error_warning;
 	}
-	AsioHandle *handle = (AsioHandle *) m_apiHandle;
 	if (m_mode == airtaudio::mode_output || m_mode == airtaudio::mode_duplex) {
-		if (handle->drainCounter == 0) {
-			handle->drainCounter = 2;
-			WaitForSingleObject(handle->condition, INFINITE);	// block until signaled
+		if (m_private->drainCounter == 0) {
+			m_private->drainCounter = 2;
+			WaitForSingleObject(m_private->condition, INFINITE);	// block until signaled
 		}
 	}
 	m_state = airtaudio::state_stopped;
@@ -663,7 +646,6 @@ enum airtaudio::error airtaudio::api::Asio::abortStream() {
 	// noted where the device buffers need to be zeroed to avoid
 	// continuing sound, even when the device buffers are completely
 	// disposed.	So now, calling abort is the same as calling stop.
-	// AsioHandle *handle = (AsioHandle *) m_apiHandle;
 	// handle->drainCounter = 2;
 	return stopStream();
 }
@@ -691,22 +673,25 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 		return false;
 	}
 	CallbackInfo *info = (CallbackInfo *) &m_callbackInfo;
-	AsioHandle *handle = (AsioHandle *) m_apiHandle;
 	// Check if we were draining the stream and signal if finished.
-	if (handle->drainCounter > 3) {
+	if (m_private->drainCounter > 3) {
 		m_state = airtaudio::state_stopping;
-		if (handle->internalDrain == false) {
-			SetEvent(handle->condition);
+		if (m_private->internalDrain == false) {
+			SetEvent(m_private->condition);
 		} else { // spawn a thread to stop the stream
 			unsigned threadId;
-			m_callbackInfo.thread = _beginthreadex(nullptr, 0, &asioStopStream,
-			                                              &m_callbackInfo, 0, &threadId);
+			m_callbackInfo.thread = _beginthreadex(nullptr,
+			                                       0,
+			                                       &asioStopStream,
+			                                       &m_callbackInfo,
+			                                       0,
+			                                       &threadId);
 		}
 		return true;
 	}
 	// Invoke user callback to get fresh output data UNLESS we are
 	// draining stream.
-	if (handle->drainCounter == 0) {
+	if (m_private->drainCounter == 0) {
 		double streamTime = getStreamTime();
 		rtaudio::streamStatus status = 0;
 		if (m_mode != airtaudio::mode_input && asioXRun == true) {
@@ -724,7 +709,7 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 		                                       status);
 		if (cbReturnValue == 2) {
 			m_state = airtaudio::state_stopping;
-			handle->drainCounter = 2;
+			m_private->drainCounter = 2;
 			unsigned threadId;
 			m_callbackInfo.thread = _beginthreadex(nullptr,
 			                                              0,
@@ -734,8 +719,8 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 			                                              &threadId);
 			return true;
 		} else if (cbReturnValue == 1) {
-			handle->drainCounter = 1;
-			handle->internalDrain = true;
+			m_private->drainCounter = 1;
+			m_private->internalDrain = true;
 		}
 	}
 	uint32_t nChannels, bufferBytes, i, j;
@@ -743,10 +728,10 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 	if (    m_mode == airtaudio::mode_output
 	     || m_mode == airtaudio::mode_duplex) {
 		bufferBytes = m_bufferSize * audio::getFormatBytes(m_deviceFormat[0]);
-		if (handle->drainCounter > 1) { // write zeros to the output stream
+		if (m_private->drainCounter > 1) { // write zeros to the output stream
 			for (i=0, j=0; i<nChannels; i++) {
-				if (handle->bufferInfos[i].isInput != ASIOTrue) {
-					memset(handle->bufferInfos[i].buffers[bufferIndex], 0, bufferBytes);
+				if (m_private->bufferInfos[i].isInput != ASIOTrue) {
+					memset(m_private->bufferInfos[i].buffers[bufferIndex], 0, bufferBytes);
 				}
 			}
 		} else if (m_doConvertBuffer[0]) {
@@ -757,8 +742,8 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 				               m_deviceFormat[0]);
 			}
 			for (i=0, j=0; i<nChannels; i++) {
-				if (handle->bufferInfos[i].isInput != ASIOTrue) {
-					memcpy(handle->bufferInfos[i].buffers[bufferIndex],
+				if (m_private->bufferInfos[i].isInput != ASIOTrue) {
+					memcpy(m_private->bufferInfos[i].buffers[bufferIndex],
 					       &m_deviceBuffer[j++*bufferBytes],
 					       bufferBytes);
 				}
@@ -770,15 +755,15 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 				               m_userFormat);
 			}
 			for (i=0, j=0; i<nChannels; i++) {
-				if (handle->bufferInfos[i].isInput != ASIOTrue) {
-					memcpy(handle->bufferInfos[i].buffers[bufferIndex],
+				if (m_private->bufferInfos[i].isInput != ASIOTrue) {
+					memcpy(m_private->bufferInfos[i].buffers[bufferIndex],
 					       &m_userBuffer[0][bufferBytes*j++],
 					       bufferBytes);
 				}
 			}
 		}
-		if (handle->drainCounter) {
-			handle->drainCounter++;
+		if (m_private->drainCounter) {
+			m_private->drainCounter++;
 			goto unlock;
 		}
 	}
@@ -788,9 +773,9 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 		if (m_doConvertBuffer[1]) {
 			// Always interleave ASIO input data.
 			for (i=0, j=0; i<nChannels; i++) {
-				if (handle->bufferInfos[i].isInput == ASIOTrue) {
+				if (m_private->bufferInfos[i].isInput == ASIOTrue) {
 					memcpy(&m_deviceBuffer[j++*bufferBytes],
-					       handle->bufferInfos[i].buffers[bufferIndex],
+					       m_private->bufferInfos[i].buffers[bufferIndex],
 					       bufferBytes);
 				}
 			}
@@ -804,9 +789,9 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 			              m_convertInfo[1]);
 		} else {
 			for (i=0, j=0; i<nChannels; i++) {
-				if (handle->bufferInfos[i].isInput == ASIOTrue) {
+				if (m_private->bufferInfos[i].isInput == ASIOTrue) {
 					memcpy(&m_userBuffer[1][bufferBytes*j++],
-					       handle->bufferInfos[i].buffers[bufferIndex],
+					       m_private->bufferInfos[i].buffers[bufferIndex],
 					       bufferBytes);
 				}
 			}
