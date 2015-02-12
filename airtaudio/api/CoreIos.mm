@@ -69,8 +69,6 @@ airtaudio::api::CoreIos::CoreIos(void) :
 airtaudio::api::CoreIos::~CoreIos(void) {
 	ATA_INFO("Destroy CoreIOs interface");
 	AudioUnitUninitialize(m_private->audioUnit);
-	delete m_private;
-	m_private = nullptr;
 }
 
 uint32_t airtaudio::api::CoreIos::getDeviceCount(void) {
@@ -131,13 +129,13 @@ void airtaudio::api::CoreIos::callBackEvent(void* _data,
 	int32_t doStopStream = 0;
 	std::chrono::system_clock::time_point streamTime = getStreamTime();
 	enum airtaudio::status status = airtaudio::status_ok;
-	if (m_doConvertBuffer[airtaudio::mode_output] == true) {
-		doStopStream = m_callbackInfo.callback(m_userBuffer[airtaudio::mode_output],
+	if (m_doConvertBuffer[modeToIdTable(airtaudio::mode_output)] == true) {
+		doStopStream = m_callbackInfo.callback(&m_userBuffer[modeToIdTable(airtaudio::mode_output)][0],
 		                                              nullptr,
 		                                              _frameRate,
 		                                              streamTime,
 		                                              status);
-		convertBuffer((char*)_data, (char*)m_userBuffer[airtaudio::mode_output], m_convertInfo[airtaudio::mode_output]);
+		convertBuffer((char*)_data, &m_userBuffer[modeToIdTable(airtaudio::mode_output)][0], m_convertInfo[modeToIdTable(airtaudio::mode_output)]);
 	} else {
 		doStopStream = m_callbackInfo.callback(_data,
 		                                              nullptr,
@@ -152,12 +150,13 @@ void airtaudio::api::CoreIos::callBackEvent(void* _data,
 	airtaudio::Api::tickStreamTime();
 }
 
-OSStatus airtaudio::api::CoreIos::playbackCallback(void *_userData,
-                                 AudioUnitRenderActionFlags* _ioActionFlags,
-                                 const AudioTimeStamp* _inTimeStamp,
-                                 uint32_t _inBusNumber,
-                                 uint32_t _inNumberFrames,
-                                 AudioBufferList* _ioData) {
+
+static OSStatus playbackCallback(void *_userData,
+								      AudioUnitRenderActionFlags* _ioActionFlags,
+									  const AudioTimeStamp* _inTimeStamp,
+								      uint32_t _inBusNumber,
+								      uint32_t _inNumberFrames,
+								      AudioBufferList* _ioData) {
 	if (_userData == nullptr) {
 		ATA_ERROR("callback event ... nullptr pointer");
 		return -1;
@@ -197,7 +196,7 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
 	m_doByteSwap[modeToIdTable(_mode)] = false; // for endienness ...
 	
 	// TODO : For now, we write it in hard ==> to be update later ...
-	m_deviceFormat[modeToIdTable(_mode)] = SINT16;
+	m_deviceFormat[modeToIdTable(_mode)] = audio::format_int16;
 	m_nDeviceChannels[modeToIdTable(_mode)] = 2;
 	m_deviceInterleaved[modeToIdTable(_mode)] =	true;
 	
@@ -215,8 +214,8 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
 	if (m_doConvertBuffer[modeToIdTable(_mode)] == true) {
 		// Allocate necessary internal buffers.
 		uint64_t bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * m_bufferSize * audio::getFormatBytes(m_userFormat);
-		m_userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
-		if (m_userBuffer[modeToIdTable(_mode)] == nullptr) {
+		m_userBuffer[modeToIdTable(_mode)].resize(bufferBytes, 0);
+		if (m_userBuffer[modeToIdTable(_mode)].size() == 0) {
 			ATA_ERROR("error allocating user buffer memory.");
 		}
 		setConvertInfo(_mode, _firstChannel);
@@ -285,7 +284,7 @@ bool airtaudio::api::CoreIos::probeDeviceOpen(uint32_t _device,
 	
 	// Set output callback
 	AURenderCallbackStruct callbackStruct;
-	callbackStruct.inputProc = &airtaudio::api::CoreIos::playbackCallback;
+	callbackStruct.inputProc = &playbackCallback;
 	callbackStruct.inputProcRefCon = this;
 	status = AudioUnitSetProperty(m_private->audioUnit, 
 								  kAudioUnitProperty_SetRenderCallback, 

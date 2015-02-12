@@ -346,9 +346,10 @@ airtaudio::DeviceInfo airtaudio::api::Core::getDeviceInfo(uint32_t _device) {
 		}
 	}
 	info.sampleRates.clear();
-	for (uint32_t k=0; k<MAX_SAMPLE_RATES; k++) {
-		if (SAMPLE_RATES[k] >= (uint32_t) minimumRate && SAMPLE_RATES[k] <= (uint32_t) maximumRate) {
-			info.sampleRates.push_back(SAMPLE_RATES[k]);
+	for (auto &it : airtaudio::genericSampleRate()) {
+		if (    it >= minimumRate
+			 && it <= maximumRate) {
+			info.sampleRates.push_back(it);
 		}
 	}
 	if (info.sampleRates.size() == 0) {
@@ -388,10 +389,10 @@ OSStatus airtaudio::api::Core::callbackEvent(AudioDeviceID _inDevice,
 	}
 }
 
-static OSStatus xrunListener(AudioObjectID _inDevice,
-                             uint32_t _nAddresses,
-                             const AudioObjectPropertyAddress _properties[],
-                             void* _userData) {
+OSStatus airtaudio::api::Core::xrunListener(AudioObjectID _inDevice,
+                                            uint32_t _nAddresses,
+                                            const AudioObjectPropertyAddress _properties[],
+                                            void* _userData) {
 	airtaudio::api::Core* myClass = reinterpret_cast<airtaudio::api::Core*>(_userData);
 	for (uint32_t i=0; i<_nAddresses; i++) {
 		if (_properties[i].mSelector == kAudioDeviceProcessorOverload) {
@@ -406,9 +407,9 @@ static OSStatus xrunListener(AudioObjectID _inDevice,
 }
 
 static OSStatus rateListener(AudioObjectID _inDevice,
-                             uint32_t _nAddresses,
-                             const AudioObjectPropertyAddress _properties[],
-                             void* _ratePointer) {
+							 UInt32 _nAddresses,
+							 const AudioObjectPropertyAddress _properties[],
+							 void* _ratePointer) {
 	double *rate = (double*)_ratePointer;
 	uint32_t dataSize = sizeof(double);
 	AudioObjectPropertyAddress property = {
@@ -593,26 +594,6 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	}
 	m_bufferSize = *_bufferSize;
 	m_nBuffers = 1;
-	// Try to set "hog" mode ... it's not clear to me this is working.
-	if (    _options != nullptr
-	     && _options->flags & HOG_DEVICE) {
-		pid_t hog_pid;
-		dataSize = sizeof(hog_pid);
-		property.mSelector = kAudioDevicePropertyHogMode;
-		result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &hog_pid);
-		if (result != noErr) {
-			ATA_ERROR("system error (" << getErrorCode(result) << ") getting 'hog' state!");
-			return false;
-		}
-		if (hog_pid != getpid()) {
-			hog_pid = getpid();
-			result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &hog_pid);
-			if (result != noErr) {
-				ATA_ERROR("system error (" << getErrorCode(result) << ") setting 'hog' state!");
-				return false;
-			}
-		}
-	}
 	// Check and if necessary, change the sample rate for the device.
 	double nominalRate;
 	dataSize = sizeof(double);
@@ -627,7 +608,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		// Set a property listener for the sample rate change
 		double reportedRate = 0.0;
 		AudioObjectPropertyAddress tmp = { kAudioDevicePropertyNominalSampleRate, kAudioObjectPropertyScopeGlobal, kAudioObjectPropertyElementMaster };
-		result = AudioObjectAddPropertyListener(id, &tmp, rateListener, (void *) &reportedRate);
+		result = AudioObjectAddPropertyListener(id, &tmp, &rateListener, (void *) &reportedRate);
 		if (result != noErr) {
 			ATA_ERROR("system error (" << getErrorCode(result) << ") setting sample rate property listener for device (" << _device << ").");
 			return false;
@@ -648,7 +629,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 			usleep(5000);
 		}
 		// Remove the property listener.
-		AudioObjectRemovePropertyListener(id, &tmp, rateListener, (void *) &reportedRate);
+		AudioObjectRemovePropertyListener(id, &tmp, &rateListener, (void *) &reportedRate);
 		if (microCounter > 5000000) {
 			ATA_ERROR("timeout waiting for sample rate update for device (" << _device << ").");
 			return false;
@@ -763,7 +744,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	// From the CoreAudio documentation, PCM data must be supplied as
 	// 32-bit floats.
 	m_userFormat = _format;
-	m_deviceFormat[modeToIdTable(_mode)] = FLOAT32;
+	m_deviceFormat[modeToIdTable(_mode)] = audio::format_float;
 	if (streamCount == 1) {
 		m_nDeviceChannels[modeToIdTable(_mode)] = description.mChannelsPerFrame;
 	} else {
@@ -799,9 +780,8 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	uint64_t bufferBytes;
 	bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_userFormat);
 	//	m_userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
-	m_userBuffer[modeToIdTable(_mode)] = (char *) malloc(bufferBytes * sizeof(char));
-	memset(m_userBuffer[modeToIdTable(_mode)], 0, bufferBytes * sizeof(char));
-	if (m_userBuffer[modeToIdTable(_mode)] == nullptr) {
+	m_userBuffer[modeToIdTable(_mode)].resize(bufferBytes, 0);
+	if (m_userBuffer[modeToIdTable(_mode)].size() == 0) {
 		ATA_ERROR("error allocating user buffer memory.");
 		goto error;
 	}
@@ -837,7 +817,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	m_sampleRate = _sampleRate;
 	m_device[modeToIdTable(_mode)] = _device;
 	m_state = airtaudio::state_stopped;
-	m_callbackInfo.object = (void *) this;
+	ATA_VERBOSE("Set state as stopped");
 	// Setup the buffer conversion information structure.
 	if (m_doConvertBuffer[modeToIdTable(_mode)]) {
 		if (streamCount > 1) {
@@ -853,10 +833,10 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 		m_mode = airtaudio::mode_duplex;
 	} else {
 #if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
-		result = AudioDeviceCreateIOProcID(id, &airtaudio::api::Core::callbackEvent, (void *) &m_callbackInfo, &m_private->procId[modeToIdTable(_mode)]);
+		result = AudioDeviceCreateIOProcID(id, &airtaudio::api::Core::callbackEvent, this, &m_private->procId[modeToIdTable(_mode)]);
 #else
 		// deprecated in favor of AudioDeviceCreateIOProcID()
-		result = AudioDeviceAddIOProc(id, &airtaudio::api::Core::callbackEvent, (void *) &m_callbackInfo);
+		result = AudioDeviceAddIOProc(id, &airtaudio::api::Core::callbackEvent, this);
 #endif
 		if (result != noErr) {
 			ATA_ERROR("system error setting callback for device (" << _device << ").");
@@ -871,20 +851,17 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	}
 	// Setup the device property listener for over/underload.
 	property.mSelector = kAudioDeviceProcessorOverload;
-	result = AudioObjectAddPropertyListener(id, &property, xrunListener, this);
+	result = AudioObjectAddPropertyListener(id, &property, &airtaudio::api::Core::xrunListener, this);
 	return true;
 error:
-	for (int32_t i=0; i<2; i++) {
-		if (m_userBuffer[i]) {
-			free(m_userBuffer[i]);
-			m_userBuffer[i] = 0;
-		}
-	}
+	m_userBuffer[0].clear();
+	m_userBuffer[1].clear();
 	if (m_deviceBuffer) {
 		free(m_deviceBuffer);
 		m_deviceBuffer = 0;
 	}
 	m_state = airtaudio::state_closed;
+	ATA_VERBOSE("Set state as closed");
 	return false;
 }
 
@@ -918,18 +895,15 @@ enum airtaudio::error airtaudio::api::Core::closeStream() {
 		AudioDeviceRemoveIOProc(m_private->id[1], &airtaudio::api::Core::callbackEvent);
 #endif
 	}
-	for (int32_t i=0; i<2; i++) {
-		if (m_userBuffer[i]) {
-			free(m_userBuffer[i]);
-			m_userBuffer[i] = nullptr;
-		}
-	}
+	m_userBuffer[0].clear();
+	m_userBuffer[1].clear();
 	if (m_deviceBuffer) {
 		free(m_deviceBuffer);
 		m_deviceBuffer = nullptr;
 	}
 	m_mode = airtaudio::mode_unknow;
 	m_state = airtaudio::state_closed;
+	ATA_VERBOSE("Set state as closed");
 	return airtaudio::error_none;
 }
 
@@ -964,6 +938,7 @@ enum airtaudio::error airtaudio::api::Core::startStream() {
 	m_private->drainCounter = 0;
 	m_private->internalDrain = false;
 	m_state = airtaudio::state_running;
+	ATA_VERBOSE("Set state as running");
 unlock:
 	if (result == noErr) {
 		return airtaudio::error_none;
@@ -1003,6 +978,7 @@ enum airtaudio::error airtaudio::api::Core::stopStream() {
 		}
 	}
 	m_state = airtaudio::state_stopped;
+	ATA_VERBOSE("Set state as stopped");
 unlock:
 	if (result == noErr) {
 		return airtaudio::error_none;
@@ -1047,6 +1023,7 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 	// Check if we were draining the stream and signal is finished.
 	if (m_private->drainCounter > 3) {
 		m_state = airtaudio::state_stopping;
+		ATA_VERBOSE("Set state as stopping");
 		if (m_private->internalDrain == true) {
 			new std::thread(&airtaudio::api::Core::coreStopStream, this);
 		} else {
@@ -1064,21 +1041,22 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		enum airtaudio::status status = airtaudio::status_ok;
 		if (    m_mode != airtaudio::mode_input
 		     && m_private->xrun[0] == true) {
-			status |= airtaudio::status_underflow;
+			status = airtaudio::status_underflow;
 			m_private->xrun[0] = false;
 		}
 		if (    m_mode != airtaudio::mode_output
 		     && m_private->xrun[1] == true) {
-			status |= airtaudio::mode_input_OVERFLOW;
+			status = airtaudio::status_overflow;
 			m_private->xrun[1] = false;
 		}
-		int32_t cbReturnValue = info->callback(m_userBuffer[0],
-		                                       m_userBuffer[1],
+		int32_t cbReturnValue = info->callback(&m_userBuffer[0][0],
+		                                       &m_userBuffer[1][0],
 		                                       m_bufferSize,
 		                                       streamTime,
 		                                       status);
 		if (cbReturnValue == 2) {
 			m_state = airtaudio::state_stopping;
+			ATA_VERBOSE("Set state as stopping");
 			m_private->drainCounter = 2;
 			abortStream();
 			return true;
@@ -1108,19 +1086,19 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 			if (m_doConvertBuffer[0]) {
 				// convert directly to CoreAudio stream buffer
 				convertBuffer((char*)_outBufferList->mBuffers[m_private->iStream[0]].mData,
-				              m_userBuffer[0],
+				              &m_userBuffer[0][0],
 				              m_convertInfo[0]);
 			} else {
 				// copy from user buffer
 				memcpy(_outBufferList->mBuffers[m_private->iStream[0]].mData,
-				       m_userBuffer[0],
+				       &m_userBuffer[0][0],
 				       _outBufferList->mBuffers[m_private->iStream[0]].mDataByteSize);
 			}
 		} else {
 			// fill multiple streams
-			float *inBuffer = (float *) m_userBuffer[0];
+			float *inBuffer = (float *) &m_userBuffer[0][0];
 			if (m_doConvertBuffer[0]) {
-				convertBuffer(m_deviceBuffer, m_userBuffer[0], m_convertInfo[0]);
+				convertBuffer(m_deviceBuffer, &m_userBuffer[0][0], m_convertInfo[0]);
 				inBuffer = (float *) m_deviceBuffer;
 			}
 			if (m_deviceInterleaved[0] == false) { // mono mode
@@ -1194,16 +1172,16 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		if (m_private->nStreams[1] == 1) {
 			if (m_doConvertBuffer[1]) {
 				// convert directly from CoreAudio stream buffer
-				convertBuffer(m_userBuffer[1],
+				convertBuffer(&m_userBuffer[1][0],
 				              (char *) _inBufferList->mBuffers[m_private->iStream[1]].mData,
 				              m_convertInfo[1]);
 			} else { // copy to user buffer
-				memcpy(m_userBuffer[1],
+				memcpy(&m_userBuffer[1][0],
 				       _inBufferList->mBuffers[m_private->iStream[1]].mData,
 				       _inBufferList->mBuffers[m_private->iStream[1]].mDataByteSize);
 			}
 		} else { // read from multiple streams
-			float *outBuffer = (float *) m_userBuffer[1];
+			float *outBuffer = (float *) &m_userBuffer[1][0];
 			if (m_doConvertBuffer[1]) {
 				outBuffer = (float *) m_deviceBuffer;
 			}
@@ -1266,7 +1244,7 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 				}
 			}
 			if (m_doConvertBuffer[1]) { // convert from our internal "device" buffer
-				convertBuffer(m_userBuffer[1],
+				convertBuffer(&m_userBuffer[1][0],
 				              m_deviceBuffer,
 				              m_convertInfo[1]);
 			}

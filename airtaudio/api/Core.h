@@ -45,7 +45,7 @@ namespace airtaudio {
 				                              AudioBufferList* _outOutputData,
 				                              const AudioTimeStamp* _inOutputTime,
 				                              void* _infoPointer);
-				void coreStopStream(void *_userData);
+				static void coreStopStream(void *_userData);
 			private:
 				std::unique_ptr<CorePrivate> m_private;
 				bool probeDeviceOpen(uint32_t _device,
@@ -57,6 +57,11 @@ namespace airtaudio {
 				                     uint32_t *_bufferSize,
 				                     airtaudio::StreamOptions *_options);
 				static const char* getErrorCode(OSStatus _code);
+			
+			static OSStatus xrunListener(AudioObjectID _inDevice,
+			                             uint32_t _nAddresses,
+			                             const AudioObjectPropertyAddress _properties[],
+			                             void* _userData);
 		};
 	};
 };

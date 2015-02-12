@@ -55,6 +55,7 @@ airtaudio::Api::~Api() {
 }
 
 enum airtaudio::error airtaudio::Api::startStream() {
+	ATA_VERBOSE("Start Stream");
 	m_startTime = std::chrono::system_clock::now();
 	m_duration = std::chrono::duration<int64_t, std::micro>(0);
 	return airtaudio::error_none;
@@ -156,6 +157,7 @@ uint32_t airtaudio::Api::getDefaultOutputDevice() {
 }
 
 enum airtaudio::error airtaudio::Api::closeStream() {
+	ATA_VERBOSE("Close Stream");
 	// MUST be implemented in subclasses!
 	return airtaudio::error_none;
 }
