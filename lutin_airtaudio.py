@@ -24,19 +24,19 @@ def create(target):
 		'airtaudio/api/Dummy.cpp'
 		])
 	myModule.add_module_depend(['audio', 'etk'])
-	
+	# add all the time the dummy interface
 	myModule.add_export_flag_CC(['-D__DUMMY__'])
+	# TODO : Add a FILE interface:
 	
 	if target.name=="Windows":
 		myModule.add_src_file([
 			'airtaudio/api/Asio.cpp',
 			'airtaudio/api/Ds.cpp',
 			])
-		# ASIO API on Windows
-		myModule.add_export_flag_CC(['__WINDOWS_ASIO__'])
-		# Windows DirectSound API
-		#myModule.add_export_flag_CC(['__WINDOWS_DS__'])
-		myModule.add_module_depend(['etk'])
+		# load optionnal API:
+		myModule.add_optionnal_module_depend('asio', "__WINDOWS_ASIO__")
+		myModule.add_optionnal_module_depend('ds', "__WINDOWS_DS__")
+		myModule.add_optionnal_module_depend('wasapi', "__WINDOWS_WASAPI__")
 	elif target.name=="Linux":
 		myModule.add_src_file([
 			'airtaudio/api/Alsa.cpp',
@@ -66,7 +66,7 @@ def create(target):
 		#myModule.add_export_flag_LD("-framework AudioToolbox")
 	elif target.name=="Android":
 		myModule.add_src_file('airtaudio/api/Android.cpp')
-		# MacOsX core
+		# specidic java interface for android:
 		myModule.add_optionnal_module_depend('ewolAndroidAudio', "__ANDROID_JAVA__")
 		#myModule.add_export_flag_CC(['-D__ANDROID_JAVA__'])
 		#myModule.add_module_depend(['ewol'])
@@ -75,16 +75,7 @@ def create(target):
 	
 	myModule.add_export_path(tools.get_current_path(__file__))
 	
-	
-	
 	# add the currrent module at the 
 	return myModule
-
-
-
-
-
-
-
 
 

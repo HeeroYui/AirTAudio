@@ -56,6 +56,19 @@ static inline DWORD dsPointerBetween(DWORD _pointer, DWORD _laterPointer, DWORD 
 	return _pointer >= _earlierPointer && _pointer < _laterPointer;
 }
 
+class DsDevice {
+	public:
+		LPGUID id[2];
+		bool validId[2];
+		bool found;
+		std::string name;
+		
+		DsDevice() :
+		  found(false) {
+			validId[0] = false;
+			validId[1] = false;
+		}
+};
 
 namespace airtaudio {
 	namespace api {
@@ -70,7 +83,7 @@ namespace airtaudio {
 				DWORD dsBufferSize[2];
 				DWORD dsPointerLeadTime[2]; // the number of bytes ahead of the safe pointer to lead by.
 				HANDLE condition;
-				
+				std::vector<DsDevice> dsDevices;
 				DsPrivate() :
 				  drainCounter(0),
 				  internalDrain(false) {
@@ -96,23 +109,9 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
 
 static const char* getErrorString(int32_t _code);
 
-static unsigned __stdcall callbackHandler(void* _ptr);
-
-struct DsDevice {
-	LPGUID id[2];
-	bool validId[2];
-	bool found;
-	std::string name;
-	DsDevice() :
-	  found(false) {
-		validId[0] = false;
-		validId[1] = false;
-	}
-};
-
 struct DsProbeData {
 	bool isInput;
-	std::vector<struct DsDevice>* dsDevices;
+	std::vector<DsDevice>* dsDevices;
 };
 
 airtaudio::api::Ds::Ds() :
@@ -149,13 +148,13 @@ uint32_t airtaudio::api::Ds::getDefaultInputDevice() {
 uint32_t airtaudio::api::Ds::getDeviceCount() {
 	// Set query flag for previously found devices to false, so that we
 	// can check for any devices that have disappeared.
-	for (uint32_t i=0; i<dsDevices.size(); i++) {
-		dsDevices[i].found = false;
+	for (size_t iii=0; iii<m_private->dsDevices.size(); ++iii) {
+		m_private->dsDevices[iii].found = false;
 	}
 	// Query DirectSound devices.
 	struct DsProbeData probeInfo;
 	probeInfo.isInput = false;
-	probeInfo.dsDevices = &dsDevices;
+	probeInfo.dsDevices = &m_private->dsDevices;
 	HRESULT result = DirectSoundEnumerate((LPDSENUMCALLBACK) deviceQueryCallback, &probeInfo);
 	if (FAILED(result)) {
 		ATA_ERROR("error (" << getErrorString(result) << ") enumerating output devices!");
@@ -170,42 +169,42 @@ uint32_t airtaudio::api::Ds::getDeviceCount() {
 	}
 	// Clean out any devices that may have disappeared.
 	std::vector< int32_t > indices;
-	for (uint32_t i=0; i<dsDevices.size(); i++) {
-		if (dsDevices[i].found == false) {
+	for (uint32_t i=0; i<m_private->dsDevices.size(); i++) {
+		if (m_private->dsDevices[i].found == false) {
 			indices.push_back(i);
 		}
 	}
 	uint32_t nErased = 0;
 	for (uint32_t i=0; i<indices.size(); i++) {
-		dsDevices.erase(dsDevices.begin()-nErased++);
+		m_private->dsDevices.erase(m_private->dsDevices.begin()-nErased++);
 	}
-	return dsDevices.size();
+	return m_private->dsDevices.size();
 }
 
-rtaudio::DeviceInfo airtaudio::api::Ds::getDeviceInfo(uint32_t _device) {
-	rtaudio::DeviceInfo info;
+airtaudio::DeviceInfo airtaudio::api::Ds::getDeviceInfo(uint32_t _device) {
+	airtaudio::DeviceInfo info;
 	info.probed = false;
-	if (dsDevices.size() == 0) {
+	if (m_private->dsDevices.size() == 0) {
 		// Force a query of all devices
 		getDeviceCount();
-		if (dsDevices.size() == 0) {
+		if (m_private->dsDevices.size() == 0) {
 			ATA_ERROR("no devices found!");
 			return info;
 		}
 	}
-	if (_device >= dsDevices.size()) {
+	if (_device >= m_private->dsDevices.size()) {
 		ATA_ERROR("device ID is invalid!");
 		return info;
 	}
 	HRESULT result;
-	if (dsDevices[ _device ].validId[0] == false) {
+	if (m_private->dsDevices[ _device ].validId[0] == false) {
 		goto probeInput;
 	}
 	LPDIRECTSOUND output;
 	DSCAPS outCaps;
-	result = DirectSoundCreate(dsDevices[ _device ].id[0], &output, nullptr);
+	result = DirectSoundCreate(m_private->dsDevices[ _device ].id[0], &output, nullptr);
 	if (FAILED(result)) {
-		ATA_ERROR("error (" << getErrorString(result) << ") opening output device (" << dsDevices[ _device ].name << ")!");
+		ATA_ERROR("error (" << getErrorString(result) << ") opening output device (" << m_private->dsDevices[ _device ].name << ")!");
 		goto probeInput;
 	}
 	outCaps.dwSize = sizeof(outCaps);
@@ -219,10 +218,10 @@ rtaudio::DeviceInfo airtaudio::api::Ds::getDeviceInfo(uint32_t _device) {
 	info.outputChannels = (outCaps.dwFlags & DSCAPS_PRIMARYSTEREO) ? 2 : 1;
 	// Get sample rate information.
 	info.sampleRates.clear();
-	for (uint32_t k=0; k<MAX_SAMPLE_RATES; k++) {
-		if (    SAMPLE_RATES[k] >= (uint32_t) outCaps.dwMinSecondarySampleRate
-		     && SAMPLE_RATES[k] <= (uint32_t) outCaps.dwMaxSecondarySampleRate) {
-			info.sampleRates.push_back(SAMPLE_RATES[k]);
+	for (auto &it : airtaudio::genericSampleRate()) {
+		if (    it >= outCaps.dwMinSecondarySampleRate
+		     && it <= outCaps.dwMaxSecondarySampleRate) {
+			info.sampleRates.push_back(it);
 		}
 	}
 	// Get format information.
@@ -236,16 +235,16 @@ rtaudio::DeviceInfo airtaudio::api::Ds::getDeviceInfo(uint32_t _device) {
 	if (getDefaultOutputDevice() == _device) {
 		info.isDefaultOutput = true;
 	}
-	if (dsDevices[ _device ].validId[1] == false) {
-		info.name = dsDevices[ _device ].name;
+	if (m_private->dsDevices[ _device ].validId[1] == false) {
+		info.name = m_private->dsDevices[ _device ].name;
 		info.probed = true;
 		return info;
 	}
 probeInput:
 	LPDIRECTSOUNDCAPTURE input;
-	result = DirectSoundCaptureCreate(dsDevices[ _device ].id[1], &input, nullptr);
+	result = DirectSoundCaptureCreate(m_private->dsDevices[ _device ].id[1], &input, nullptr);
 	if (FAILED(result)) {
-		ATA_ERROR("error (" << getErrorString(result) << ") opening input device (" << dsDevices[ _device ].name << ")!");
+		ATA_ERROR("error (" << getErrorString(result) << ") opening input device (" << m_private->dsDevices[ _device ].name << ")!");
 		return info;
 	}
 	DSCCAPS inCaps;
@@ -253,7 +252,7 @@ probeInput:
 	result = input->GetCaps(&inCaps);
 	if (FAILED(result)) {
 		input->Release();
-		ATA_ERROR("error (" << getErrorString(result) << ") getting object capabilities (" << dsDevices[ _device ].name << ")!");
+		ATA_ERROR("error (" << getErrorString(result) << ") getting object capabilities (" << m_private->dsDevices[ _device ].name << ")!");
 		return info;
 	}
 	// Get input channel information.
@@ -261,108 +260,62 @@ probeInput:
 	// Get sample rate and format information.
 	std::vector<uint32_t> rates;
 	if (inCaps.dwChannels >= 2) {
-		if (inCaps.dwFormats & WAVE_FORMAT_1S16) {
-			info.nativeFormats |= RTAUDIO_SINT16;
+		if (    (inCaps.dwFormats & WAVE_FORMAT_1S16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_2S16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_4S16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_96S16) ) {
+			info.nativeFormats.push_back(audio::format_int16);
 		}
-		if (inCaps.dwFormats & WAVE_FORMAT_2S16) {
-			info.nativeFormats |= RTAUDIO_SINT16;
+		if (    (inCaps.dwFormats & WAVE_FORMAT_1S08)
+		     || (inCaps.dwFormats & WAVE_FORMAT_2S08)
+		     || (inCaps.dwFormats & WAVE_FORMAT_4S08)
+		     || (inCaps.dwFormats & WAVE_FORMAT_96S08) ) {
+			info.nativeFormats.push_back(audio::format_int8);
 		}
-		if (inCaps.dwFormats & WAVE_FORMAT_4S16) {
-			info.nativeFormats |= RTAUDIO_SINT16;
+		if (    (inCaps.dwFormats & WAVE_FORMAT_1S16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_1S08) ){
+			rates.push_back(11025);
 		}
-		if (inCaps.dwFormats & WAVE_FORMAT_96S16) {
-			info.nativeFormats |= RTAUDIO_SINT16;
+		if (    (inCaps.dwFormats & WAVE_FORMAT_2S16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_2S08) ){
+			rates.push_back(22050);
 		}
-		if (inCaps.dwFormats & WAVE_FORMAT_1S08) {
-			info.nativeFormats |= RTAUDIO_SINT8;
+		if (    (inCaps.dwFormats & WAVE_FORMAT_4S16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_4S08) ){
+			rates.push_back(44100);
 		}
-		if (inCaps.dwFormats & WAVE_FORMAT_2S08) {
-			info.nativeFormats |= RTAUDIO_SINT8;
-		}
-		if (inCaps.dwFormats & WAVE_FORMAT_4S08) {
-			info.nativeFormats |= RTAUDIO_SINT8;
-		}
-		if (inCaps.dwFormats & WAVE_FORMAT_96S08) {
-			info.nativeFormats |= RTAUDIO_SINT8;
-		}
-		if (info.nativeFormats & RTAUDIO_SINT16) {
-			if (inCaps.dwFormats & WAVE_FORMAT_1S16) {
-				rates.push_back(11025);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_2S16) {
-				rates.push_back(22050);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_4S16) {
-				rates.push_back(44100);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_96S16) {
-				rates.push_back(96000);
-			}
-		} else if (info.nativeFormats & RTAUDIO_SINT8) {
-			if (inCaps.dwFormats & WAVE_FORMAT_1S08) {
-				rates.push_back(11025);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_2S08) {
-				rates.push_back(22050);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_4S08) {
-				rates.push_back(44100);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_96S08) {
-				rates.push_back(96000);
-			}
+		if (    (inCaps.dwFormats & WAVE_FORMAT_96S16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_96S08) ){
+			rates.push_back(96000);
 		}
 	} else if (inCaps.dwChannels == 1) {
-		if (inCaps.dwFormats & WAVE_FORMAT_1M16) {
-			info.nativeFormats |= RTAUDIO_SINT16;
+		if (    (inCaps.dwFormats & WAVE_FORMAT_1M16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_2M16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_4M16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_96M16) ) {
+			info.nativeFormats.push_back(audio::format_int16);
 		}
-		if (inCaps.dwFormats & WAVE_FORMAT_2M16) {
-			info.nativeFormats |= RTAUDIO_SINT16;
+		if (    (inCaps.dwFormats & WAVE_FORMAT_1M08)
+		     || (inCaps.dwFormats & WAVE_FORMAT_2M08)
+		     || (inCaps.dwFormats & WAVE_FORMAT_4M08)
+		     || (inCaps.dwFormats & WAVE_FORMAT_96M08) ) {
+			info.nativeFormats.push_back(audio::format_int8);
 		}
-		if (inCaps.dwFormats & WAVE_FORMAT_4M16) {
-			info.nativeFormats |= RTAUDIO_SINT16;
+		if (    (inCaps.dwFormats & WAVE_FORMAT_1M16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_1M08) ){
+			rates.push_back(11025);
 		}
-		if (inCaps.dwFormats & WAVE_FORMAT_96M16) {
-			info.nativeFormats |= RTAUDIO_SINT16;
+		if (    (inCaps.dwFormats & WAVE_FORMAT_2M16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_2M08) ){
+			rates.push_back(22050);
 		}
-		if (inCaps.dwFormats & WAVE_FORMAT_1M08) {
-			info.nativeFormats |= RTAUDIO_SINT8;
+		if (    (inCaps.dwFormats & WAVE_FORMAT_4M16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_4M08) ){
+			rates.push_back(44100);
 		}
-		if (inCaps.dwFormats & WAVE_FORMAT_2M08) {
-			info.nativeFormats |= RTAUDIO_SINT8;
-		}
-		if (inCaps.dwFormats & WAVE_FORMAT_4M08) {
-			info.nativeFormats |= RTAUDIO_SINT8;
-		}
-		if (inCaps.dwFormats & WAVE_FORMAT_96M08) {
-			info.nativeFormats |= RTAUDIO_SINT8;
-		}
-		if (info.nativeFormats & RTAUDIO_SINT16) {
-			if (inCaps.dwFormats & WAVE_FORMAT_1M16) {
-				rates.push_back(11025);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_2M16) {
-				rates.push_back(22050);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_4M16) {
-				rates.push_back(44100);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_96M16) {
-				rates.push_back(96000);
-			}
-		} else if (info.nativeFormats & RTAUDIO_SINT8) {
-			if (inCaps.dwFormats & WAVE_FORMAT_1M08) {
-				rates.push_back(11025);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_2M08) {
-				rates.push_back(22050);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_4M08) {
-				rates.push_back(44100);
-			}
-			if (inCaps.dwFormats & WAVE_FORMAT_96M08) {
-				rates.push_back(96000);
-			}
+		if (    (inCaps.dwFormats & WAVE_FORMAT_96M16)
+		     || (inCaps.dwFormats & WAVE_FORMAT_96M08) ){
+			rates.push_back(96000);
 		}
 	} else {
 		// technically, this would be an error
@@ -384,7 +337,7 @@ probeInput:
 		}
 		if (found == false) info.sampleRates.push_back(rates[i]);
 	}
-	etk::sort(info.sampleRates.begin(), info.sampleRates.end());
+	std::sort(info.sampleRates.begin(), info.sampleRates.end());
 	// If device opens for both playback and capture, we determine the channels.
 	if (info.outputChannels > 0 && info.inputChannels > 0) {
 		info.duplexChannels = (info.outputChannels > info.inputChannels) ? info.inputChannels : info.outputChannels;
@@ -393,24 +346,24 @@ probeInput:
 		info.isDefaultInput = true;
 	}
 	// Copy name and return.
-	info.name = dsDevices[ _device ].name;
+	info.name = m_private->dsDevices[ _device ].name;
 	info.probed = true;
 	return info;
 }
 
 bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
-                                         StreamMode _mode,
+                                         enum airtaudio::mode _mode,
                                          uint32_t _channels,
                                          uint32_t _firstChannel,
                                          uint32_t _sampleRate,
-                                         rtaudio::format _format,
+                                         enum audio::format _format,
                                          uint32_t *_bufferSize,
-                                         rtaudio::StreamOptions *_options) {
+                                         airtaudio::StreamOptions *_options) {
 	if (_channels + _firstChannel > 2) {
 		ATA_ERROR("DirectSound does not support more than 2 channels per device.");
 		return false;
 	}
-	uint32_t nDevices = dsDevices.size();
+	uint32_t nDevices = m_private->dsDevices.size();
 	if (nDevices == 0) {
 		// This should not happen because a check is made before this function is called.
 		ATA_ERROR("no devices found!");
@@ -422,12 +375,12 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		return false;
 	}
 	if (_mode == airtaudio::mode_output) {
-		if (dsDevices[ _device ].validId[0] == false) {
+		if (m_private->dsDevices[ _device ].validId[0] == false) {
 			ATA_ERROR("device (" << _device << ") does not support output!");
 			return false;
 		}
 	} else { // _mode == airtaudio::mode_input
-		if (dsDevices[ _device ].validId[1] == false) {
+		if (m_private->dsDevices[ _device ].validId[1] == false) {
 			ATA_ERROR("device (" << _device << ") does not support input!");
 			return false;
 		}
@@ -445,14 +398,15 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 	// two.	This is a judgement call and a value of two is probably too
 	// low for capture, but it should work for playback.
 	int32_t nBuffers = 0;
+	/*
 	if (_options != nullptr) {
 		nBuffers = _options->numberOfBuffers;
 	}
+	*/
 	if (    _options!= nullptr
 	     && _options->flags.m_minimizeLatency == true) {
 		nBuffers = 2;
 	}
-	*/
 	if (nBuffers < 2) {
 		nBuffers = 3;
 	}
@@ -477,9 +431,9 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 	HRESULT result;
 	if (_mode == airtaudio::mode_output) {
 		LPDIRECTSOUND output;
-		result = DirectSoundCreate(dsDevices[ _device ].id[0], &output, nullptr);
+		result = DirectSoundCreate(m_private->dsDevices[ _device ].id[0], &output, nullptr);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") opening output device (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") opening output device (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		DSCAPS outCaps;
@@ -487,24 +441,24 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		result = output->GetCaps(&outCaps);
 		if (FAILED(result)) {
 			output->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") getting capabilities (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") getting capabilities (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		// Check channel information.
 		if (_channels + _firstChannel == 2 && !(outCaps.dwFlags & DSCAPS_PRIMARYSTEREO)) {
-			ATA_ERROR("the output device (" << dsDevices[ _device ].name << ") does not support stereo playback.");
+			ATA_ERROR("the output device (" << m_private->dsDevices[ _device ].name << ") does not support stereo playback.");
 			return false;
 		}
 		// Check format information.	Use 16-bit format unless not
 		// supported or user requests 8-bit.
 		if (    outCaps.dwFlags & DSCAPS_PRIMARY16BIT
-		     && !(    _format == RTAUDIO_SINT8
+		     && !(    _format == audio::format_int8
 		           && outCaps.dwFlags & DSCAPS_PRIMARY8BIT)) {
 			waveFormat.wBitsPerSample = 16;
-			m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT16;
+			m_deviceFormat[modeToIdTable(_mode)] = audio::format_int16;
 		} else {
 			waveFormat.wBitsPerSample = 8;
-			m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT8;
+			m_deviceFormat[modeToIdTable(_mode)] = audio::format_int8;
 		}
 		m_userFormat = _format;
 		// Update wave format structure and buffer information.
@@ -521,7 +475,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		result = output->SetCooperativeLevel(hWnd, DSSCL_PRIORITY);
 		if (FAILED(result)) {
 			output->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") setting cooperative level (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") setting cooperative level (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		// Even though we will write to the secondary buffer, we need to
@@ -537,14 +491,14 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		result = output->CreateSoundBuffer(&bufferDescription, &buffer, nullptr);
 		if (FAILED(result)) {
 			output->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") accessing primary buffer (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") accessing primary buffer (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		// Set the primary DS buffer sound format.
 		result = buffer->SetFormat(&waveFormat);
 		if (FAILED(result)) {
 			output->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") setting primary buffer format (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") setting primary buffer format (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		// Setup the secondary DS buffer description.
@@ -567,7 +521,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 			result = output->CreateSoundBuffer(&bufferDescription, &buffer, nullptr);
 			if (FAILED(result)) {
 				output->Release();
-				ATA_ERROR("error (" << getErrorString(result) << ") creating secondary buffer (" << dsDevices[ _device ].name << ")!");
+				ATA_ERROR("error (" << getErrorString(result) << ") creating secondary buffer (" << m_private->dsDevices[ _device ].name << ")!");
 				return false;
 			}
 		}
@@ -578,7 +532,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			output->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") getting buffer settings (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") getting buffer settings (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		dsBufferSize = dsbcaps.dwBufferBytes;
@@ -589,7 +543,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			output->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") locking buffer (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") locking buffer (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		// Zero the DS buffer
@@ -599,7 +553,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			output->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") unlocking buffer (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") unlocking buffer (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		ohandle = (void *) output;
@@ -607,9 +561,9 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 	}
 	if (_mode == airtaudio::mode_input) {
 		LPDIRECTSOUNDCAPTURE input;
-		result = DirectSoundCaptureCreate(dsDevices[ _device ].id[1], &input, nullptr);
+		result = DirectSoundCaptureCreate(m_private->dsDevices[ _device ].id[1], &input, nullptr);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") opening input device (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") opening input device (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		DSCCAPS inCaps;
@@ -617,7 +571,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		result = input->GetCaps(&inCaps);
 		if (FAILED(result)) {
 			input->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") getting input capabilities (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") getting input capabilities (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		// Check channel information.
@@ -630,22 +584,22 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		DWORD deviceFormats;
 		if (_channels + _firstChannel == 2) {
 			deviceFormats = WAVE_FORMAT_1S08 | WAVE_FORMAT_2S08 | WAVE_FORMAT_4S08 | WAVE_FORMAT_96S08;
-			if (format == RTAUDIO_SINT8 && inCaps.dwFormats & deviceFormats) {
+			if (_format == audio::format_int8 && inCaps.dwFormats & deviceFormats) {
 				waveFormat.wBitsPerSample = 8;
-				m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT8;
+				m_deviceFormat[modeToIdTable(_mode)] = audio::format_int8;
 			} else { // assume 16-bit is supported
 				waveFormat.wBitsPerSample = 16;
-				m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT16;
+				m_deviceFormat[modeToIdTable(_mode)] = audio::format_int16;
 			}
 		} else { // channel == 1
 			deviceFormats = WAVE_FORMAT_1M08 | WAVE_FORMAT_2M08 | WAVE_FORMAT_4M08 | WAVE_FORMAT_96M08;
-			if (format == RTAUDIO_SINT8 && inCaps.dwFormats & deviceFormats) {
+			if (_format == audio::format_int8 && inCaps.dwFormats & deviceFormats) {
 				waveFormat.wBitsPerSample = 8;
-				m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT8;
+				m_deviceFormat[modeToIdTable(_mode)] = audio::format_int8;
 			}
 			else { // assume 16-bit is supported
 				waveFormat.wBitsPerSample = 16;
-				m_deviceFormat[modeToIdTable(_mode)] = RTAUDIO_SINT16;
+				m_deviceFormat[modeToIdTable(_mode)] = audio::format_int16;
 			}
 		}
 		m_userFormat = _format;
@@ -670,7 +624,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		result = input->CreateCaptureBuffer(&bufferDescription, &buffer, nullptr);
 		if (FAILED(result)) {
 			input->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") creating input buffer (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") creating input buffer (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		// Get the buffer size ... might be different from what we specified.
@@ -680,7 +634,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			input->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") getting buffer settings (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") getting buffer settings (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		dsBufferSize = dscbcaps.dwBufferBytes;
@@ -695,7 +649,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			input->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") locking input buffer (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") locking input buffer (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		// Zero the buffer
@@ -705,14 +659,13 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			input->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") unlocking input buffer (" << dsDevices[ _device ].name << ")!");
+			ATA_ERROR("error (" << getErrorString(result) << ") unlocking input buffer (" << m_private->dsDevices[ _device ].name << ")!");
 			return false;
 		}
 		ohandle = (void *) input;
 		bhandle = (void *) buffer;
 	}
 	// Set various stream parameters
-	DsHandle *handle = 0;
 	m_nDeviceChannels[modeToIdTable(_mode)] = _channels + _firstChannel;
 	m_nUserChannels[modeToIdTable(_mode)] = _channels;
 	m_bufferSize = *_bufferSize;
@@ -732,8 +685,8 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 	}
 	// Allocate necessary internal buffers
 	long bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_userFormat);
-	m_userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
-	if (m_userBuffer[modeToIdTable(_mode)] == nullptr) {
+	m_userBuffer[modeToIdTable(_mode)].resize(bufferBytes, 0);
+	if (m_userBuffer[modeToIdTable(_mode)].size() == 0) {
 		ATA_ERROR("error allocating user buffer memory.");
 		goto error;
 	}
@@ -786,16 +739,9 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 	}
 	// Setup the callback thread.
 	if (m_callbackInfo.isRunning == false) {
-		unsigned threadId;
 		m_callbackInfo.isRunning = true;
-		m_callbackInfo.object = (void *) this;
-		m_callbackInfo.thread = _beginthreadex(nullptr,
-		                                              0,
-		                                              &callbackHandler,
-		                                              &m_callbackInfo,
-		                                              0,
-		                                              &threadId);
-		if (m_callbackInfo.thread == 0) {
+		m_callbackInfo.thread = new std::thread(&airtaudio::api::Ds::dsCallbackEvent, this);
+		if (m_callbackInfo.thread == nullptr) {
 			ATA_ERROR("error creating callback thread!");
 			goto error;
 		}
@@ -821,11 +767,8 @@ error:
 		}
 	}
 	CloseHandle(m_private->condition);
-	for (int32_t i=0; i<2; i++) {
-		if (m_userBuffer[i]) {
-			free(m_userBuffer[i]);
-			m_userBuffer[i] = 0;
-		}
+	for (size_t iii=0; iii<2; ++iii) {
+		m_userBuffer[iii].clear();
 	}
 	if (m_deviceBuffer) {
 		free(m_deviceBuffer);
@@ -863,11 +806,8 @@ enum airtaudio::error airtaudio::api::Ds::closeStream() {
 		object->Release();
 	}
 	CloseHandle(m_private->condition);
-	for (int32_t i=0; i<2; i++) {
-		if (m_userBuffer[i]) {
-			free(m_userBuffer[i]);
-			m_userBuffer[i] = 0;
-		}
+	for (size_t iii=0; iii<2; ++iii) {
+		m_userBuffer[iii].clear();
 	}
 	if (m_deviceBuffer) {
 		free(m_deviceBuffer);
@@ -1043,19 +983,19 @@ void airtaudio::api::Ds::callbackEvent() {
 	// draining stream.
 	if (m_private->drainCounter == 0) {
 		std::chrono::system_clock::time_point streamTime = getStreamTime();
-		rtaudio::streamStatus status = 0;
+		airtaudio::status status = airtaudio::status_ok;
 		if (    m_mode != airtaudio::mode_input
 		     && m_private->xrun[0] == true) {
-			status |= RTAUDIO_airtaudio::status_underflow;
+			status = airtaudio::status_underflow;
 			m_private->xrun[0] = false;
 		}
 		if (    m_mode != airtaudio::mode_output
 		     && m_private->xrun[1] == true) {
-			status |= RTAUDIO_airtaudio::mode_input_OVERFLOW;
+			status = airtaudio::status_overflow;
 			m_private->xrun[1] = false;
 		}
-		int32_t cbReturnValue = info->callback(m_userBuffer[0],
-		                                       m_userBuffer[1],
+		int32_t cbReturnValue = info->callback(&m_userBuffer[0][0],
+		                                       &m_userBuffer[1][0],
 		                                       m_bufferSize,
 		                                       streamTime,
 		                                       status);
@@ -1151,16 +1091,16 @@ void airtaudio::api::Ds::callbackEvent() {
 		if (m_private->drainCounter > 1) { // write zeros to the output stream
 			bufferBytes = m_bufferSize * m_nUserChannels[0];
 			bufferBytes *= audio::getFormatBytes(m_userFormat);
-			memset(m_userBuffer[0], 0, bufferBytes);
+			memset(&m_userBuffer[0][0], 0, bufferBytes);
 		}
 		// Setup parameters and do buffer conversion if necessary.
 		if (m_doConvertBuffer[0]) {
 			buffer = m_deviceBuffer;
-			convertBuffer(buffer, m_userBuffer[0], m_convertInfo[0]);
+			convertBuffer(buffer, &m_userBuffer[0][0], m_convertInfo[0]);
 			bufferBytes = m_bufferSize * m_nDeviceChannels[0];
 			bufferBytes *= audio::getFormatBytes(m_deviceFormat[0]);
 		} else {
-			buffer = m_userBuffer[0];
+			buffer = &m_userBuffer[0][0];
 			bufferBytes = m_bufferSize * m_nUserChannels[0];
 			bufferBytes *= audio::getFormatBytes(m_userFormat);
 		}
@@ -1168,9 +1108,9 @@ void airtaudio::api::Ds::callbackEvent() {
 		// Ahhh ... windoze.	16-bit data is signed but 8-bit data is
 		// unsigned.	So, we need to convert our signed 8-bit data here to
 		// unsigned.
-		if (m_deviceFormat[0] == RTAUDIO_SINT8) {
-			for (int32_t i=0; i<bufferBytes; i++) {
-				buffer[i] = (unsigned char) (buffer[i] + 128);
+		if (m_deviceFormat[0] == audio::format_int8) {
+			for (size_t iii=0; iii<bufferBytes; ++iii) {
+				buffer[iii] = buffer[iii] + 128;
 			}
 		}
 		DWORD dsBufferSize = m_private->dsBufferSize[0];
@@ -1258,7 +1198,7 @@ void airtaudio::api::Ds::callbackEvent() {
 			bufferBytes = m_bufferSize * m_nDeviceChannels[1];
 			bufferBytes *= audio::getFormatBytes(m_deviceFormat[1]);
 		} else {
-			buffer = m_userBuffer[1];
+			buffer = &m_userBuffer[1][0];
 			bufferBytes = m_bufferSize * m_nUserChannels[1];
 			bufferBytes *= audio::getFormatBytes(m_userFormat);
 		}
@@ -1372,31 +1312,25 @@ void airtaudio::api::Ds::callbackEvent() {
 		m_private->bufferPointer[1] = nextReadPointer;
 		// No byte swapping necessary in DirectSound implementation.
 		// If necessary, convert 8-bit data from unsigned to signed.
-		if (m_deviceFormat[1] == RTAUDIO_SINT8) {
-			for (int32_t j=0; j<bufferBytes; j++) {
-				buffer[j] = (signed char) (buffer[j] - 128);
+		if (m_deviceFormat[1] == audio::format_int8) {
+			for (size_t jjj=0; jjj<bufferBytes; ++jjj) {
+				buffer[jjj] = (signed char) (buffer[jjj] - 128);
 			}
 		}
 		// Do buffer conversion if necessary.
 		if (m_doConvertBuffer[1]) {
-			convertBuffer(m_userBuffer[1], m_deviceBuffer, m_convertInfo[1]);
+			convertBuffer(&m_userBuffer[1][0], m_deviceBuffer, m_convertInfo[1]);
 		}
 	}
 unlock:
 	airtaudio::Api::tickStreamTime();
 }
 
-// Definitions for utility functions and callbacks
-// specific to the DirectSound implementation.
-static unsigned __stdcall callbackHandler(void *_ptr) {
-	CallbackInfo* info = (CallbackInfo*)_ptr;
-	RtApiDs* object = (RtApiDs*)info->object;
-	bool* isRunning = &info->isRunning;
-	while (*isRunning == true) {
-		object->callbackEvent();
+void airtaudio::api::Ds::dsCallbackEvent(void *_userData) {
+	airtaudio::api::Ds* myClass = reinterpret_cast<airtaudio::api::Ds*>(_userData);
+	while (myClass->m_callbackInfo.isRunning == true) {
+		myClass->callbackEvent();
 	}
-	_endthreadex(0);
-	return 0;
 }
 
 #include "tchar.h"
@@ -1416,7 +1350,7 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
                                          LPCTSTR _module,
                                          LPVOID _lpContext) {
 	struct DsProbeData& probeInfo = *(struct DsProbeData*) _lpContext;
-	std::vector<struct DsDevice>& dsDevices = *probeInfo.dsDevices;
+	std::vector<DsDevice>& dsDevices = *probeInfo.dsDevices;
 	HRESULT hr;
 	bool validDevice = false;
 	if (probeInfo.isInput == true) {
@@ -1458,7 +1392,7 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
 		name = "Default Device";
 	}
 	if (validDevice) {
-		for (uint32_t i=0; i<dsDevices.size(); i++) {
+		for (size_t i=0; i<dsDevices.size(); i++) {
 			if (dsDevices[i].name == name) {
 				dsDevices[i].found = true;
 				if (probeInfo.isInput) {

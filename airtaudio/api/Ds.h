@@ -35,17 +35,17 @@ namespace airtaudio {
 				// will most likely produce highly undesireable results!
 				void callbackEvent();
 			private:
+				static void dsCallbackEvent(void *_userData);
 				std::unique_ptr<DsPrivate> m_private;
 				bool m_coInitialized;
 				bool m_buffersRolling;
 				long m_duplexPrerollBytes;
-				std::vector<struct DsDevice> dsDevices;
 				bool probeDeviceOpen(uint32_t _device,
-				                     airtaudio::mode _mode,
+				                     enum airtaudio::mode _mode,
 				                     uint32_t _channels,
 				                     uint32_t _firstChannel,
 				                     uint32_t _sampleRate,
-				                     audio::format _format,
+				                     enum audio::format _format,
 				                     uint32_t *_bufferSize,
 				                     airtaudio::StreamOptions *_options);
 		};
