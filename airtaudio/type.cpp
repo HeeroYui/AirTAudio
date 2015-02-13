@@ -66,5 +66,8 @@ enum airtaudio::type airtaudio::getTypeFromString(const std::string& _value) {
 			return static_cast<enum airtaudio::type>(iii);
 		}
 	}
+	if (_value == "auto") {
+		return airtaudio::type_undefined;
+	}
 	return airtaudio::type_undefined;
 }

@@ -1327,6 +1327,7 @@ unlock:
 }
 
 void airtaudio::api::Ds::dsCallbackEvent(void *_userData) {
+	etk::log::setThreadName("DS IO");
 	airtaudio::api::Ds* myClass = reinterpret_cast<airtaudio::api::Ds*>(_userData);
 	while (myClass->m_callbackInfo.isRunning == true) {
 		myClass->callbackEvent();

@@ -1004,6 +1004,7 @@ enum airtaudio::error airtaudio::api::Core::abortStream() {
 // callbackEvent() function probably should return before the AudioDeviceStop()
 // function is called.
 void airtaudio::api::Core::coreStopStream(void *_userData) {
+	etk::log::setThreadName("CoreAudio_stopStream");
 	airtaudio::api::Core* myClass = reinterpret_cast<airtaudio::api::Core*>(_userData);
 	myClass->stopStream();
 }

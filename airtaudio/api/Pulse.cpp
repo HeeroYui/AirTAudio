@@ -102,6 +102,7 @@ airtaudio::DeviceInfo airtaudio::api::Pulse::getDeviceInfo(uint32_t _device) {
 }
 
 static void pulseaudio_callback(void* _userData) {
+	etk::log::setThreadName("Pulse IO");
 	airtaudio::api::Pulse* myClass = reinterpret_cast<airtaudio::api::Pulse*>(_userData);
 	myClass->callbackEvent();
 }

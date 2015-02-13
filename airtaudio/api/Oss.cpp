@@ -818,6 +818,7 @@ unlock:
 }
 
 static void ossCallbackHandler(void* _userData) {
+	etk::log::setThreadName("OSS callback");
 	airtaudio::api::Alsa* myClass = reinterpret_cast<airtaudio::api::Oss*>(_userData);
 	while (myClass->m_callbackInfo->isRunning == true) {
 		myClass->callbackEvent();

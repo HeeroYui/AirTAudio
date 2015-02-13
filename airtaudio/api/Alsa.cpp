@@ -908,6 +908,7 @@ unlock:
 
 
 void airtaudio::api::Alsa::alsaCallbackEvent(void *_userData) {
+	etk::log::setThreadName("Alsa IO");
 	airtaudio::api::Alsa* myClass = reinterpret_cast<airtaudio::api::Alsa*>(_userData);
 	myClass->callbackEvent();
 }
