@@ -600,21 +600,22 @@ foundDevice:
 		return false;
 	}
 	// Set the software configuration to fill buffers with zeros and prevent device stopping on xruns.
-	snd_pcm_sw_params_t *sw_params = nullptr;
-	snd_pcm_sw_params_alloca(&sw_params);
-	snd_pcm_sw_params_current(phandle, sw_params);
-	snd_pcm_sw_params_set_start_threshold(phandle, sw_params, *_bufferSize);
-	snd_pcm_sw_params_set_stop_threshold(phandle, sw_params, ULONG_MAX);
-	snd_pcm_sw_params_set_silence_threshold(phandle, sw_params, 0);
+	snd_pcm_sw_params_t *swParams = nullptr;
+	snd_pcm_sw_params_alloca(&swParams);
+	snd_pcm_sw_params_current(phandle, swParams);
+	snd_pcm_sw_params_set_start_threshold(phandle, swParams, *_bufferSize);
+	snd_pcm_sw_params_set_stop_threshold(phandle, swParams, ULONG_MAX);
+	snd_pcm_sw_params_set_silence_threshold(phandle, swParams, 0);
 	// The following two settings were suggested by Theo Veenker
-	//snd_pcm_sw_params_set_avail_min(phandle, sw_params, *_bufferSize);
-	//snd_pcm_sw_params_set_xfer_align(phandle, sw_params, 1);
+	//snd_pcm_sw_params_set_avail_min(phandle, swParams, *_bufferSize);
+	//snd_pcm_sw_params_set_xfer_align(phandle, swParams, 1);
 	// here are two options for a fix
-	//snd_pcm_sw_params_set_silence_size(phandle, sw_params, ULONG_MAX);
+	//snd_pcm_sw_params_set_silence_size(phandle, swParams, ULONG_MAX);
+	snd_pcm_sw_params_set_tstamp_mode(phandle, swParams, SND_PCM_TSTAMP_ENABLE);
 	snd_pcm_uframes_t val;
-	snd_pcm_sw_params_get_boundary(sw_params, &val);
-	snd_pcm_sw_params_set_silence_size(phandle, sw_params, val);
-	result = snd_pcm_sw_params(phandle, sw_params);
+	snd_pcm_sw_params_get_boundary(swParams, &val);
+	snd_pcm_sw_params_set_silence_size(phandle, swParams, val);
+	result = snd_pcm_sw_params(phandle, swParams);
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("error installing software configuration on device (" << name << "), " << snd_strerror(result) << ".");
@@ -919,6 +920,19 @@ void airtaudio::api::Alsa::callbackEvent() {
 	}
 }
 
+std::chrono::time_point<std::chrono::system_clock> airtaudio::api::Alsa::getStreamTime() {
+	snd_pcm_uframes_t avail;
+	snd_htimestamp_t tstamp;
+	if (m_private->handles[0] != nullptr) {
+		int plop = snd_pcm_htimestamp(m_private->handles[0], &avail, &tstamp);
+	} else if (m_private->handles[1] != nullptr) {
+		int plop = snd_pcm_htimestamp(m_private->handles[1], &avail, &tstamp);
+	}
+	//ATA_WARNING("plop : " << tstamp.tv_sec << " sec " << tstamp.tv_nsec);
+	return std::chrono::system_clock::from_time_t(tstamp.tv_sec) + std::chrono::nanoseconds(tstamp.tv_nsec);
+}
+
+
 void airtaudio::api::Alsa::callbackEventOneCycle() {
 	if (m_state == airtaudio::state_stopped) {
 		std::unique_lock<std::mutex> lck(m_mutex);
@@ -939,11 +953,13 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 	int32_t doStopStream = 0;
 	std::chrono::system_clock::time_point streamTime = getStreamTime();
 	enum airtaudio::status status = airtaudio::status_ok;
-	if (m_mode != airtaudio::mode_input && m_private->xrun[0] == true) {
+	if (    m_mode != airtaudio::mode_input
+	     && m_private->xrun[0] == true) {
 		status = airtaudio::status_underflow;
 		m_private->xrun[0] = false;
 	}
-	if (m_mode != airtaudio::mode_output && m_private->xrun[1] == true) {
+	if (    m_mode != airtaudio::mode_output
+	     && m_private->xrun[1] == true) {
 		status = airtaudio::status_overflow;
 		m_private->xrun[1] = false;
 	}
