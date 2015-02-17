@@ -502,9 +502,7 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
 	m_sampleRate = _sampleRate;
 	m_device[modeToIdTable(_mode)] = _device;
 	m_state = airtaudio::state_stopped;
-	asioCallbackInfo = &m_callbackInfo;
-	m_callbackInfo.object = (void*)this;
-	if (    m_mode == airtaudio::mode_output
+	if (    _mode == airtaudio::mode_output
 	     && _mode == airtaudio::mode_input) {
 		// We had already set up an output stream.
 		m_mode = airtaudio::mode_duplex;
@@ -695,19 +693,20 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 	// draining stream.
 	if (m_private->drainCounter == 0) {
 		std::chrono::system_clock::time_point streamTime = getStreamTime();
-		rtaudio::streamStatus status = 0;
+		std::vector<enum airtaudio::status status;
 		if (m_mode != airtaudio::mode_input && asioXRun == true) {
-			status |= RTAUDIO_airtaudio::status_underflow;
+			status.push_back(airtaudio::status_underflow);
 			asioXRun = false;
 		}
 		if (m_mode != airtaudio::mode_output && asioXRun == true) {
-			status |= RTAUDIO_airtaudio::mode_input_OVERFLOW;
+			status.push_back(airtaudio::status_underflow;
 			asioXRun = false;
 		}
-		int32_t cbReturnValue = info->callback(m_userBuffer[0],
-		                                       m_userBuffer[1],
-		                                       m_bufferSize,
+		int32_t cbReturnValue = info->callback(m_userBuffer[1],
 		                                       streamTime,
+		                                       m_userBuffer[0],
+		                                       streamTime,
+		                                       m_bufferSize,
 		                                       status);
 		if (cbReturnValue == 2) {
 			m_state = airtaudio::state_stopping;

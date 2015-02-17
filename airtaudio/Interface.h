@@ -40,11 +40,12 @@ namespace airtaudio {
 		protected:
 			airtaudio::Api *m_rtapi;
 		public:
-			/**
-			 * @brief A static function to determine the current airtaudio version.
-			 */
-			static std::string getVersion() {
-				return "4.0.12";
+			void setName(const std::string& _name) {
+				if (m_rtapi == nullptr) {
+					
+					return;
+				}
+				m_rtapi->setName(_name);
 			}
 			/**
 			 * @brief A static function to determine the available compiled audio APIs.

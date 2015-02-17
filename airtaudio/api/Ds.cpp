@@ -74,17 +74,20 @@ namespace airtaudio {
 	namespace api {
 		class DsPrivate {
 			public:
+				std::unique_ptr<std::thread> thread;
+				bool threadRunning;
 				uint32_t drainCounter; // Tracks callback counts when draining
 				bool internalDrain; // Indicates if stop is initiated from callback or not.
 				void *id[2];
 				void *buffer[2];
 				bool xrun[2];
-				UINT bufferPointer[2];	
+				UINT bufferPointer[2];
 				DWORD dsBufferSize[2];
 				DWORD dsPointerLeadTime[2]; // the number of bytes ahead of the safe pointer to lead by.
 				HANDLE condition;
 				std::vector<DsDevice> dsDevices;
 				DsPrivate() :
+				  threadRunning(false),
 				  drainCounter(0),
 				  internalDrain(false) {
 					id[0] = 0;
@@ -738,15 +741,16 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 		setConvertInfo(_mode, _firstChannel);
 	}
 	// Setup the callback thread.
-	if (m_callbackInfo.isRunning == false) {
-		m_callbackInfo.isRunning = true;
-		m_callbackInfo.thread = new std::thread(&airtaudio::api::Ds::dsCallbackEvent, this);
-		if (m_callbackInfo.thread == nullptr) {
+	if (m_private->threadRunning == false) {
+		m_private->threadRunning = true;
+		std::unique_ptr<std::thread> tmpThread(new std::thread(&airtaudio::api::Ds::dsCallbackEvent, this));
+		m_private->thread =	std::move(tmpThread);
+		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating callback thread!");
 			goto error;
 		}
 		// Boost DS thread priority
-		SetThreadPriority((HANDLE)m_callbackInfo.thread, THREAD_PRIORITY_HIGHEST);
+		SetThreadPriority((HANDLE)m_private->thread, THREAD_PRIORITY_HIGHEST);
 	}
 	return true;
 error:
@@ -784,9 +788,9 @@ enum airtaudio::error airtaudio::api::Ds::closeStream() {
 		return airtaudio::error_warning;
 	}
 	// Stop the callback thread.
-	m_callbackInfo.isRunning = false;
-	WaitForSingleObject((HANDLE) m_callbackInfo.thread, INFINITE);
-	CloseHandle((HANDLE) m_callbackInfo.thread);
+	m_private->threadRunning = false;
+	WaitForSingleObject((HANDLE) m_private->thread, INFINITE);
+	CloseHandle((HANDLE) m_private->thread);
 	if (m_private->buffer[0]) { // the object pointer can be nullptr and valid
 		LPDIRECTSOUND object = (LPDIRECTSOUND) m_private->id[0];
 		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
@@ -968,7 +972,6 @@ void airtaudio::api::Ds::callbackEvent() {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return;
 	}
-	CallbackInfo *info = (CallbackInfo *) &m_callbackInfo;
 	// Check if we were draining the stream and signal is finished.
 	if (m_private->drainCounter > m_nBuffers + 2) {
 		m_state = airtaudio::state_stopping;
@@ -994,10 +997,11 @@ void airtaudio::api::Ds::callbackEvent() {
 			status = airtaudio::status_overflow;
 			m_private->xrun[1] = false;
 		}
-		int32_t cbReturnValue = info->callback(&m_userBuffer[0][0],
-		                                       &m_userBuffer[1][0],
-		                                       m_bufferSize,
+		int32_t cbReturnValue = info->callback(&m_userBuffer[1][0],
 		                                       streamTime,
+		                                       &m_userBuffer[0][0],
+		                                       streamTime,
+		                                       m_bufferSize,
 		                                       status);
 		if (cbReturnValue == 2) {
 			m_state = airtaudio::state_stopping;
@@ -1257,7 +1261,7 @@ void airtaudio::api::Ds::callbackEvent() {
 			}
 		} else { // _mode == airtaudio::mode_input
 			while (    safeReadPointer < endRead
-			        && m_callbackInfo.isRunning) {
+			        && m_private->threadRunning) {
 				// See comments for playback.
 				double millis = (endRead - safeReadPointer) * 1000.0;
 				millis /= (audio::getFormatBytes(m_deviceFormat[1]) * m_nDeviceChannels[1] * m_sampleRate);
@@ -1327,9 +1331,9 @@ unlock:
 }
 
 void airtaudio::api::Ds::dsCallbackEvent(void *_userData) {
-	etk::log::setThreadName("DS IO");
+	etk::log::setThreadName("DS IO-" + m_name);
 	airtaudio::api::Ds* myClass = reinterpret_cast<airtaudio::api::Ds*>(_userData);
-	while (myClass->m_callbackInfo.isRunning == true) {
+	while (myClass->m_private->threadRunning == true) {
 		myClass->callbackEvent();
 	}
 }

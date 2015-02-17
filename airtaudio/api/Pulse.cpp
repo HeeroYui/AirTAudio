@@ -12,9 +12,6 @@
 #include <limits.h>
 #include <airtaudio/Interface.h>
 #include <airtaudio/debug.h>
-// Code written by Peter Meerwald, pmeerw@pmeerw.net
-// and Tristan Matthews.
-
 #include <pulse/error.h>
 #include <pulse/simple.h>
 #include <cstdio>
@@ -56,12 +53,14 @@ namespace airtaudio {
 			public:
 				pa_simple *s_play;
 				pa_simple *s_rec;
-				std::thread* thread;
+				std::unique_ptr<std::thread> thread;
+				bool threadRunning;
 				std::condition_variable runnable_cv;
 				bool runnable;
 				PulsePrivate() :
 				  s_play(0),
 				  s_rec(0),
+				  threadRunning(false),
 				  runnable(false) {
 					
 				}
@@ -102,19 +101,19 @@ airtaudio::DeviceInfo airtaudio::api::Pulse::getDeviceInfo(uint32_t _device) {
 }
 
 static void pulseaudio_callback(void* _userData) {
-	etk::log::setThreadName("Pulse IO");
 	airtaudio::api::Pulse* myClass = reinterpret_cast<airtaudio::api::Pulse*>(_userData);
 	myClass->callbackEvent();
 }
 
 void airtaudio::api::Pulse::callbackEvent() {
-	while (m_callbackInfo.isRunning == true) {
+	etk::log::setThreadName("Pulse IO-" + m_name);
+	while (m_private->threadRunning == true) {
 		callbackEventOneCycle();
 	}
 }
 
 enum airtaudio::error airtaudio::api::Pulse::closeStream() {
-	m_callbackInfo.isRunning = false;
+	m_private->threadRunning = false;
 	m_mutex.lock();
 	if (m_state == airtaudio::state_stopped) {
 		m_private->runnable = true;
@@ -152,12 +151,13 @@ void airtaudio::api::Pulse::callbackEventOneCycle() {
 		return;
 	}
 	std::chrono::system_clock::time_point streamTime = getStreamTime();
-	enum airtaudio::status status = airtaudio::status_ok;
-	int32_t doStopStream = m_callbackInfo.callback(&m_userBuffer[airtaudio::modeToIdTable(airtaudio::mode_output)][0],
-	                                               &m_userBuffer[airtaudio::modeToIdTable(airtaudio::mode_input)][0],
-	                                               m_bufferSize,
-	                                               streamTime,
-	                                               status);
+	std::vector<enum airtaudio::status> status;
+	int32_t doStopStream = m_callback(&m_userBuffer[airtaudio::modeToIdTable(airtaudio::mode_input)][0],
+	                                  streamTime,
+	                                  &m_userBuffer[airtaudio::modeToIdTable(airtaudio::mode_output)][0],
+	                                  streamTime,
+	                                  m_bufferSize,
+	                                  status);
 	if (doStopStream == 2) {
 		abortStream();
 		return;
@@ -396,9 +396,10 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t _device,
 	}else {
 		m_mode = airtaudio::mode_duplex;
 	}
-	if (!m_callbackInfo.isRunning) {
-		m_callbackInfo.isRunning = true;
-		m_private->thread = new std::thread(pulseaudio_callback, this);
+	if (!m_private->threadRunning) {
+		m_private->threadRunning = true;
+		std::unique_ptr<std::thread> tmpThread(new std::thread(&pulseaudio_callback, this));
+		m_private->thread =	std::move(tmpThread);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating thread.");
 			goto error;

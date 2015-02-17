@@ -46,7 +46,7 @@ namespace airtaudio {
 				                     enum audio::format _format,
 				                     uint32_t *_bufferSize,
 				                     airtaudio::StreamOptions *_options);
-				virtual std::chrono::time_point<std::chrono::system_clock> getStreamTime();
+				virtual std::chrono::system_clock::time_point getStreamTime();
 		};
 	};
 };

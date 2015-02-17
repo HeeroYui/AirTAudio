@@ -36,8 +36,11 @@ namespace airtaudio {
 				bool xrun[2];
 				bool triggered;
 				std::condition_variable runnable;
+				std::unique_ptr<std::thread> thread;
+				bool threadRunning;
 				OssPrivate():
-				  triggered(false) {
+				  triggered(false),
+				  threadRunning(false) {
 					id[0] = 0;
 					id[1] = 0;
 					xrun[0] = false;
@@ -503,10 +506,10 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 	} else {
 		m_mode = _mode;
 		// Setup callback thread.
-		m_callbackInfo.isRunning = true;
-		m_callbackInfo.thread = new std::thread(ossCallbackHandler, this);
-		if (m_callbackInfo.thread == nullptr) {
-			m_callbackInfo.isRunning = false;
+		m_private->threadRunning = true;
+		m_private->thread = new std::thread(ossCallbackHandler, this);
+		if (m_private->thread == nullptr) {
+			m_private->threadRunning = false;
 			ATA_ERROR("creating callback thread!");
 			goto error;
 		}
@@ -539,13 +542,13 @@ enum airtaudio::error airtaudio::api::Oss::closeStream() {
 		ATA_ERROR("no open stream to close!");
 		return airtaudio::error_warning;
 	}
-	m_callbackInfo.isRunning = false;
+	m_private->threadRunning = false;
 	m_mutex.lock();
 	if (m_state == airtaudio::state_stopped) {
 		m_private->runnable.notify_one();
 	}
 	m_mutex.unlock();
-	m_callbackInfo.thread->join();
+	m_private->thread->join();
 	if (m_state == airtaudio::state_running) {
 		if (m_mode == airtaudio::mode_output || m_mode == airtaudio::mode_duplex) {
 			ioctl(m_private->id[0], SNDCTL_DSP_HALT, 0);
@@ -712,22 +715,23 @@ void airtaudio::api::Oss::callbackEvent() {
 	// Invoke user callback to get fresh output data.
 	int32_t doStopStream = 0;
 	std::chrono::system_clock::time_point streamTime = getStreamTime();
-	rtaudio::streamStatus status = 0;
+	std::vector<enum airtaudio::status> status;
 	if (    m_mode != airtaudio::mode_input
 	     && m_private->xrun[0] == true) {
-		status |= RTAUDIO_airtaudio::status_underflow;
+		status.push_back(airtaudio::status_underflow);
 		m_private->xrun[0] = false;
 	}
 	if (    m_mode != airtaudio::mode_output
 	     && m_private->xrun[1] == true) {
-		status |= RTAUDIO_airtaudio::mode_input_OVERFLOW;
+		status.push_back(airtaudio::status_overflow);
 		m_private->xrun[1] = false;
 	}
-	doStopStream = m_callbackInfo.callback(m_userBuffer[0],
-	                                              m_userBuffer[1],
-	                                              m_bufferSize,
-	                                              streamTime,
-	                                              status);
+	doStopStream = m_callback(m_userBuffer[1],
+	                          streamTime,
+	                          m_userBuffer[0],
+	                          streamTime,
+	                          m_bufferSize,
+	                          status);
 	if (doStopStream == 2) {
 		this->abortStream();
 		return;
@@ -818,9 +822,9 @@ unlock:
 }
 
 static void ossCallbackHandler(void* _userData) {
-	etk::log::setThreadName("OSS callback");
+	etk::log::setThreadName("OSS callback-" + m_name);
 	airtaudio::api::Alsa* myClass = reinterpret_cast<airtaudio::api::Oss*>(_userData);
-	while (myClass->m_callbackInfo->isRunning == true) {
+	while (myClass->m_private->threadRunning == true) {
 		myClass->callbackEvent();
 	}
 }

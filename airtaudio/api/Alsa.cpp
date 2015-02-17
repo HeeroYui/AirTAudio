@@ -30,14 +30,17 @@ namespace airtaudio {
 				bool xrun[2];
 				std::condition_variable runnable_cv;
 				bool runnable;
-				
+				std::unique_ptr<std::thread> thread;
+				bool threadRunning;
 				AlsaPrivate() :
 				  synchronized(false),
-				  runnable(false) {
+				  runnable(false),
+				  threadRunning(false) {
 					handles[0] = nullptr;
 					handles[1] = nullptr;
 					xrun[0] = false;
 					xrun[1] = false;
+					// TODO : Wait thread ...
 				}
 		};
 	};
@@ -692,10 +695,11 @@ foundDevice:
 	} else {
 		m_mode = _mode;
 		// Setup callback thread.
-		m_callbackInfo.isRunning = true;
-		m_callbackInfo.thread = new std::thread(&airtaudio::api::Alsa::alsaCallbackEvent, this);
-		if (m_callbackInfo.thread == nullptr) {
-			m_callbackInfo.isRunning = false;
+		m_private->threadRunning = true;
+		std::unique_ptr<std::thread> tmpThread(new std::thread(&airtaudio::api::Alsa::alsaCallbackEvent, this));
+		m_private->thread =	std::move(tmpThread);
+		if (m_private->thread == nullptr) {
+			m_private->threadRunning = false;
 			ATA_ERROR("creating callback thread!");
 			goto error;
 		}
@@ -729,15 +733,15 @@ enum airtaudio::error airtaudio::api::Alsa::closeStream() {
 		ATA_ERROR("no open stream to close!");
 		return airtaudio::error_warning;
 	}
-	m_callbackInfo.isRunning = false;
+	m_private->threadRunning = false;
 	m_mutex.lock();
 	if (m_state == airtaudio::state_stopped) {
 		m_private->runnable = true;
 		m_private->runnable_cv.notify_one();
 	}
 	m_mutex.unlock();
-	if (m_callbackInfo.thread != nullptr) {
-		m_callbackInfo.thread->join();
+	if (m_private->thread != nullptr) {
+		m_private->thread->join();
 	}
 	if (m_state == airtaudio::state_running) {
 		m_state = airtaudio::state_stopped;
@@ -909,27 +913,51 @@ unlock:
 
 
 void airtaudio::api::Alsa::alsaCallbackEvent(void *_userData) {
-	etk::log::setThreadName("Alsa IO");
 	airtaudio::api::Alsa* myClass = reinterpret_cast<airtaudio::api::Alsa*>(_userData);
 	myClass->callbackEvent();
 }
 
 void airtaudio::api::Alsa::callbackEvent() {
-	while (m_callbackInfo.isRunning == true) {
+	etk::log::setThreadName("Alsa IO-" + m_name);
+	while (m_private->threadRunning == true) {
 		callbackEventOneCycle();
 	}
 }
 
-std::chrono::time_point<std::chrono::system_clock> airtaudio::api::Alsa::getStreamTime() {
-	snd_pcm_uframes_t avail;
-	snd_htimestamp_t tstamp;
-	if (m_private->handles[0] != nullptr) {
-		int plop = snd_pcm_htimestamp(m_private->handles[0], &avail, &tstamp);
-	} else if (m_private->handles[1] != nullptr) {
-		int plop = snd_pcm_htimestamp(m_private->handles[1], &avail, &tstamp);
+namespace std {
+	static std::ostream& operator <<(std::ostream& _os, const std::chrono::system_clock::time_point& _obj) {
+		std::chrono::nanoseconds ns = std::chrono::duration_cast<std::chrono::nanoseconds>(_obj.time_since_epoch());
+		int64_t totalSecond = ns.count()/1000000000;
+		int64_t millisecond = (ns.count()%1000000000)/1000000;
+		int64_t microsecond = (ns.count()%1000000)/1000;
+		int64_t nanosecond = ns.count()%1000;
+		//_os << totalSecond << "s " << millisecond << "ms " << microsecond << "µs " << nanosecond << "ns";
+		
+		int32_t second = totalSecond % 60;
+		int32_t minute = (totalSecond/60)%60;
+		int32_t hour = (totalSecond/3600)%24;
+		int32_t day = (totalSecond/(24*3600))%365;
+		int32_t year = totalSecond/(24*3600*365);
+		_os << year << "y " << day << "d " << hour << "h" << minute << ":"<< second << "s " << millisecond << "ms " << microsecond << "Âµs " << nanosecond << "ns";
+		return _os;
 	}
-	//ATA_WARNING("plop : " << tstamp.tv_sec << " sec " << tstamp.tv_nsec);
-	return std::chrono::system_clock::from_time_t(tstamp.tv_sec) + std::chrono::nanoseconds(tstamp.tv_nsec);
+}
+std::chrono::time_point<std::chrono::system_clock> airtaudio::api::Alsa::getStreamTime() {
+	if (m_startTime == std::chrono::system_clock::time_point()) {
+		snd_pcm_uframes_t avail;
+		snd_htimestamp_t tstamp;
+		if (m_private->handles[0] != nullptr) {
+			int plop = snd_pcm_htimestamp(m_private->handles[0], &avail, &tstamp);
+		} else if (m_private->handles[1] != nullptr) {
+			int plop = snd_pcm_htimestamp(m_private->handles[1], &avail, &tstamp);
+		}
+		//ATA_WARNING("plop : " << tstamp.tv_sec << " sec " << tstamp.tv_nsec);
+		//return std::chrono::system_clock::from_time_t(tstamp.tv_sec) + std::chrono::nanoseconds(tstamp.tv_nsec);
+		//m_startTime = std::chrono::system_clock::from_time_t(tstamp.tv_sec) + std::chrono::nanoseconds(tstamp.tv_nsec);
+		//m_duration = std::chrono::microseconds(0);
+	}
+	ATA_DEBUG(" createTimeStamp : " << m_startTime + m_duration);
+	return m_startTime + m_duration;
 }
 
 
@@ -952,22 +980,23 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 	}
 	int32_t doStopStream = 0;
 	std::chrono::system_clock::time_point streamTime = getStreamTime();
-	enum airtaudio::status status = airtaudio::status_ok;
+	std::vector<enum airtaudio::status> status;
 	if (    m_mode != airtaudio::mode_input
 	     && m_private->xrun[0] == true) {
-		status = airtaudio::status_underflow;
+		status.push_back(airtaudio::status_underflow);
 		m_private->xrun[0] = false;
 	}
 	if (    m_mode != airtaudio::mode_output
 	     && m_private->xrun[1] == true) {
-		status = airtaudio::status_overflow;
+		status.push_back(airtaudio::status_overflow);
 		m_private->xrun[1] = false;
 	}
-	doStopStream = m_callbackInfo.callback(&m_userBuffer[0][0],
-	                                       &m_userBuffer[1][0],
-	                                       m_bufferSize,
-	                                       streamTime,
-	                                       status);
+	doStopStream = m_callback(&m_userBuffer[1][0],
+	                          streamTime,
+	                          &m_userBuffer[0][0],
+	                          streamTime,
+	                          m_bufferSize,
+	                          status);
 	if (doStopStream == 2) {
 		abortStream();
 		return;

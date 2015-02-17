@@ -654,20 +654,21 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 	// Invoke user callback first, to get fresh output data.
 	if (m_private->drainCounter == 0) {
 		std::chrono::time_point<std::chrono::system_clock> streamTime = getStreamTime();
-		enum airtaudio::status status = airtaudio::status_ok;
+		std::vector<enum airtaudio::status> status;
 		if (m_mode != airtaudio::mode_input && m_private->xrun[0] == true) {
-			status = airtaudio::status_underflow;
+			status.push_back(airtaudio::status_underflow);
 			m_private->xrun[0] = false;
 		}
 		if (m_mode != airtaudio::mode_output && m_private->xrun[1] == true) {
-			status = airtaudio::status_overflow;
+			status.push_back(airtaudio::status_overflow);
 			m_private->xrun[1] = false;
 		}
-		int32_t cbReturnValue = m_callbackInfo.callback(&m_userBuffer[0][0],
-		                                                &m_userBuffer[1][0],
-		                                                m_bufferSize,
-		                                                streamTime,
-		                                                status);
+		int32_t cbReturnValue = m_callback(&m_userBuffer[1][0],
+		                                   streamTime,
+		                                   &m_userBuffer[0][0],
+		                                   streamTime,
+		                                   m_bufferSize,
+		                                   status);
 		if (cbReturnValue == 2) {
 			m_state = airtaudio::state_stopping;
 			m_private->drainCounter = 2;

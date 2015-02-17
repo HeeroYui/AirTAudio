@@ -18,6 +18,22 @@
 namespace airtaudio {
 	const std::vector<uint32_t>& genericSampleRate();
 	
+	/**
+	 * @brief airtaudio callback function prototype.
+	 * @param _inputBuffer For input (or duplex) streams, this buffer will hold _nbChunk of input audio chunk (nullptr if no data).
+	 * @param _timeInput Timestamp of the first buffer sample (recording time).
+	 * @param _outputBuffer For output (or duplex) streams, the client should write _nbChunk of audio chunk into this buffer (nullptr if no data).
+	 * @param _timeOutput Timestamp of the first buffer sample (playing time).
+	 * @param _nbChunk The number of chunk of input or output chunk in the buffer (same size).
+	 * @param _status List of error that occured in the laps of time.
+	 */
+	typedef std::function<int32_t (const void* _inputBuffer,
+	                               const std::chrono::system_clock::time_point& _timeInput,
+	                               void* _outputBuffer,
+	                               const std::chrono::system_clock::time_point& _timeOutput,
+	                               uint32_t _nbChunk,
+	                               const std::vector<airtaudio::status>& _status)> AirTAudioCallback;
+	
 	// A protected structure used for buffer conversion.
 	class ConvertInfo {
 		public:
@@ -31,9 +47,14 @@ namespace airtaudio {
 	};
 
 	class Api {
+		protected:
+			std::string m_name;
 		public:
 			Api();
 			virtual ~Api();
+			void setName(const std::string& _name) {
+				m_name = _name;
+			}
 			virtual airtaudio::type getCurrentApi() = 0;
 			virtual uint32_t getDeviceCount() = 0;
 			virtual airtaudio::DeviceInfo getDeviceInfo(uint32_t _device) = 0;
@@ -43,7 +64,7 @@ namespace airtaudio {
 			                                 airtaudio::StreamParameters* _inputParameters,
 			                                 audio::format _format,
 			                                 uint32_t _sampleRate,
-			                                 uint32_t* _bufferFrames,
+			                                 uint32_t* _nbChunk,
 			                                 airtaudio::AirTAudioCallback _callback,
 			                                 airtaudio::StreamOptions* _options);
 			virtual enum airtaudio::error closeStream();
@@ -62,6 +83,7 @@ namespace airtaudio {
 			
 		protected:
 			mutable std::mutex m_mutex;
+			airtaudio::AirTAudioCallback m_callback;
 			uint32_t m_device[2]; // Playback and record, respectively.
 			enum airtaudio::mode m_mode; // airtaudio::mode_output, airtaudio::mode_input, or airtaudio::mode_duplex.
 			enum airtaudio::state m_state; // STOPPED, RUNNING, or CLOSED
@@ -70,22 +92,20 @@ namespace airtaudio {
 			bool m_doConvertBuffer[2]; // Playback and record, respectively.
 			bool m_deviceInterleaved[2]; // Playback and record, respectively.
 			bool m_doByteSwap[2]; // Playback and record, respectively.
-			uint32_t m_sampleRate;
+			uint32_t m_sampleRate; // TODO : Rename frequency
 			uint32_t m_bufferSize;
 			uint32_t m_nBuffers;
-			uint32_t m_nUserChannels[2]; // Playback and record, respectively.
+			uint32_t m_nUserChannels[2]; // Playback and record, respectively. // TODO : set only one config (open inout with the same number of channels (limitation)
 			uint32_t m_nDeviceChannels[2]; // Playback and record channels, respectively.
 			uint32_t m_channelOffset[2]; // Playback and record, respectively.
 			uint64_t m_latency[2]; // Playback and record, respectively.
 			enum audio::format m_userFormat; // TODO : Remove this ==> use can only open in the Harware format ...
 			enum audio::format m_deviceFormat[2]; // Playback and record, respectively.
-			// TODO : Remove this ...
-			airtaudio::CallbackInfo m_callbackInfo;
 			airtaudio::ConvertInfo m_convertInfo[2];
 			
 			//std::chrono::system_clock::time_point
-			std::chrono::time_point<std::chrono::system_clock> m_startTime; //!< start time of the stream (restart at every stop, pause ...)
-			std::chrono::duration<int64_t, std::micro> m_duration; //!< duration from wich the stream is started
+			std::chrono::system_clock::time_point m_startTime; //!< start time of the stream (restart at every stop, pause ...)
+			std::chrono::nanoseconds m_duration; //!< duration from wich the stream is started
 			
 			/**
 			 * @brief api-specific method that attempts to open a device

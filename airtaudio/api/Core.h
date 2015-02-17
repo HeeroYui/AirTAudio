@@ -31,13 +31,11 @@ namespace airtaudio {
 				enum airtaudio::error stopStream();
 				enum airtaudio::error abortStream();
 				long getStreamLatency();
-				// This function is intended for internal use only.	It must be
-				// public because it is called by the internal callback handler,
-				// which is not a member of RtAudio.	External use of this function
-				// will most likely produce highly undesireable results!
 				bool callbackEvent(AudioDeviceID _deviceId,
 				                   const AudioBufferList *_inBufferList,
-				                   const AudioBufferList *_outBufferList);
+				                   const std::chrono::system_clock::time_point& _inTime,
+				                   const AudioBufferList *_outBufferList,
+				                   const std::chrono::system_clock::time_point& _outTime);
 				static OSStatus callbackEvent(AudioDeviceID _inDevice,
 				                              const AudioTimeStamp* _inNow,
 				                              const AudioBufferList* _inInputData,
@@ -57,11 +55,10 @@ namespace airtaudio {
 				                     uint32_t *_bufferSize,
 				                     airtaudio::StreamOptions *_options);
 				static const char* getErrorCode(OSStatus _code);
-			
-			static OSStatus xrunListener(AudioObjectID _inDevice,
-			                             uint32_t _nAddresses,
-			                             const AudioObjectPropertyAddress _properties[],
-			                             void* _userData);
+				static OSStatus xrunListener(AudioObjectID _inDevice,
+				                             uint32_t _nAddresses,
+				                             const AudioObjectPropertyAddress _properties[],
+				                             void* _userData);
 		};
 	};
 };

@@ -1011,7 +1011,9 @@ void airtaudio::api::Core::coreStopStream(void *_userData) {
 
 bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
                                          const AudioBufferList *_inBufferList,
-                                         const AudioBufferList *_outBufferList) {
+                                         const std::chrono::system_clock::time_point& _inTime,
+                                         const AudioBufferList *_outBufferList,
+                                         const std::chrono::system_clock::time_point& _outTime) {
 	if (    m_state == airtaudio::state_stopped
 	     || m_state == airtaudio::state_stopping) {
 		return true;
@@ -1020,7 +1022,6 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return false;
 	}
-	CallbackInfo *info = (CallbackInfo *) &m_callbackInfo;
 	// Check if we were draining the stream and signal is finished.
 	if (m_private->drainCounter > 3) {
 		m_state = airtaudio::state_stopping;
@@ -1038,23 +1039,23 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 	// draining stream or duplex mode AND the input/output devices are
 	// different AND this function is called for the input device.
 	if (m_private->drainCounter == 0 && (m_mode != airtaudio::mode_duplex || _deviceId == outputDevice)) {
-		std::chrono::system_clock::time_point streamTime = getStreamTime();
-		enum airtaudio::status status = airtaudio::status_ok;
+		std::vector<enum airtaudio::status> status;
 		if (    m_mode != airtaudio::mode_input
 		     && m_private->xrun[0] == true) {
-			status = airtaudio::status_underflow;
+			status.push_back(airtaudio::status_underflow);
 			m_private->xrun[0] = false;
 		}
 		if (    m_mode != airtaudio::mode_output
 		     && m_private->xrun[1] == true) {
-			status = airtaudio::status_overflow;
+			status.push_back(airtaudio::status_overflow);
 			m_private->xrun[1] = false;
 		}
-		int32_t cbReturnValue = info->callback(&m_userBuffer[0][0],
-		                                       &m_userBuffer[1][0],
-		                                       m_bufferSize,
-		                                       streamTime,
-		                                       status);
+		int32_t cbReturnValue = m_callback(&m_userBuffer[1][0],
+		                                   _inTime,
+		                                   &m_userBuffer[0][0],
+		                                   _outTime,
+		                                   m_bufferSize,
+		                                   status);
 		if (cbReturnValue == 2) {
 			m_state = airtaudio::state_stopping;
 			ATA_VERBOSE("Set state as stopping");

@@ -111,7 +111,7 @@ enum airtaudio::error airtaudio::api::CoreIos::abortStream(void) {
 }
 
 void airtaudio::api::CoreIos::callBackEvent(void* _data,
-                                            int32_t _frameRate) {
+                                            int32_t _nbChunk) {
 	
 	#if 0
 	static double value=0;
@@ -128,20 +128,22 @@ void airtaudio::api::CoreIos::callBackEvent(void* _data,
 	#endif
 	int32_t doStopStream = 0;
 	std::chrono::system_clock::time_point streamTime = getStreamTime();
-	enum airtaudio::status status = airtaudio::status_ok;
+	std::vector<enum airtaudio::status> status;
 	if (m_doConvertBuffer[modeToIdTable(airtaudio::mode_output)] == true) {
-		doStopStream = m_callbackInfo.callback(&m_userBuffer[modeToIdTable(airtaudio::mode_output)][0],
-		                                              nullptr,
-		                                              _frameRate,
-		                                              streamTime,
-		                                              status);
+		doStopStream = m_callback(nullptr,
+		                          streamTime,
+		                          &m_userBuffer[modeToIdTable(airtaudio::mode_output)][0],
+		                          streamTime,
+		                          _nbChunk,
+		                          status);
 		convertBuffer((char*)_data, &m_userBuffer[modeToIdTable(airtaudio::mode_output)][0], m_convertInfo[modeToIdTable(airtaudio::mode_output)]);
 	} else {
-		doStopStream = m_callbackInfo.callback(_data,
-		                                              nullptr,
-		                                              _frameRate,
-		                                              streamTime,
-		                                              status);
+		doStopStream = m_callback(_data,
+		                          streamTime,
+		                          nullptr,
+		                          streamTime,
+		                          _nbChunk,
+		                          status);
 	}
 	if (doStopStream == 2) {
 		abortStream();
@@ -152,11 +154,11 @@ void airtaudio::api::CoreIos::callBackEvent(void* _data,
 
 
 static OSStatus playbackCallback(void *_userData,
-								      AudioUnitRenderActionFlags* _ioActionFlags,
-									  const AudioTimeStamp* _inTimeStamp,
-								      uint32_t _inBusNumber,
-								      uint32_t _inNumberFrames,
-								      AudioBufferList* _ioData) {
+                                 AudioUnitRenderActionFlags* _ioActionFlags,
+                                 const AudioTimeStamp* _inTimeStamp,
+                                 uint32_t _inBusNumber,
+                                 uint32_t _inNumberFrames,
+                                 AudioBufferList* _ioData) {
 	if (_userData == nullptr) {
 		ATA_ERROR("callback event ... nullptr pointer");
 		return -1;

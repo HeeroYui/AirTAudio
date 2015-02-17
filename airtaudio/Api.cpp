@@ -43,6 +43,7 @@ const std::vector<uint32_t>& airtaudio::genericSampleRate() {
 
 
 airtaudio::Api::Api() :
+  m_callback(nullptr),
   m_deviceBuffer(nullptr) {
 	m_device[0] = 11111;
 	m_device[1] = 11111;
@@ -138,7 +139,7 @@ enum airtaudio::error airtaudio::Api::openStream(airtaudio::StreamParameters *oP
 			return airtaudio::error_systemError;
 		}
 	}
-	m_callbackInfo.callback = callback;
+	m_callback = callback;
 	if (options != nullptr) {
 		options->numberOfBuffers = m_nBuffers;
 	}
@@ -175,7 +176,9 @@ bool airtaudio::Api::probeDeviceOpen(uint32_t /*device*/,
 }
 
 void airtaudio::Api::tickStreamTime() {
-	m_duration += std::chrono::duration<int64_t, std::micro>((m_bufferSize * 1000000) / m_sampleRate);
+	//ATA_WARNING("tick : size=" << m_bufferSize << " rate=" << m_sampleRate << " time=" << std::chrono::nanoseconds((int64_t(m_bufferSize) * int64_t(1000000000)) / int64_t(m_sampleRate)).count());
+	//ATA_WARNING("  one element=" << std::chrono::nanoseconds((int64_t(1000000000)) / int64_t(m_sampleRate)).count());
+	m_duration += std::chrono::nanoseconds((int64_t(m_bufferSize) * int64_t(1000000000)) / int64_t(m_sampleRate));
 }
 
 long airtaudio::Api::getStreamLatency() {
@@ -224,10 +227,9 @@ void airtaudio::Api::clearStreamInfo() {
 	m_nBuffers = 0;
 	m_userFormat = audio::format_unknow;
 	m_startTime = std::chrono::system_clock::time_point();
-	m_duration = std::chrono::duration<int64_t, std::micro>(0);
+	m_duration = std::chrono::nanoseconds(0);
 	m_deviceBuffer = nullptr;
-	m_callbackInfo.callback = 0;
-	m_callbackInfo.isRunning = false;
+	m_callback = nullptr;
 	for (int32_t iii=0; iii<2; ++iii) {
 		m_device[iii] = 11111;
 		m_doConvertBuffer[iii] = false;

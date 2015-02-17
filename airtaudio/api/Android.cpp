@@ -111,20 +111,22 @@ void airtaudio::api::Android::callBackEvent(void* _data,
                                             int32_t _frameRate) {
 	int32_t doStopStream = 0;
 	std::chrono::system_clock::time_point streamTime = getStreamTime();
-	enum airtaudio::status status = airtaudio::status_ok;
+	std::vector<enum airtaudio::status> status;
 	if (m_doConvertBuffer[airtaudio::mode_output] == true) {
-		doStopStream = m_callbackInfo.callback(m_userBuffer[airtaudio::mode_output],
-		                                       nullptr,
-		                                       _frameRate,
-		                                       streamTime,
-		                                       status);
+		doStopStream = m_callback(nullptr,
+		                          std::chrono::system_clock::time_point(),
+		                          m_userBuffer[airtaudio::mode_output],
+		                          streamTime,
+		                          _frameRate,
+		                          status);
 		convertBuffer((char*)_data, (char*)m_userBuffer[airtaudio::mode_output], m_convertInfo[airtaudio::mode_output]);
 	} else {
-		doStopStream = m_callbackInfo.callback(_data,
-		                                       nullptr,
-		                                       _frameRate,
-		                                       streamTime,
-		                                       status);
+		doStopStream = m_callback(_data,
+		                          streamTime,
+		                          nullptr,
+		                          std::chrono::system_clock::time_point(),
+		                          _frameRate,
+		                          status);
 	}
 	if (doStopStream == 2) {
 		abortStream();
