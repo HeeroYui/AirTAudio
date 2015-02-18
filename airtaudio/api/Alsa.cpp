@@ -956,7 +956,7 @@ std::chrono::time_point<std::chrono::system_clock> airtaudio::api::Alsa::getStre
 		//m_startTime = std::chrono::system_clock::from_time_t(tstamp.tv_sec) + std::chrono::nanoseconds(tstamp.tv_nsec);
 		//m_duration = std::chrono::microseconds(0);
 	}
-	ATA_DEBUG(" createTimeStamp : " << m_startTime + m_duration);
+	//ATA_DEBUG(" createTimeStamp : " << m_startTime + m_duration);
 	return m_startTime + m_duration;
 }
 
