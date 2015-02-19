@@ -777,7 +777,7 @@ enum airtaudio::error airtaudio::api::Alsa::closeStream() {
 
 enum airtaudio::error airtaudio::api::Alsa::startStream() {
 	// TODO : Check return ...
-	airtaudio::Api::startStream();
+	//airtaudio::Api::startStream();
 	// This method calls snd_pcm_prepare if the device isn't already in that state.
 	if (verifyStream() != airtaudio::error_none) {
 		return airtaudio::error_fail;
@@ -942,6 +942,7 @@ namespace std {
 		return _os;
 	}
 }
+/*
 std::chrono::time_point<std::chrono::system_clock> airtaudio::api::Alsa::getStreamTime() {
 	if (m_startTime == std::chrono::system_clock::time_point()) {
 		snd_pcm_uframes_t avail;
@@ -953,11 +954,59 @@ std::chrono::time_point<std::chrono::system_clock> airtaudio::api::Alsa::getStre
 		}
 		//ATA_WARNING("plop : " << tstamp.tv_sec << " sec " << tstamp.tv_nsec);
 		//return std::chrono::system_clock::from_time_t(tstamp.tv_sec) + std::chrono::nanoseconds(tstamp.tv_nsec);
-		//m_startTime = std::chrono::system_clock::from_time_t(tstamp.tv_sec) + std::chrono::nanoseconds(tstamp.tv_nsec);
-		//m_duration = std::chrono::microseconds(0);
+		m_startTime = std::chrono::system_clock::from_time_t(tstamp.tv_sec) + std::chrono::nanoseconds(tstamp.tv_nsec);
+		m_startTime = std::chrono::system_clock::now();
+		if (m_private->handles[0] != nullptr) {
+			//m_startTime += std::chrono::nanoseconds(m_bufferSize*1000000000LL/int64_t(m_sampleRate));
+			snd_pcm_sframes_t frames;
+			int result = snd_pcm_delay(m_private->handles[0], &frames);
+			m_startTime += std::chrono::nanoseconds(frames*1000000000LL/int64_t(m_sampleRate));
+		} else if (m_private->handles[1] != nullptr) {
+			//m_startTime -= std::chrono::nanoseconds(m_bufferSize*1000000000LL/int64_t(m_sampleRate));
+			snd_pcm_sframes_t frames;
+			int result = snd_pcm_delay(m_private->handles[1], &frames);
+			m_startTime -= std::chrono::nanoseconds(frames*1000000000LL/int64_t(m_sampleRate));
+		}
+		
+		m_duration = std::chrono::microseconds(0);
 	}
 	//ATA_DEBUG(" createTimeStamp : " << m_startTime + m_duration);
+	
 	return m_startTime + m_duration;
+}
+*/
+
+std::chrono::time_point<std::chrono::system_clock> airtaudio::api::Alsa::getStreamTime() {
+	snd_pcm_status_t *status = nullptr;
+	snd_timestamp_t timestamp;
+	snd_pcm_status_alloca(&status);
+	if(m_private->handles[1]) {
+		snd_pcm_status(m_private->handles[1], status);
+		snd_pcm_status_get_tstamp(status, &timestamp);
+		m_startTime = std::chrono::system_clock::from_time_t(timestamp.tv_sec) + std::chrono::microseconds(timestamp.tv_usec);
+		ATA_WARNING("time : " << m_startTime);
+		snd_pcm_status_get_trigger_tstamp(status, &timestamp);
+		m_startTime = std::chrono::system_clock::from_time_t(timestamp.tv_sec) + std::chrono::microseconds(timestamp.tv_usec);
+		ATA_WARNING("start : " << m_startTime);
+		snd_pcm_sframes_t delay = snd_pcm_status_get_delay(status);
+		//return m_startTime - std::chrono::nanoseconds(delay*1000000000LL/int64_t(m_sampleRate));
+		ATA_WARNING("delay : " << std::chrono::nanoseconds(delay*1000000000LL/int64_t(m_sampleRate)).count() << " ns");
+		return m_startTime + m_duration;
+	}
+	if(m_private->handles[0]) {
+		snd_pcm_status(m_private->handles[0], status);
+		snd_pcm_status_get_tstamp(status, &timestamp);
+		m_startTime = std::chrono::system_clock::from_time_t(timestamp.tv_sec) + std::chrono::microseconds(timestamp.tv_usec);
+		ATA_WARNING("time : " << m_startTime);
+		snd_pcm_status_get_trigger_tstamp(status, &timestamp);
+		m_startTime = std::chrono::system_clock::from_time_t(timestamp.tv_sec) + std::chrono::microseconds(timestamp.tv_usec);
+		ATA_WARNING("start : " << m_startTime);
+		snd_pcm_sframes_t delay = snd_pcm_status_get_delay(status);
+		//return m_startTime + std::chrono::nanoseconds(delay*1000000000LL/int64_t(m_sampleRate));
+		ATA_WARNING("delay : " << std::chrono::nanoseconds(delay*1000000000LL/int64_t(m_sampleRate)).count() << " ns");
+		return m_startTime + m_duration;
+	}
+	return std::chrono::system_clock::now();
 }
 
 
@@ -992,9 +1041,9 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 		m_private->xrun[1] = false;
 	}
 	doStopStream = m_callback(&m_userBuffer[1][0],
-	                          streamTime,
+	                          streamTime,// - std::chrono::nanoseconds(m_latency[1]*1000000000LL/int64_t(m_sampleRate)),
 	                          &m_userBuffer[0][0],
-	                          streamTime,
+	                          streamTime,// + std::chrono::nanoseconds(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
 	                          m_bufferSize,
 	                          status);
 	if (doStopStream == 2) {
@@ -1065,6 +1114,7 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 		// Check stream latency
 		result = snd_pcm_delay(handle[1], &frames);
 		if (result == 0 && frames > 0) {
+			ATA_WARNING("Delay in the Input " << frames << " chunk");
 			m_latency[1] = frames;
 		}
 	}
@@ -1120,6 +1170,7 @@ tryOutput:
 		// Check stream latency
 		result = snd_pcm_delay(handle[0], &frames);
 		if (result == 0 && frames > 0) {
+			ATA_WARNING("Delay in the Output " << frames << " chunk");
 			m_latency[0] = frames;
 		}
 	}
