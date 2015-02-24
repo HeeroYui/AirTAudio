@@ -36,7 +36,7 @@ namespace airtaudio {
 				uint32_t nStreams[2]; // number of streams to use
 				bool xrun[2];
 				char *deviceBuffer;
-				std::condition_variable condition;
+				std11::condition_variable condition;
 				int32_t drainCounter; // Tracks callback counts when draining
 				bool internalDrain; // Indicates if stop is initiated from callback or not.
 				CorePrivate() :
@@ -958,7 +958,7 @@ enum airtaudio::error airtaudio::api::Core::stopStream() {
 	if (    m_mode == airtaudio::mode_output
 	     || m_mode == airtaudio::mode_duplex) {
 		if (m_private->drainCounter == 0) {
-			std::unique_lock<std::mutex> lck(m_mutex);
+			std11::unique_lock<std11::mutex> lck(m_mutex);
 			m_private->drainCounter = 2;
 			m_private->condition.wait(lck);
 		}
@@ -1011,9 +1011,9 @@ void airtaudio::api::Core::coreStopStream(void *_userData) {
 
 bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
                                          const AudioBufferList *_inBufferList,
-                                         const std::chrono::system_clock::time_point& _inTime,
+                                         const std11::chrono::system_clock::time_point& _inTime,
                                          const AudioBufferList *_outBufferList,
-                                         const std::chrono::system_clock::time_point& _outTime) {
+                                         const std11::chrono::system_clock::time_point& _outTime) {
 	if (    m_state == airtaudio::state_stopped
 	     || m_state == airtaudio::state_stopping) {
 		return true;
@@ -1027,7 +1027,7 @@ bool airtaudio::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		m_state = airtaudio::state_stopping;
 		ATA_VERBOSE("Set state as stopping");
 		if (m_private->internalDrain == true) {
-			new std::thread(&airtaudio::api::Core::coreStopStream, this);
+			new std11::thread(&airtaudio::api::Core::coreStopStream, this);
 		} else {
 			// external call to stopStream()
 			m_private->condition.notify_one();

@@ -36,7 +36,7 @@ namespace airtaudio {
 				void callbackEvent();
 			private:
 				static void dsCallbackEvent(void *_userData);
-				std::unique_ptr<DsPrivate> m_private;
+				std11::shared_ptr<DsPrivate> m_private;
 				bool m_coInitialized;
 				bool m_buffersRolling;
 				long m_duplexPrerollBytes;

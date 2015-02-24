@@ -15,7 +15,7 @@
 #undef __class__
 #define __class__ "type"
 
-static const char* listType[] {
+static const char* listType[] = {
 	"undefined",
 	"alsa",
 	"pulse",

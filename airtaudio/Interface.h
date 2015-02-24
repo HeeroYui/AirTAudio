@@ -36,7 +36,7 @@ namespace airtaudio {
 	 */
 	class Interface {
 		protected:
-			std::vector<std::pair<enum airtaudio::type, Api* (*)()>> m_apiAvaillable;
+			std::vector<std::pair<enum airtaudio::type, Api* (*)()> > m_apiAvaillable;
 		protected:
 			airtaudio::Api *m_rtapi;
 		public:
@@ -267,9 +267,9 @@ namespace airtaudio {
 			 * @brief If a stream is not open, an RtError (type = INVALID_USE) will be thrown.
 			 * @return the number of elapsed seconds since the stream was started.
 			 */
-			std::chrono::time_point<std::chrono::system_clock> getStreamTime() {
+			std11::chrono::system_clock::time_point getStreamTime() {
 				if (m_rtapi == nullptr) {
-					return std::chrono::time_point<std::chrono::system_clock>();
+					return std11::chrono::system_clock::time_point();
 				}
 				return m_rtapi->getStreamTime();
 			}

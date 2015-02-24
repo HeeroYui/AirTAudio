@@ -46,7 +46,7 @@ namespace airtaudio {
 				void callBackEvent(void* _data,
 				                   int32_t _frameRate);
 			public:
-				std::unique_ptr<CoreIosPrivate> m_private;
+				std11::shared_ptr<CoreIosPrivate> m_private;
 		};
 	};
 };

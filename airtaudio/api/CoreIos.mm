@@ -127,7 +127,7 @@ void airtaudio::api::CoreIos::callBackEvent(void* _data,
 	return;
 	#endif
 	int32_t doStopStream = 0;
-	std::chrono::system_clock::time_point streamTime = getStreamTime();
+	std11::chrono::system_clock::time_point streamTime = getStreamTime();
 	std::vector<enum airtaudio::status> status;
 	if (m_doConvertBuffer[modeToIdTable(airtaudio::mode_output)] == true) {
 		doStopStream = m_callback(nullptr,

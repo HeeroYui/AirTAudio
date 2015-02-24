@@ -57,8 +57,8 @@ airtaudio::Api::~Api() {
 
 enum airtaudio::error airtaudio::Api::startStream() {
 	ATA_VERBOSE("Start Stream");
-	m_startTime = std::chrono::system_clock::now();
-	m_duration = std::chrono::duration<int64_t, std::micro>(0);
+	m_startTime = std11::chrono::system_clock::now();
+	m_duration = std11::chrono::microseconds(0);
 	return airtaudio::error_none;
 }
 
@@ -176,9 +176,9 @@ bool airtaudio::Api::probeDeviceOpen(uint32_t /*device*/,
 }
 
 void airtaudio::Api::tickStreamTime() {
-	//ATA_WARNING("tick : size=" << m_bufferSize << " rate=" << m_sampleRate << " time=" << std::chrono::nanoseconds((int64_t(m_bufferSize) * int64_t(1000000000)) / int64_t(m_sampleRate)).count());
-	//ATA_WARNING("  one element=" << std::chrono::nanoseconds((int64_t(1000000000)) / int64_t(m_sampleRate)).count());
-	m_duration += std::chrono::nanoseconds((int64_t(m_bufferSize) * int64_t(1000000000)) / int64_t(m_sampleRate));
+	//ATA_WARNING("tick : size=" << m_bufferSize << " rate=" << m_sampleRate << " time=" << std11::chrono::nanoseconds((int64_t(m_bufferSize) * int64_t(1000000000)) / int64_t(m_sampleRate)).count());
+	//ATA_WARNING("  one element=" << std11::chrono::nanoseconds((int64_t(1000000000)) / int64_t(m_sampleRate)).count());
+	m_duration += std11::chrono::nanoseconds((int64_t(m_bufferSize) * int64_t(1000000000)) / int64_t(m_sampleRate));
 }
 
 long airtaudio::Api::getStreamLatency() {
@@ -197,9 +197,9 @@ long airtaudio::Api::getStreamLatency() {
 	return totalLatency;
 }
 
-std::chrono::system_clock::time_point airtaudio::Api::getStreamTime() {
+std11::chrono::system_clock::time_point airtaudio::Api::getStreamTime() {
 	if (verifyStream() != airtaudio::error_none) {
-		return std::chrono::system_clock::time_point();
+		return std11::chrono::system_clock::time_point();
 	}
 	return m_startTime + m_duration;
 }
@@ -226,8 +226,8 @@ void airtaudio::Api::clearStreamInfo() {
 	m_bufferSize = 0;
 	m_nBuffers = 0;
 	m_userFormat = audio::format_unknow;
-	m_startTime = std::chrono::system_clock::time_point();
-	m_duration = std::chrono::nanoseconds(0);
+	m_startTime = std11::chrono::system_clock::time_point();
+	m_duration = std11::chrono::nanoseconds(0);
 	m_deviceBuffer = nullptr;
 	m_callback = nullptr;
 	for (int32_t iii=0; iii<2; ++iii) {

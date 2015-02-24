@@ -74,7 +74,7 @@ namespace airtaudio {
 	namespace api {
 		class DsPrivate {
 			public:
-				std::unique_ptr<std::thread> thread;
+				std11::shared_ptr<std11::thread> thread;
 				bool threadRunning;
 				uint32_t drainCounter; // Tracks callback counts when draining
 				bool internalDrain; // Indicates if stop is initiated from callback or not.
@@ -743,7 +743,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 	// Setup the callback thread.
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
-		std::unique_ptr<std::thread> tmpThread(new std::thread(&airtaudio::api::Ds::dsCallbackEvent, this));
+		std11::shared_ptr<std11::thread> tmpThread(new std11::thread(&airtaudio::api::Ds::dsCallbackEvent, this));
 		m_private->thread =	std::move(tmpThread);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating callback thread!");
@@ -985,7 +985,7 @@ void airtaudio::api::Ds::callbackEvent() {
 	// Invoke user callback to get fresh output data UNLESS we are
 	// draining stream.
 	if (m_private->drainCounter == 0) {
-		std::chrono::system_clock::time_point streamTime = getStreamTime();
+		std11::chrono::system_clock::time_point streamTime = getStreamTime();
 		airtaudio::status status = airtaudio::status_ok;
 		if (    m_mode != airtaudio::mode_input
 		     && m_private->xrun[0] == true) {

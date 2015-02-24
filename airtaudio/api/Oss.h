@@ -32,7 +32,7 @@ namespace airtaudio {
 				// will most likely produce highly undesireable results!
 				void callbackEvent();
 			private:
-				std::unique_ptr<OssPrivate> m_private;
+				std11::shared_ptr<OssPrivate> m_private;
 				bool probeDeviceOpen(uint32_t _device,
 				                     airtaudio::mode _mode,
 				                     uint32_t _channels,

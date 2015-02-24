@@ -35,7 +35,7 @@ namespace airtaudio {
 			private:
 				static void alsaCallbackEvent(void* _userData);
 			private:
-				std::unique_ptr<AlsaPrivate> m_private;
+				std11::shared_ptr<AlsaPrivate> m_private;
 				std::vector<airtaudio::DeviceInfo> m_devices;
 				void saveDeviceInfo();
 				bool probeDeviceOpen(uint32_t _device,
@@ -46,7 +46,7 @@ namespace airtaudio {
 				                     enum audio::format _format,
 				                     uint32_t *_bufferSize,
 				                     airtaudio::StreamOptions *_options);
-				virtual std::chrono::system_clock::time_point getStreamTime();
+				virtual std11::chrono::system_clock::time_point getStreamTime();
 		};
 	};
 };

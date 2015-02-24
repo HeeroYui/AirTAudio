@@ -33,9 +33,9 @@ namespace airtaudio {
 				long getStreamLatency();
 				bool callbackEvent(AudioDeviceID _deviceId,
 				                   const AudioBufferList *_inBufferList,
-				                   const std::chrono::system_clock::time_point& _inTime,
+				                   const std11::chrono::system_clock::time_point& _inTime,
 				                   const AudioBufferList *_outBufferList,
-				                   const std::chrono::system_clock::time_point& _outTime);
+				                   const std11::chrono::system_clock::time_point& _outTime);
 				static OSStatus callbackEvent(AudioDeviceID _inDevice,
 				                              const AudioTimeStamp* _inNow,
 				                              const AudioBufferList* _inInputData,
@@ -45,7 +45,7 @@ namespace airtaudio {
 				                              void* _infoPointer);
 				static void coreStopStream(void *_userData);
 			private:
-				std::unique_ptr<CorePrivate> m_private;
+				std::shared_ptr<CorePrivate> m_private;
 				bool probeDeviceOpen(uint32_t _device,
 				                     airtaudio::mode _mode,
 				                     uint32_t _channels,

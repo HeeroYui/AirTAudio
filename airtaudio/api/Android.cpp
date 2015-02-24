@@ -110,11 +110,11 @@ enum airtaudio::error airtaudio::api::Android::abortStream() {
 void airtaudio::api::Android::callBackEvent(void* _data,
                                             int32_t _frameRate) {
 	int32_t doStopStream = 0;
-	std::chrono::system_clock::time_point streamTime = getStreamTime();
+	std11::chrono::system_clock::time_point streamTime = getStreamTime();
 	std::vector<enum airtaudio::status> status;
 	if (m_doConvertBuffer[airtaudio::mode_output] == true) {
 		doStopStream = m_callback(nullptr,
-		                          std::chrono::system_clock::time_point(),
+		                          std11::chrono::system_clock::time_point(),
 		                          m_userBuffer[airtaudio::mode_output],
 		                          streamTime,
 		                          _frameRate,
@@ -124,7 +124,7 @@ void airtaudio::api::Android::callBackEvent(void* _data,
 		doStopStream = m_callback(_data,
 		                          streamTime,
 		                          nullptr,
-		                          std::chrono::system_clock::time_point(),
+		                          std11::chrono::system_clock::time_point(),
 		                          _frameRate,
 		                          status);
 	}

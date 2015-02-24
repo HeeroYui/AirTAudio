@@ -39,7 +39,7 @@ namespace airtaudio {
 				static void jackShutdown(void* _userData);
 				static int32_t jackCallbackHandler(jack_nframes_t _nframes, void* _userData);
 			private:
-				std::unique_ptr<JackPrivate> m_private;
+				std11::shared_ptr<JackPrivate> m_private;
 				bool probeDeviceOpen(uint32_t _device,
 				                     airtaudio::mode _mode,
 				                     uint32_t _channels,

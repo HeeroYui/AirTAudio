@@ -45,9 +45,9 @@ def create(target):
 			'airtaudio/api/Oss.cpp'
 			])
 		myModule.add_optionnal_module_depend('alsa', "__LINUX_ALSA__")
-		myModule.add_optionnal_module_depend('jack', "__UNIX_JACK__")
-		myModule.add_optionnal_module_depend('pulse', "__LINUX_PULSE__")
-		myModule.add_optionnal_module_depend('oss', "__LINUX_OSS__")
+		#myModule.add_optionnal_module_depend('jack', "__UNIX_JACK__")
+		#myModule.add_optionnal_module_depend('pulse', "__LINUX_PULSE__")
+		#myModule.add_optionnal_module_depend('oss', "__LINUX_OSS__")
 	elif target.name=="MacOs":
 		myModule.add_src_file([
 							   'airtaudio/api/Core.cpp',

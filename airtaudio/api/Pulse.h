@@ -33,7 +33,7 @@ namespace airtaudio {
 				void callbackEventOneCycle();
 				void callbackEvent();
 			private:
-				std::unique_ptr<PulsePrivate> m_private;
+				std11::shared_ptr<PulsePrivate> m_private;
 				std::vector<airtaudio::DeviceInfo> m_devices;
 				void saveDeviceInfo();
 				bool probeDeviceOpen(uint32_t _device,

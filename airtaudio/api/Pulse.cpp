@@ -53,9 +53,9 @@ namespace airtaudio {
 			public:
 				pa_simple *s_play;
 				pa_simple *s_rec;
-				std::unique_ptr<std::thread> thread;
+				std11::shared_ptr<std11::thread> thread;
 				bool threadRunning;
-				std::condition_variable runnable_cv;
+				std11::condition_variable runnable_cv;
 				bool runnable;
 				PulsePrivate() :
 				  s_play(0),
@@ -137,7 +137,7 @@ enum airtaudio::error airtaudio::api::Pulse::closeStream() {
 
 void airtaudio::api::Pulse::callbackEventOneCycle() {
 	if (m_state == airtaudio::state_stopped) {
-		std::unique_lock<std::mutex> lck(m_mutex);
+		std11::unique_lock<std11::mutex> lck(m_mutex);
 		while (!m_private->runnable) {
 			m_private->runnable_cv.wait(lck);
 		}
@@ -150,7 +150,7 @@ void airtaudio::api::Pulse::callbackEventOneCycle() {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return;
 	}
-	std::chrono::system_clock::time_point streamTime = getStreamTime();
+	std11::chrono::system_clock::time_point streamTime = getStreamTime();
 	std::vector<enum airtaudio::status> status;
 	int32_t doStopStream = m_callback(&m_userBuffer[airtaudio::modeToIdTable(airtaudio::mode_input)][0],
 	                                  streamTime,
@@ -398,7 +398,7 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t _device,
 	}
 	if (!m_private->threadRunning) {
 		m_private->threadRunning = true;
-		std::unique_ptr<std::thread> tmpThread(new std::thread(&pulseaudio_callback, this));
+		std11::shared_ptr<std11::thread> tmpThread(new std11::thread(&pulseaudio_callback, this));
 		m_private->thread =	std::move(tmpThread);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating thread.");

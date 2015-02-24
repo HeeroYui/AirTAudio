@@ -65,7 +65,7 @@ namespace airtaudio {
 				jack_port_t **ports[2];
 				std::string deviceName[2];
 				bool xrun[2];
-				std::condition_variable condition;
+				std11::condition_variable condition;
 				int32_t drainCounter; // Tracks callback counts when draining
 				bool internalDrain; // Indicates if stop is initiated from callback or not.
 				
@@ -246,7 +246,7 @@ void airtaudio::api::Jack::jackShutdown(void* _userData) {
 	if (myClass->isStreamRunning() == false) {
 		return;
 	}
-	new std::thread(&airtaudio::api::Jack::jackCloseStream, _userData);
+	new std11::thread(&airtaudio::api::Jack::jackCloseStream, _userData);
 	ATA_ERROR("The Jack server is shutting down this client ... stream stopped and closed!!");
 }
 
@@ -596,7 +596,7 @@ enum airtaudio::error airtaudio::api::Jack::stopStream() {
 	     || m_mode == airtaudio::mode_duplex) {
 		if (m_private->drainCounter == 0) {
 			m_private->drainCounter = 2;
-			std::unique_lock<std::mutex> lck(m_mutex);
+			std11::unique_lock<std11::mutex> lck(m_mutex);
 			m_private->condition.wait(lck);
 		}
 	}
@@ -645,7 +645,7 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 	if (m_private->drainCounter > 3) {
 		m_state = airtaudio::state_stopping;
 		if (m_private->internalDrain == true) {
-			new std::thread(jackStopStream, this);
+			new std11::thread(jackStopStream, this);
 		} else {
 			m_private->condition.notify_one();
 		}
@@ -653,7 +653,7 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 	}
 	// Invoke user callback first, to get fresh output data.
 	if (m_private->drainCounter == 0) {
-		std::chrono::time_point<std::chrono::system_clock> streamTime = getStreamTime();
+		std11::chrono::time_point<std11::chrono::system_clock> streamTime = getStreamTime();
 		std::vector<enum airtaudio::status> status;
 		if (m_mode != airtaudio::mode_input && m_private->xrun[0] == true) {
 			status.push_back(airtaudio::status_underflow);
@@ -672,7 +672,7 @@ bool airtaudio::api::Jack::callbackEvent(uint64_t _nframes) {
 		if (cbReturnValue == 2) {
 			m_state = airtaudio::state_stopping;
 			m_private->drainCounter = 2;
-			new std::thread(jackStopStream, this);
+			new std11::thread(jackStopStream, this);
 			return true;
 		}
 		else if (cbReturnValue == 1) {

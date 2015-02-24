@@ -9,7 +9,6 @@
 #define __AIRTAUDIO_API_H__
 
 #include <sstream>
-#include <chrono>
 #include <airtaudio/debug.h>
 #include <airtaudio/type.h>
 #include <airtaudio/state.h>
@@ -27,13 +26,12 @@ namespace airtaudio {
 	 * @param _nbChunk The number of chunk of input or output chunk in the buffer (same size).
 	 * @param _status List of error that occured in the laps of time.
 	 */
-	typedef std::function<int32_t (const void* _inputBuffer,
-	                               const std::chrono::system_clock::time_point& _timeInput,
-	                               void* _outputBuffer,
-	                               const std::chrono::system_clock::time_point& _timeOutput,
-	                               uint32_t _nbChunk,
-	                               const std::vector<airtaudio::status>& _status)> AirTAudioCallback;
-	
+	typedef std11::function<int32_t (const void* _inputBuffer,
+	                                 const std11::chrono::system_clock::time_point& _timeInput,
+	                                 void* _outputBuffer,
+	                                 const std11::chrono::system_clock::time_point& _timeOutput,
+	                                 uint32_t _nbChunk,
+	                                 const std::vector<airtaudio::status>& _status)> AirTAudioCallback;
 	// A protected structure used for buffer conversion.
 	class ConvertInfo {
 		public:
@@ -73,7 +71,7 @@ namespace airtaudio {
 			virtual enum airtaudio::error abortStream() = 0;
 			long getStreamLatency();
 			uint32_t getStreamSampleRate();
-			virtual std::chrono::time_point<std::chrono::system_clock> getStreamTime();
+			virtual std11::chrono::system_clock::time_point getStreamTime();
 			bool isStreamOpen() const {
 				return m_state != airtaudio::state_closed;
 			}
@@ -82,7 +80,7 @@ namespace airtaudio {
 			}
 			
 		protected:
-			mutable std::mutex m_mutex;
+			mutable std11::mutex m_mutex;
 			airtaudio::AirTAudioCallback m_callback;
 			uint32_t m_device[2]; // Playback and record, respectively.
 			enum airtaudio::mode m_mode; // airtaudio::mode_output, airtaudio::mode_input, or airtaudio::mode_duplex.
@@ -103,9 +101,9 @@ namespace airtaudio {
 			enum audio::format m_deviceFormat[2]; // Playback and record, respectively.
 			airtaudio::ConvertInfo m_convertInfo[2];
 			
-			//std::chrono::system_clock::time_point
-			std::chrono::system_clock::time_point m_startTime; //!< start time of the stream (restart at every stop, pause ...)
-			std::chrono::nanoseconds m_duration; //!< duration from wich the stream is started
+			//std11::chrono::system_clock::time_point
+			std11::chrono::system_clock::time_point m_startTime; //!< start time of the stream (restart at every stop, pause ...)
+			std11::chrono::nanoseconds m_duration; //!< duration from wich the stream is started
 			
 			/**
 			 * @brief api-specific method that attempts to open a device

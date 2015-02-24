@@ -8,10 +8,21 @@
 #ifndef __AIRTAUDIO_CB_H__
 #define __AIRTAUDIO_CB_H__
 
-#include <thread>
-#include <condition_variable>
-#include <mutex>
-#include <functional>
+#if __cplusplus >= 201103L
+	#include <thread>
+	#include <condition_variable>
+	#include <mutex>
+	#include <chrono>
+	#include <functional>
+	#include <memory>
+#else
+	#include <etk/thread.h>
+	#include <etk/condition_variable.h>
+	#include <etk/mutex.h>
+	#include <etk/chrono.h>
+	#include <etk/functional.h>
+	#include <etk/memory.h>
+#endif
 #include <audio/channel.h>
 #include <audio/format.h>
 #include <airtaudio/error.h>

@@ -692,7 +692,7 @@ bool airtaudio::api::Asio::callbackEvent(long bufferIndex) {
 	// Invoke user callback to get fresh output data UNLESS we are
 	// draining stream.
 	if (m_private->drainCounter == 0) {
-		std::chrono::system_clock::time_point streamTime = getStreamTime();
+		std11::chrono::system_clock::time_point streamTime = getStreamTime();
 		std::vector<enum airtaudio::status status;
 		if (m_mode != airtaudio::mode_input && asioXRun == true) {
 			status.push_back(airtaudio::status_underflow);

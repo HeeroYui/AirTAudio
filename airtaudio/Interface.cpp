@@ -17,8 +17,8 @@ std::vector<enum airtaudio::type> airtaudio::Interface::getCompiledApi() {
 	std::vector<enum airtaudio::type> apis;
 	// The order here will control the order of RtAudio's API search in
 	// the constructor.
-	for (auto &it : m_apiAvaillable) {
-		apis.push_back(it.first);
+	for (size_t iii=0; iii<m_apiAvaillable.size(); ++iii) {
+		apis.push_back(m_apiAvaillable[iii].first);
 	}
 	return apis;
 }
@@ -28,11 +28,11 @@ std::vector<enum airtaudio::type> airtaudio::Interface::getCompiledApi() {
 void airtaudio::Interface::openRtApi(enum airtaudio::type _api) {
 	delete m_rtapi;
 	m_rtapi = nullptr;
-	for (auto &it :m_apiAvaillable) {
-		ATA_INFO("try open " << it.first);
-		if (_api == it.first) {
+	for (size_t iii=0; iii<m_apiAvaillable.size(); ++iii) {
+		ATA_INFO("try open " << m_apiAvaillable[iii].first);
+		if (_api == m_apiAvaillable[iii].first) {
 			ATA_INFO("    ==> call it");
-			m_rtapi = it.second();
+			m_rtapi = m_apiAvaillable[iii].second();
 			if (m_rtapi != nullptr) {
 				return;
 			}
@@ -118,9 +118,9 @@ enum airtaudio::error airtaudio::Interface::instanciate(enum airtaudio::type _ap
 	// one with at least one device or we reach the end of the list.
 	std::vector<enum airtaudio::type> apis = getCompiledApi();
 	ATA_INFO(" find : " << apis.size() << " apis.");
-	for (auto &it : apis) {
+	for (size_t iii=0; iii<apis.size(); ++iii) {
 		ATA_INFO("try open ...");
-		openRtApi(it);
+		openRtApi(apis[iii]);
 		if(m_rtapi == nullptr) {
 			ATA_ERROR("    ==> can not create ...");
 			continue;

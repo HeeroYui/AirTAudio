@@ -35,8 +35,8 @@ namespace airtaudio {
 				int32_t id[2]; // device ids
 				bool xrun[2];
 				bool triggered;
-				std::condition_variable runnable;
-				std::unique_ptr<std::thread> thread;
+				std11::condition_variable runnable;
+				std11::shared_ptr<std11::thread> thread;
 				bool threadRunning;
 				OssPrivate():
 				  triggered(false),
@@ -507,7 +507,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		m_mode = _mode;
 		// Setup callback thread.
 		m_private->threadRunning = true;
-		m_private->thread = new std::thread(ossCallbackHandler, this);
+		m_private->thread = new std11::thread(ossCallbackHandler, this);
 		if (m_private->thread == nullptr) {
 			m_private->threadRunning = false;
 			ATA_ERROR("creating callback thread!");
@@ -702,7 +702,7 @@ unlock:
 
 void airtaudio::api::Oss::callbackEvent() {
 	if (m_state == airtaudio::state_stopped) {
-		std::unique_lock<std::mutex> lck(m_mutex);
+		std11::unique_lock<std11::mutex> lck(m_mutex);
 		m_private->runnable.wait(lck);
 		if (m_state != airtaudio::state_running) {
 			return;
@@ -714,7 +714,7 @@ void airtaudio::api::Oss::callbackEvent() {
 	}
 	// Invoke user callback to get fresh output data.
 	int32_t doStopStream = 0;
-	std::chrono::system_clock::time_point streamTime = getStreamTime();
+	std11::chrono::system_clock::time_point streamTime = getStreamTime();
 	std::vector<enum airtaudio::status> status;
 	if (    m_mode != airtaudio::mode_input
 	     && m_private->xrun[0] == true) {
