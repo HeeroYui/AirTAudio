@@ -301,7 +301,7 @@ probeParameters:
 	}
 	// Test our discrete set of sample rate values.
 	info.sampleRates.clear();
-	#if __cplusplus >= 201103L
+	#if __CPP_VERSION__ >= 2011
 		for (auto &it : airtaudio::genericSampleRate()) {
 			if (snd_pcm_hw_params_test_rate(phandle, params, it, 0) == 0) {
 				info.sampleRates.push_back(it);
@@ -937,7 +937,7 @@ void airtaudio::api::Alsa::callbackEvent() {
 
 namespace std {
 	static std::ostream& operator <<(std::ostream& _os, const std11::chrono::system_clock::time_point& _obj) {
-		#if __cplusplus >= 201103L
+		#if __CPP_VERSION__ >= 2011
 			std11::chrono::nanoseconds ns = std11::chrono::duration_cast<std11::chrono::nanoseconds>(_obj.time_since_epoch());
 		#else
 			boost::chrono::nanoseconds ns = boost::chrono::duration_cast<boost::chrono::nanoseconds>(_obj.time_since_epoch());
