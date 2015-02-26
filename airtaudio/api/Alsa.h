@@ -21,6 +21,7 @@ namespace airtaudio {
 					return airtaudio::type_alsa;
 				}
 				uint32_t getDeviceCount();
+				bool getDeviceInfo(const std::string& _deviceName, airtaudio::DeviceInfo& _info);
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
 				enum airtaudio::error closeStream();
 				enum airtaudio::error startStream();
