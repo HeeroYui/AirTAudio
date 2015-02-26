@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <airtaudio/Interface.h>
 #include <airtaudio/debug.h>
+#include <etk/stdTools.h>
 #include <limits.h>
 
 #undef __class__
@@ -62,7 +63,9 @@ airtaudio::api::Alsa::~Alsa() {
 
 uint32_t airtaudio::api::Alsa::getDeviceCount() {
 	unsigned nDevices = 0;
-	int32_t result, subdevice, card;
+	int32_t result= -1;
+	int32_t subdevice = -1;
+	int32_t card = -1;
 	char name[64];
 	snd_ctl_t *handle;
 	// Count cards and devices
@@ -96,8 +99,9 @@ nextcard:
 	return nDevices;
 }
 
-bool airtaudio::api::Alsa::getDeviceInfo(const std::string& _deviceName, airtaudio::DeviceInfo& _info) {
+bool airtaudio::api::Alsa::getNamedDeviceInfoLocal(const std::string& _deviceName, airtaudio::DeviceInfo& _info, int32_t _cardId, int32_t _subdevice, int32_t _localDeviceId) {
 	int32_t result;
+	snd_ctl_t *chandle;
 	int32_t openMode = SND_PCM_ASYNC;
 	snd_pcm_stream_t stream;
 	snd_pcm_info_t *pcminfo;
@@ -108,9 +112,18 @@ bool airtaudio::api::Alsa::getDeviceInfo(const std::string& _deviceName, airtaud
 	// First try for playback unless default _device (which has subdev -1)
 	stream = SND_PCM_STREAM_PLAYBACK;
 	snd_pcm_info_set_stream(pcminfo, stream);
-	/*
-	if (subdevice != -1) {
-		snd_pcm_info_set_device(pcminfo, subdevice);
+	std::vector<std::string> listElement = etk::split(_deviceName, ',');
+	if (listElement.size() == 0) {
+		ATA_ERROR("can not get control interface = '" << _deviceName << "' Can not plit at ',' ...");
+		return false;
+	}
+	result = snd_ctl_open(&chandle, listElement[0].c_str(), SND_CTL_NONBLOCK);
+	if (result < 0) {
+		ATA_ERROR("control open, card = " << listElement[0] << ", " << snd_strerror(result) << ".");
+		return false;
+	}
+	if (_subdevice != -1) {
+		snd_pcm_info_set_device(pcminfo, _subdevice);
 		snd_pcm_info_set_subdevice(pcminfo, 0);
 		result = snd_ctl_pcm_info(chandle, pcminfo);
 		if (result < 0) {
@@ -118,7 +131,6 @@ bool airtaudio::api::Alsa::getDeviceInfo(const std::string& _deviceName, airtaud
 			goto captureProbe;
 		}
 	}
-	*/
 	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode | SND_PCM_NONBLOCK);
 	if (result < 0) {
 		ATA_ERROR("snd_pcm_open error for device (" << _deviceName << "), " << snd_strerror(result) << ".");
@@ -149,8 +161,7 @@ captureProbe:
 	stream = SND_PCM_STREAM_CAPTURE;
 	snd_pcm_info_set_stream(pcminfo, stream);
 	// Now try for capture unless default device (with subdev = -1)
-	/*
-	if (subdevice != -1) {
+	if (_subdevice != -1) {
 		result = snd_ctl_pcm_info(chandle, pcminfo);
 		snd_ctl_close(chandle);
 		if (result < 0) {
@@ -161,7 +172,6 @@ captureProbe:
 			goto probeParameters;
 		}
 	}
-	*/
 	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode | SND_PCM_NONBLOCK);
 	if (result < 0) {
 		ATA_ERROR("snd_pcm_open error for device (" << _deviceName << "), " << snd_strerror(result) << ".");
@@ -200,20 +210,18 @@ captureProbe:
 		_info.duplexChannels = (_info.outputChannels > _info.inputChannels) ? _info.inputChannels : _info.outputChannels;
 	}
 	// ALSA doesn't provide default devices so we'll use the first available one.
-	/*
-	if (    _name == 0
+	if (    _localDeviceId == 0
 	     && _info.outputChannels > 0) {
-		info.isDefaultOutput = true;
+		_info.isDefaultOutput = true;
 	}
-	if (    _device == 0
+	if (    _localDeviceId == 0
 	     && _info.inputChannels > 0) {
-		info.isDefaultInput = true;
+		_info.isDefaultInput = true;
 	}
-	*/
 
 probeParameters:
 	// At this point, we just need to figure out the supported data
-	// formats and sample rates.	We'll proceed by opening the device in
+	// formats and sample rates. We'll proceed by opening the device in
 	// the direction with the maximum number of channels, or playback if
 	// they are equal.	This might limit our sample rate options, but so
 	// be it.
@@ -286,14 +294,17 @@ probeParameters:
 		return false;
 	}
 	// Get the device name
-	/*
-	char *cardname;
-	result = snd_card_get_name(card, &cardname);
-	if (result >= 0) {
-		sprintf(name, "hw:%s,%d", cardname, subdevice);
+	if (_cardId != -1) {
+		char *cardname;
+		char name[1024];
+		result = snd_card_get_name(_cardId, &cardname);
+		if (result >= 0) {
+			sprintf(name, "hw:%s,%d", cardname, _subdevice);
+		}
+		_info.name = name;
+	} else {
+		_info.name = _deviceName;
 	}
-	*/
-	_info.name = _deviceName;
 	// That's all ... close the device and return
 	snd_pcm_close(phandle);
 	_info.probed = true;
@@ -302,14 +313,18 @@ probeParameters:
 
 airtaudio::DeviceInfo airtaudio::api::Alsa::getDeviceInfo(uint32_t _device) {
 	airtaudio::DeviceInfo info;
+	/*
 	ATA_WARNING("plop");
 	getDeviceInfo("hw:0,0,0", info);
 	info.display();
 	getDeviceInfo("hw:0,0,1", info);
 	info.display();
+	*/
 	info.probed = false;
 	unsigned nDevices = 0;
-	int32_t result, subdevice, card;
+	int32_t result = -1;
+	int32_t subdevice = -1;
+	int32_t card = -1;
 	char name[64];
 	snd_ctl_t *chandle;
 	// Count cards and devices
@@ -354,12 +369,12 @@ airtaudio::DeviceInfo airtaudio::api::Alsa::getDeviceInfo(uint32_t _device) {
 	}
 
 foundDevice:
+	snd_ctl_close(chandle);
 	// If a stream is already open, we cannot probe the stream devices.
 	// Thus, use the saved results.
 	if (    m_state != airtaudio::state_closed
 	     && (    m_device[0] == _device
 	          || m_device[1] == _device)) {
-		snd_ctl_close(chandle);
 		if (_device >= m_devices.size()) {
 			ATA_ERROR("device ID was not present before stream was opened.");
 			// TODO : return airtaudio::error_warning;
@@ -367,204 +382,11 @@ foundDevice:
 		}
 		return m_devices[ _device ];
 	}
-	bool ret = airtaudio::api::Alsa::getDeviceInfo(name, info);
-	
-	int32_t openMode = SND_PCM_ASYNC;
-	snd_pcm_stream_t stream;
-	snd_pcm_info_t *pcminfo;
-	snd_pcm_info_alloca(&pcminfo);
-	snd_pcm_t *phandle;
-	snd_pcm_hw_params_t *params;
-	snd_pcm_hw_params_alloca(&params);
-	// First try for playback unless default _device (which has subdev -1)
-	stream = SND_PCM_STREAM_PLAYBACK;
-	snd_pcm_info_set_stream(pcminfo, stream);
-	if (subdevice != -1) {
-		snd_pcm_info_set_device(pcminfo, subdevice);
-		snd_pcm_info_set_subdevice(pcminfo, 0);
-		result = snd_ctl_pcm_info(chandle, pcminfo);
-		if (result < 0) {
-			// Device probably doesn't support playback.
-			goto captureProbe;
-		}
-	}
-	result = snd_pcm_open(&phandle, name, stream, openMode | SND_PCM_NONBLOCK);
-	if (result < 0) {
-		ATA_ERROR("snd_pcm_open error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::error_warning;
-		goto captureProbe;
-	}
-	// The device is open ... fill the parameter structure.
-	result = snd_pcm_hw_params_any(phandle, params);
-	if (result < 0) {
-		snd_pcm_close(phandle);
-		ATA_ERROR("snd_pcm_hw_params error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::error_warning;
-		goto captureProbe;
-	}
-	// Get output channel information.
-	uint32_t value;
-	result = snd_pcm_hw_params_get_channels_max(params, &value);
-	if (result < 0) {
-		snd_pcm_close(phandle);
-		ATA_ERROR("error getting device (" << name << ") output channels, " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::error_warning;
-		goto captureProbe;
-	}
-	info.outputChannels = value;
-	snd_pcm_close(phandle);
-
-captureProbe:
-	stream = SND_PCM_STREAM_CAPTURE;
-	snd_pcm_info_set_stream(pcminfo, stream);
-	// Now try for capture unless default device (with subdev = -1)
-	if (subdevice != -1) {
-		result = snd_ctl_pcm_info(chandle, pcminfo);
-		snd_ctl_close(chandle);
-		if (result < 0) {
-			// Device probably doesn't support capture.
-			if (info.outputChannels == 0) {
-				return info;
-			}
-			goto probeParameters;
-		}
-	}
-	result = snd_pcm_open(&phandle, name, stream, openMode | SND_PCM_NONBLOCK);
-	if (result < 0) {
-		ATA_ERROR("snd_pcm_open error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::error_warning;
-		if (info.outputChannels == 0) {
-			return info;
-		}
-		goto probeParameters;
-	}
-	// The device is open ... fill the parameter structure.
-	result = snd_pcm_hw_params_any(phandle, params);
-	if (result < 0) {
-		snd_pcm_close(phandle);
-		ATA_ERROR("snd_pcm_hw_params error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::error_warning;
-		if (info.outputChannels == 0) {
-			return info;
-		}
-		goto probeParameters;
-	}
-	result = snd_pcm_hw_params_get_channels_max(params, &value);
-	if (result < 0) {
-		snd_pcm_close(phandle);
-		ATA_ERROR("error getting device (" << name << ") input channels, " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::error_warning;
-		if (info.outputChannels == 0) {
-			return info;
-		}
-		goto probeParameters;
-	}
-	info.inputChannels = value;
-	snd_pcm_close(phandle);
-	// If device opens for both playback and capture, we determine the channels.
-	if (info.outputChannels > 0 && info.inputChannels > 0) {
-		info.duplexChannels = (info.outputChannels > info.inputChannels) ? info.inputChannels : info.outputChannels;
-	}
-	// ALSA doesn't provide default devices so we'll use the first available one.
-	if (_device == 0 && info.outputChannels > 0) {
-		info.isDefaultOutput = true;
-	}
-	if (_device == 0 && info.inputChannels > 0) {
-		info.isDefaultInput = true;
-	}
-
-probeParameters:
-	// At this point, we just need to figure out the supported data
-	// formats and sample rates.	We'll proceed by opening the device in
-	// the direction with the maximum number of channels, or playback if
-	// they are equal.	This might limit our sample rate options, but so
-	// be it.
-	if (info.outputChannels >= info.inputChannels) {
-		stream = SND_PCM_STREAM_PLAYBACK;
-	} else {
-		stream = SND_PCM_STREAM_CAPTURE;
-	}
-	snd_pcm_info_set_stream(pcminfo, stream);
-	result = snd_pcm_open(&phandle, name, stream, openMode | SND_PCM_NONBLOCK);
-	if (result < 0) {
-		ATA_ERROR("snd_pcm_open error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::error_warning;
+	bool ret = airtaudio::api::Alsa::getNamedDeviceInfoLocal(name, info, card, subdevice, _device);
+	if (ret == false) {
+		// TODO : ...
 		return info;
 	}
-	// The device is open ... fill the parameter structure.
-	result = snd_pcm_hw_params_any(phandle, params);
-	if (result < 0) {
-		snd_pcm_close(phandle);
-		ATA_ERROR("snd_pcm_hw_params error for device (" << name << "), " << snd_strerror(result) << ".");
-		// TODO : Return airtaudio::error_warning;
-		return info;
-	}
-	// Test our discrete set of sample rate values.
-	info.sampleRates.clear();
-	#if __CPP_VERSION__ >= 2011
-		for (auto &it : airtaudio::genericSampleRate()) {
-			if (snd_pcm_hw_params_test_rate(phandle, params, it, 0) == 0) {
-				info.sampleRates.push_back(it);
-			}
-		}
-	#else
-		for (std::vector<uint32_t>::const_iterator it(airtaudio::genericSampleRate().begin()); 
-		     it != airtaudio::genericSampleRate().end();
-		     ++it ) {
-			if (snd_pcm_hw_params_test_rate(phandle, params, *it, 0) == 0) {
-				info.sampleRates.push_back(*it);
-			}
-		}
-	#endif
-	if (info.sampleRates.size() == 0) {
-		snd_pcm_close(phandle);
-		ATA_ERROR("no supported sample rates found for device (" << name << ").");
-		// TODO : Return airtaudio::error_warning;
-		return info;
-	}
-	// Probe the supported data formats ... we don't care about endian-ness just yet
-	snd_pcm_format_t format;
-	info.nativeFormats.clear();
-	format = SND_PCM_FORMAT_S8;
-	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats.push_back(audio::format_int8);
-	}
-	format = SND_PCM_FORMAT_S16;
-	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats.push_back(audio::format_int16);
-	}
-	format = SND_PCM_FORMAT_S24;
-	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats.push_back(audio::format_int24);
-	}
-	format = SND_PCM_FORMAT_S32;
-	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats.push_back(audio::format_int32);
-	}
-	format = SND_PCM_FORMAT_FLOAT;
-	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats.push_back(audio::format_float);
-	}
-	format = SND_PCM_FORMAT_FLOAT64;
-	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		info.nativeFormats.push_back(audio::format_double);
-	}
-	// Check that we have at least one supported format
-	if (info.nativeFormats.size() == 0) {
-		ATA_ERROR("pcm device (" << name << ") data format not supported by RtAudio.");
-		// TODO : Return airtaudio::error_warning;
-		return info;
-	}
-	// Get the device name
-	char *cardname;
-	result = snd_card_get_name(card, &cardname);
-	if (result >= 0) {
-		sprintf(name, "hw:%s,%d", cardname, subdevice);
-	}
-	info.name = name;
-	// That's all ... close the device and return
-	snd_pcm_close(phandle);
-	info.probed = true;
 	return info;
 }
 
@@ -616,14 +438,6 @@ bool airtaudio::api::Alsa::probeDeviceOpen(uint32_t _device,
 		snd_ctl_close(chandle);
 		snd_card_next(&card);
 	}
-	result = snd_ctl_open(&chandle, "default", SND_CTL_NONBLOCK);
-	if (result == 0) {
-		if (nDevices == _device) {
-			strcpy(name, "default");
-			goto foundDevice;
-		}
-		nDevices++;
-	}
 	if (nDevices == 0) {
 		// This should not happen because a check is made before this function is called.
 		ATA_ERROR("no devices found!");
@@ -637,6 +451,23 @@ bool airtaudio::api::Alsa::probeDeviceOpen(uint32_t _device,
 	// NOTE : Find the device name : [ END ]
 
 foundDevice:
+	return probeDeviceOpenName(name, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options);
+}
+
+bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
+                                               airtaudio::mode _mode,
+                                               uint32_t _channels,
+                                               uint32_t _firstChannel,
+                                               uint32_t _sampleRate,
+                                               audio::format _format,
+                                               uint32_t *_bufferSize,
+                                               airtaudio::StreamOptions *_options) {
+	// I'm not using the "plug" interface ... too much inconsistent behavior.
+	unsigned nDevices = 0;
+	int32_t result, subdevice, card;
+	char name[64];
+	snd_ctl_t *chandle;
+	
 	// The getDeviceInfo() function will not work for a device that is
 	// already open.	Thus, we'll probe the system before opening a
 	// stream and save the results for use by getDeviceInfo().
@@ -654,12 +485,12 @@ foundDevice:
 	}
 	snd_pcm_t *phandle;
 	int32_t openMode = SND_PCM_ASYNC;
-	result = snd_pcm_open(&phandle, name, stream, openMode);
+	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode);
 	if (result < 0) {
 		if (_mode == airtaudio::mode_output) {
-			ATA_ERROR("pcm device (" << name << ") won't open for output.");
+			ATA_ERROR("pcm device (" << _deviceName << ") won't open for output.");
 		} else {
-			ATA_ERROR("pcm device (" << name << ") won't open for input.");
+			ATA_ERROR("pcm device (" << _deviceName << ") won't open for input.");
 		}
 		return false;
 	}
@@ -669,7 +500,7 @@ foundDevice:
 	result = snd_pcm_hw_params_any(phandle, hw_params);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("error getting pcm device (" << name << ") parameters, " << snd_strerror(result) << ".");
+		ATA_ERROR("error getting pcm device (" << _deviceName << ") parameters, " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Open stream all time in interleave mode (by default): (open in non interleave if we have no choice
@@ -682,7 +513,7 @@ foundDevice:
 	}
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("error setting pcm device (" << name << ") access, " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting pcm device (" << _deviceName << ") access, " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Determine how to set the device format.
@@ -706,14 +537,14 @@ foundDevice:
 	} else {
 		// If we get here, no supported format was found.
 		snd_pcm_close(phandle);
-		ATA_ERROR("pcm device " << _device << " data format not supported: " << _format);
+		ATA_ERROR("pcm device " << _deviceName << " data format not supported: " << _format);
 		// TODO : display list of all supported format ..
 		return false;
 	}
 	result = snd_pcm_hw_params_set_format(phandle, hw_params, deviceFormat);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("error setting pcm device (" << name << ") data format, " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting pcm device (" << _deviceName << ") data format, " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Determine whether byte-swaping is necessary.
@@ -724,7 +555,7 @@ foundDevice:
 			m_doByteSwap[modeToIdTable(_mode)] = true;
 		} else if (result < 0) {
 			snd_pcm_close(phandle);
-			ATA_ERROR("error getting pcm device (" << name << ") endian-ness, " << snd_strerror(result) << ".");
+			ATA_ERROR("error getting pcm device (" << _deviceName << ") endian-ness, " << snd_strerror(result) << ".");
 			return false;
 		}
 	}
@@ -732,7 +563,7 @@ foundDevice:
 	result = snd_pcm_hw_params_set_rate_near(phandle, hw_params, (uint32_t*) &_sampleRate, 0);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("error setting sample rate on device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting sample rate on device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Determine the number of channels for this device.	We support a possible
@@ -744,13 +575,13 @@ foundDevice:
 	if (    result < 0
 	     || deviceChannels < _channels + _firstChannel) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("requested channel parameters not supported by device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("requested channel parameters not supported by device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	result = snd_pcm_hw_params_get_channels_min(hw_params, &value);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("error getting minimum channels for device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error getting minimum channels for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	deviceChannels = value;
@@ -762,7 +593,7 @@ foundDevice:
 	result = snd_pcm_hw_params_set_channels(phandle, hw_params, deviceChannels);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("error setting channels for device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting channels for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Set the buffer (or period) size.
@@ -771,7 +602,7 @@ foundDevice:
 	result = snd_pcm_hw_params_set_period_size_near(phandle, hw_params, &periodSize, &dir);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("error setting period size for device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting period size for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	*_bufferSize = periodSize;
@@ -793,7 +624,7 @@ foundDevice:
 	result = snd_pcm_hw_params_set_periods_near(phandle, hw_params, &periods, &dir);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("error setting periods for device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error setting periods for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	// If attempting to setup a duplex stream, the bufferSize parameter
@@ -802,7 +633,7 @@ foundDevice:
 	     && _mode == airtaudio::mode_input
 	     && *_bufferSize != m_bufferSize) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("system error setting buffer size for duplex stream on device (" << name << ").");
+		ATA_ERROR("system error setting buffer size for duplex stream on device (" << _deviceName << ").");
 		return false;
 	}
 	m_bufferSize = *_bufferSize;
@@ -819,7 +650,7 @@ foundDevice:
 	result = snd_pcm_hw_params(phandle, hw_params);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("error installing hardware configuration on device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error installing hardware configuration on device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Set the software configuration to fill buffers with zeros and prevent device stopping on xruns.
@@ -841,7 +672,7 @@ foundDevice:
 	result = snd_pcm_sw_params(phandle, swParams);
 	if (result < 0) {
 		snd_pcm_close(phandle);
-		ATA_ERROR("error installing software configuration on device (" << name << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("error installing software configuration on device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	// Set flags for buffer conversion
@@ -893,7 +724,7 @@ foundDevice:
 	}
 	m_sampleRate = _sampleRate;
 	m_nBuffers = periods;
-	m_device[modeToIdTable(_mode)] = _device;
+	// TODO : m_device[modeToIdTable(_mode)] = _device;
 	m_state = airtaudio::state_stopped;
 	// Setup the buffer conversion information structure.
 	if (m_doConvertBuffer[modeToIdTable(_mode)]) {

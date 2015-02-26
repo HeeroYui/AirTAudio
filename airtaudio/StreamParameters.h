@@ -14,12 +14,13 @@ namespace airtaudio {
 	 */
 	class StreamParameters {
 		public:
-			uint32_t deviceId; //!< Device index (0 to getDeviceCount() - 1).
+			int32_t deviceId; //!< Device index (-1 to getDeviceCount() - 1).
+			std::string deviceName; //!< name of the device (if deviceId==-1 this must not be == "", and the oposite ...)
 			uint32_t nChannels; //!< Number of channels.
 			uint32_t firstChannel; //!< First channel index on device (default = 0).
 			// Default constructor.
 			StreamParameters() :
-			  deviceId(0),
+			  deviceId(-1),
 			  nChannels(0),
 			  firstChannel(0) { }
 	};

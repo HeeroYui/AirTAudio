@@ -116,6 +116,14 @@ namespace airtaudio {
 				}
 				return m_rtapi->getDeviceInfo(_device);
 			}
+			airtaudio::DeviceInfo getDeviceInfo(const std::string& _deviceName) {
+				if (m_rtapi == nullptr) {
+					return airtaudio::DeviceInfo();
+				}
+				airtaudio::DeviceInfo info;
+				m_rtapi->getNamedDeviceInfo(_deviceName, info);
+				return info;
+			}
 			/**
 			 * @brief A function that returns the index of the default output device.
 			 * 
@@ -165,7 +173,7 @@ namespace airtaudio {
 			 *           0 and getDeviceCount() - 1.
 			 * @param  _format An audio::format specifying the desired sample data format.
 			 * @param  _sampleRate The desired sample rate (sample frames per second).
-			 * @param  *_bufferFrames A pointer to a value indicating the desired
+			 * @param  _bufferFrames A pointer to a value indicating the desired
 			 *           internal buffer size in sample frames.	The actual value
 			 *           used by the device is returned via the same pointer. A
 			 *           value of zero can be specified, in which case the lowest
@@ -185,12 +193,12 @@ namespace airtaudio {
 			 *           when an error has occured.
 			 */
 			enum airtaudio::error openStream(airtaudio::StreamParameters *_outputParameters,
-			                                     airtaudio::StreamParameters *_inputParameters,
-			                                     enum audio::format _format,
-			                                     uint32_t _sampleRate,
-			                                     uint32_t *_bufferFrames,
-			                                     airtaudio::AirTAudioCallback _callback,
-			                                     airtaudio::StreamOptions *_options = nullptr);
+			                                 airtaudio::StreamParameters *_inputParameters,
+			                                 enum audio::format _format,
+			                                 uint32_t _sampleRate,
+			                                 uint32_t* _bufferFrames,
+			                                 airtaudio::AirTAudioCallback _callback,
+			                                 airtaudio::StreamOptions *_options = nullptr);
 			
 			/**
 			 * @brief A function that closes a stream and frees any associated stream memory.

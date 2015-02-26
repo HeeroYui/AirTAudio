@@ -81,7 +81,8 @@ enum airtaudio::error airtaudio::Api::openStream(airtaudio::StreamParameters *oP
 		ATA_ERROR("a non-nullptr input StreamParameters structure cannot have an nChannels value less than one.");
 		return airtaudio::error_invalidUse;
 	}
-	if (oParams == nullptr && iParams == nullptr) {
+	if (    oParams == nullptr
+	     && iParams == nullptr) {
 		ATA_ERROR("input and output StreamParameters structures are both nullptr!");
 		return airtaudio::error_invalidUse;
 	}
@@ -93,7 +94,8 @@ enum airtaudio::error airtaudio::Api::openStream(airtaudio::StreamParameters *oP
 	uint32_t oChannels = 0;
 	if (oParams) {
 		oChannels = oParams->nChannels;
-		if (oParams->deviceId >= nDevices) {
+		if (    oParams->deviceId >= nDevices
+		     && oParams->deviceName == "") {
 			ATA_ERROR("output device parameter value is invalid.");
 			return airtaudio::error_invalidUse;
 		}
@@ -101,7 +103,8 @@ enum airtaudio::error airtaudio::Api::openStream(airtaudio::StreamParameters *oP
 	uint32_t iChannels = 0;
 	if (iParams) {
 		iChannels = iParams->nChannels;
-		if (iParams->deviceId >= nDevices) {
+		if (    iParams->deviceId >= nDevices
+		     && iParams->deviceName == "") {
 			ATA_ERROR("input device parameter value is invalid.");
 			return airtaudio::error_invalidUse;
 		}
@@ -109,28 +112,50 @@ enum airtaudio::error airtaudio::Api::openStream(airtaudio::StreamParameters *oP
 	clearStreamInfo();
 	bool result;
 	if (oChannels > 0) {
-		result = probeDeviceOpen(oParams->deviceId,
-		                         airtaudio::mode_output,
-		                         oChannels,
-		                         oParams->firstChannel,
-		                         sampleRate,
-		                         format,
-		                         bufferFrames,
-		                         options);
+		if (oParams->deviceId == -1) {
+			result = probeDeviceOpenName(oParams->deviceName,
+			                             airtaudio::mode_output,
+			                             oChannels,
+			                             oParams->firstChannel,
+			                             sampleRate,
+			                             format,
+			                             bufferFrames,
+			                             options);
+		} else {
+			result = probeDeviceOpen(oParams->deviceId,
+			                         airtaudio::mode_output,
+			                         oChannels,
+			                         oParams->firstChannel,
+			                         sampleRate,
+			                         format,
+			                         bufferFrames,
+			                         options);
+		}
 		if (result == false) {
 			ATA_ERROR("system ERROR");
 			return airtaudio::error_systemError;
 		}
 	}
 	if (iChannels > 0) {
-		result = probeDeviceOpen(iParams->deviceId,
-		                         airtaudio::mode_input,
-		                         iChannels,
-		                         iParams->firstChannel,
-		                         sampleRate,
-		                         format,
-		                         bufferFrames,
-		                         options);
+		if (iParams->deviceId == -1) {
+			result = probeDeviceOpenName(iParams->deviceName,
+			                             airtaudio::mode_input,
+			                             iChannels,
+			                             iParams->firstChannel,
+			                             sampleRate,
+			                             format,
+			                             bufferFrames,
+			                             options);
+		} else {
+			result = probeDeviceOpen(iParams->deviceId,
+			                         airtaudio::mode_input,
+			                         iChannels,
+			                         iParams->firstChannel,
+			                         sampleRate,
+			                         format,
+			                         bufferFrames,
+			                         options);
+		}
 		if (result == false) {
 			if (oChannels > 0) {
 				closeStream();

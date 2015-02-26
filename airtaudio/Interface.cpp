@@ -143,14 +143,13 @@ airtaudio::Interface::~Interface() {
 	m_rtapi = nullptr;
 }
 
-enum airtaudio::error airtaudio::Interface::openStream(
-                airtaudio::StreamParameters* _outputParameters,
-                airtaudio::StreamParameters* _inputParameters,
-                audio::format _format,
-                uint32_t _sampleRate,
-                uint32_t* _bufferFrames,
-                airtaudio::AirTAudioCallback _callback,
-                airtaudio::StreamOptions* _options) {
+enum airtaudio::error airtaudio::Interface::openStream(airtaudio::StreamParameters* _outputParameters,
+                                                       airtaudio::StreamParameters* _inputParameters,
+                                                       audio::format _format,
+                                                       uint32_t _sampleRate,
+                                                       uint32_t* _bufferFrames,
+                                                       airtaudio::AirTAudioCallback _callback,
+                                                       airtaudio::StreamOptions* _options) {
 	if (m_rtapi == nullptr) {
 		return airtaudio::error_inputNull;
 	}

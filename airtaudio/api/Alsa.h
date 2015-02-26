@@ -21,7 +21,16 @@ namespace airtaudio {
 					return airtaudio::type_alsa;
 				}
 				uint32_t getDeviceCount();
-				bool getDeviceInfo(const std::string& _deviceName, airtaudio::DeviceInfo& _info);
+			private:
+				bool getNamedDeviceInfoLocal(const std::string& _deviceName,
+				                             airtaudio::DeviceInfo& _info,
+				                             int32_t _cardId=-1, // Alsa card ID
+				                             int32_t _subdevice=-1, // alsa subdevice ID
+				                             int32_t _localDeviceId=-1); // local ID of device fined
+			public:
+				bool getNamedDeviceInfo(const std::string& _deviceName, airtaudio::DeviceInfo& _info) {
+					return getNamedDeviceInfoLocal(_deviceName, _info);
+				}
 				airtaudio::DeviceInfo getDeviceInfo(uint32_t _device);
 				enum airtaudio::error closeStream();
 				enum airtaudio::error startStream();
@@ -47,6 +56,15 @@ namespace airtaudio {
 				                     enum audio::format _format,
 				                     uint32_t *_bufferSize,
 				                     airtaudio::StreamOptions *_options);
+				
+				virtual bool probeDeviceOpenName(const std::string& _deviceName,
+				                                 airtaudio::mode _mode,
+				                                 uint32_t _channels,
+				                                 uint32_t _firstChannel,
+				                                 uint32_t _sampleRate,
+				                                 audio::format _format,
+				                                 uint32_t *_bufferSize,
+				                                 airtaudio::StreamOptions *_options);
 				virtual std11::chrono::system_clock::time_point getStreamTime();
 		};
 	};

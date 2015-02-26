@@ -56,6 +56,10 @@ namespace airtaudio {
 			virtual airtaudio::type getCurrentApi() = 0;
 			virtual uint32_t getDeviceCount() = 0;
 			virtual airtaudio::DeviceInfo getDeviceInfo(uint32_t _device) = 0;
+			// TODO : Check API ...
+			virtual	bool getNamedDeviceInfo(const std::string& _deviceName, airtaudio::DeviceInfo& _info) {
+				return false;
+			}
 			virtual uint32_t getDefaultInputDevice();
 			virtual uint32_t getDefaultOutputDevice();
 			enum airtaudio::error openStream(airtaudio::StreamParameters* _outputParameters,
@@ -120,6 +124,14 @@ namespace airtaudio {
 			                             enum audio::format _format,
 			                             uint32_t *_bufferSize,
 			                             airtaudio::StreamOptions *_options);
+			virtual bool probeDeviceOpenName(const std::string& _deviceName,
+			                                 airtaudio::mode _mode,
+			                                 uint32_t _channels,
+			                                 uint32_t _firstChannel,
+			                                 uint32_t _sampleRate,
+			                                 audio::format _format,
+			                                 uint32_t *_bufferSize,
+			                                 airtaudio::StreamOptions *_options) { return false; }
 			/**
 			 * @brief Increment the stream time.
 			 */
