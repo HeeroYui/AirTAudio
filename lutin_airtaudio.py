@@ -21,6 +21,7 @@ def create(target):
 		'airtaudio/Interface.cpp',
 		'airtaudio/Flags.cpp',
 		'airtaudio/Api.cpp',
+		'airtaudio/DeviceInfo.cpp',
 		'airtaudio/api/Dummy.cpp'
 		])
 	myModule.add_module_depend(['audio', 'etk'])

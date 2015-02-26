@@ -8,6 +8,8 @@
 #ifndef __AIRTAUDIO_DEVICE_INFO_H__
 #define __AIRTAUDIO_DEVICE_INFO_H__
 
+#include <audio/format.h>
+
 namespace airtaudio {
 	/**
 	 * @brief The public device information structure for returning queried values.
@@ -32,7 +34,9 @@ namespace airtaudio {
 			  isDefaultOutput(false),
 			  isDefaultInput(false),
 			  nativeFormats() {}
+			void display(int32_t _tabNumber = 1) const;
 	};
+	std::ostream& operator <<(std::ostream& _os, const airtaudio::DeviceInfo& _obj);
 };
 
 #endif
