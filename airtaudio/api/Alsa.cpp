@@ -14,6 +14,7 @@
 #include <airtaudio/debug.h>
 #include <etk/stdTools.h>
 #include <limits.h>
+#include <airtaudio/api/Alsa.h>
 
 #undef __class__
 #define __class__ "api::Alsa"
@@ -33,13 +34,13 @@ namespace airtaudio {
 				bool runnable;
 				std11::thread* thread;
 				bool threadRunning;
-				bool isMonotonic; //!< the timestamp of the flow came from the harware.
+				enum timestampMode timeMode; //!< the timestamp of the flow came from the harware.
 				AlsaPrivate() :
 				  synchronized(false),
 				  runnable(false),
 				  thread(nullptr),
 				  threadRunning(false),
-				  isMonotonic(false) {
+				  timeMode(timestampMode_soft) {
 					handles[0] = nullptr;
 					handles[1] = nullptr;
 					xrun[0] = false;
@@ -406,7 +407,7 @@ bool airtaudio::api::Alsa::probeDeviceOpen(uint32_t _device,
                                            uint32_t _sampleRate,
                                            audio::format _format,
                                            uint32_t *_bufferSize,
-                                           airtaudio::StreamOptions *_options) {
+                                           const airtaudio::StreamOptions& _options) {
 	// I'm not using the "plug" interface ... too much inconsistent behavior.
 	unsigned nDevices = 0;
 	int32_t result, subdevice, card;
@@ -461,7 +462,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
                                                uint32_t _sampleRate,
                                                audio::format _format,
                                                uint32_t *_bufferSize,
-                                               airtaudio::StreamOptions *_options) {
+                                               const airtaudio::StreamOptions& _options) {
 	// I'm not using the "plug" interface ... too much inconsistent behavior.
 	unsigned nDevices = 0;
 	int32_t result, subdevice, card;
@@ -608,14 +609,12 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 	*_bufferSize = periodSize;
 	// Set the buffer number, which in ALSA is referred to as the "period".
 	uint32_t periods = 0;
-	if (    _options != nullptr
-	     && _options->flags.m_minimizeLatency == true) {
+	if (_options.flags.m_minimizeLatency == true) {
 		periods = 2;
 	}
 	/* TODO : Chouse the number of low level buffer ...
-	if (    _options != nullptr
-	     && _options->numberOfBuffers > 0) {
-		periods = _options->numberOfBuffers;
+	if (_options.numberOfBuffers > 0) {
+		periods = _options.numberOfBuffers;
 	}
 	*/
 	if (periods < 2) {
@@ -639,11 +638,16 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 	m_bufferSize = *_bufferSize;
 	// check if the hardware provide hardware clock :
 	if (snd_pcm_hw_params_is_monotonic(hw_params) == 0) {
-		m_private->isMonotonic = false;
-		ATA_WARNING("ALSA Audio timestamp is NOT monotonic (Generate with the start timestamp)");
+		ATA_INFO("ALSA Audio timestamp is NOT monotonic (Generate with the start timestamp)");
+		if (_options.mode == timestampMode_Hardware) {
+			ATA_WARNING("Can not select Harware timeStamp ==> the IO is not monotonic ==> select ");
+			m_private->timeMode = timestampMode_trigered;
+		} else {
+			m_private->timeMode = _options.mode;
+		}
 	} else {
-		m_private->isMonotonic = true;
-		ATA_DEBUG("ALSA Audio timestamp is monotonic (came from harware)");
+		ATA_DEBUG("ALSA Audio timestamp is monotonic (can came from harware)");
+		m_private->timeMode = _options.mode;
 	}
 
 	// Install the hardware configuration
@@ -976,7 +980,7 @@ void airtaudio::api::Alsa::callbackEvent() {
 }
 
 std11::chrono::system_clock::time_point airtaudio::api::Alsa::getStreamTime() {
-	if (m_private->isMonotonic == true) {
+	if (m_private->timeMode == timestampMode_Hardware) {
 		snd_pcm_status_t *status = nullptr;
 		snd_pcm_status_alloca(&status);
 		// get harware timestamp all the time:
@@ -988,9 +992,6 @@ std11::chrono::system_clock::time_point airtaudio::api::Alsa::getStreamTime() {
 			ATA_WARNING(" get time of the signal error ...");
 			return m_startTime + m_duration;
 		}
-		// get start time:
-		//snd_pcm_status_get_trigger_tstamp(status, &timestamp);
-		//m_startTime = std11::chrono::system_clock::from_time_t(timestamp.tv_sec) + std11::chrono::microseconds(timestamp.tv_usec);
 		#if 0
 			snd_timestamp_t timestamp;
 			snd_pcm_status_get_tstamp(status, &timestamp);
@@ -1013,7 +1014,28 @@ std11::chrono::system_clock::time_point airtaudio::api::Alsa::getStreamTime() {
 			m_startTime -= timeDelay;
 		}
 		return m_startTime;
+	} else if (m_private->timeMode == timestampMode_trigered) {
+		if (m_startTime == std11::chrono::system_clock::time_point()) {
+			snd_pcm_status_t *status = nullptr;
+			snd_pcm_status_alloca(&status);
+			// get harware timestamp all the time:
+			if (m_private->handles[0] != nullptr) {
+				snd_pcm_status(m_private->handles[0], status);
+			} else if (m_private->handles[1] != nullptr) {
+				snd_pcm_status(m_private->handles[1], status);
+			} else {
+				ATA_WARNING(" get time of the signal error ...");
+				return m_startTime + m_duration;
+			}
+			// get start time:
+			snd_timestamp_t timestamp;
+			snd_pcm_status_get_trigger_tstamp(status, &timestamp);
+			m_startTime = std11::chrono::system_clock::from_time_t(timestamp.tv_sec) + std11::chrono::microseconds(timestamp.tv_usec);
+			ATA_VERBOSE("snd_pcm_status_get_trigger_tstamp : " << m_startTime);
+		}
+		return m_startTime + m_duration;
 	} else {
+		// softaware mode ...
 		if (m_startTime == std11::chrono::system_clock::time_point()) {
 			m_startTime = std11::chrono::system_clock::now();
 			std11::chrono::nanoseconds timeDelay(m_bufferSize*1000000000LL/int64_t(m_sampleRate));
@@ -1207,6 +1229,49 @@ unlock:
 	if (doStopStream == 1) {
 		this->stopStream();
 	}
+}
+
+bool airtaudio::api::Alsa::isMasterOf(airtaudio::Api* _api) {
+	airtaudio::api::Alsa* slave = dynamic_cast<airtaudio::api::Alsa*>(_api);
+	if (slave == nullptr) {
+		ATA_ERROR("NULL ptr API (not ALSA ...)");
+		return false;
+	}
+	if (m_state == airtaudio::state_running) {
+		ATA_ERROR("The MASTER stream is already running! ==> can not synchronize ...");
+		return false;
+	}
+	if (slave->m_state == airtaudio::state_running) {
+		ATA_ERROR("The SLAVE stream is already running! ==> can not synchronize ...");
+		return false;
+	}
+	snd_pcm_t * master = nullptr;
+	if (m_private->handles[0] != nullptr) {
+		master = m_private->handles[0];
+	}
+	if (m_private->handles[1] != nullptr) {
+		master = m_private->handles[1];
+	}
+	if (master == nullptr) {
+		ATA_ERROR("No ALSA handles ...");
+		return false;
+	}
+	ATA_INFO("   ==> plop");
+	if (slave->m_private->handles[0] != nullptr) {
+		if (snd_pcm_link(master, slave->m_private->handles[0]) != 0) {
+			ATA_ERROR("Can not syncronize handle output");
+		} else {
+			ATA_INFO("   -------------------- LINK 0 --------------------");
+		}
+	}
+	if (slave->m_private->handles[1] != nullptr) {
+		if (snd_pcm_link(master, slave->m_private->handles[1]) != 0) {
+			ATA_ERROR("Can not syncronize handle input");
+		} else {
+			ATA_INFO("   -------------------- LINK 1 --------------------");
+		}
+	}
+	return true;
 }
 
 

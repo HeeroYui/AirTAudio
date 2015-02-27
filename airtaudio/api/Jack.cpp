@@ -268,7 +268,7 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
                                            uint32_t _sampleRate,
                                            audio::format _format,
                                            uint32_t* _bufferSize,
-                                           airtaudio::StreamOptions* _options) {
+                                           const airtaudio.::StreamOptions& _options) {
 	// Look for jack server and try to become a client (only do once per stream).
 	jack_client_t *client = 0;
 	if (    _mode == airtaudio::mode_output
@@ -276,8 +276,8 @@ bool airtaudio::api::Jack::probeDeviceOpen(uint32_t _device,
 	          && m_mode != airtaudio::mode_output)) {
 		jack_options_t jackoptions = (jack_options_t) (JackNoStartServer); //JackNullOption;
 		jack_status_t *status = nullptr;
-		if (_options && !_options->streamName.empty()) {
-			client = jack_client_open(_options->streamName.c_str(), jackoptions, status);
+		if (!_options.streamName.empty()) {
+			client = jack_client_open(_options.streamName.c_str(), jackoptions, status);
 		} else {
 			client = jack_client_open("airtaudioJack", jackoptions, status);
 		}

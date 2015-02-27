@@ -428,7 +428,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
                                            uint32_t _sampleRate,
                                            audio::format _format,
                                            uint32_t *_bufferSize,
-                                           airtaudio::StreamOptions *_options) {
+                                           const airtaudio.::StreamOptions& _options) {
 	// Get device ID
 	uint32_t nDevices = getDeviceCount();
 	if (nDevices == 0) {
@@ -569,8 +569,7 @@ bool airtaudio::api::Core::probeDeviceOpen(uint32_t _device,
 	} else if (bufferRange.mMaximum < *_bufferSize) {
 		*_bufferSize = (uint64_t) bufferRange.mMaximum;
 	}
-	if (    _options != nullptr
-	     && _options->flags.m_minimizeLatency == true) {
+	if (_options.flags.m_minimizeLatency == true) {
 		*_bufferSize = (uint64_t) bufferRange.mMinimum;
 	}
 	// Set the buffer size.	For multiple streams, I'm assuming we only

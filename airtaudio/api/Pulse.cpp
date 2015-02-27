@@ -285,7 +285,7 @@ bool airtaudio::api::Pulse::probeDeviceOpen(uint32_t _device,
                                             uint32_t _sampleRate,
                                             audio::format _format,
                                             uint32_t *_bufferSize,
-                                            airtaudio::StreamOptions *_options) {
+                                            const airtaudio.::StreamOptions& _options) {
 	uint64_t bufferBytes = 0;
 	pa_sample_spec ss;
 	if (_device != 0) {

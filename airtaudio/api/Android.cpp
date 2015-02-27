@@ -153,7 +153,7 @@ bool airtaudio::api::Android::probeDeviceOpen(uint32_t _device,
                                               uint32_t _sampleRate,
                                               audio::format _format,
                                               uint32_t *_bufferSize,
-                                              airtaudio::StreamOptions *_options) {
+                                              const airtaudio::StreamOptions& _options) {
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);
 	if (_mode != airtaudio::mode_output) {
 		ATA_ERROR("Can not start a device input or duplex for Android ...");

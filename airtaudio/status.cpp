@@ -7,7 +7,7 @@
 
 #include <airtaudio/status.h>
 #include <airtaudio/debug.h>
-const char* listValue[] = {
+static const char* listValue[] = {
 	"ok",
 	"overflow",
 	"underflow"

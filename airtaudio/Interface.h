@@ -198,7 +198,7 @@ namespace airtaudio {
 			                                 uint32_t _sampleRate,
 			                                 uint32_t* _bufferFrames,
 			                                 airtaudio::AirTAudioCallback _callback,
-			                                 airtaudio::StreamOptions *_options = nullptr);
+			                                 const airtaudio::StreamOptions& _options = airtaudio::StreamOptions());
 			
 			/**
 			 * @brief A function that closes a stream and frees any associated stream memory.
@@ -308,6 +308,7 @@ namespace airtaudio {
 				}
 				return m_rtapi->getStreamSampleRate();
 			}
+			bool isMasterOf(airtaudio::Interface& _interface);
 		protected:
 			void openRtApi(enum airtaudio::type _api);
 	};

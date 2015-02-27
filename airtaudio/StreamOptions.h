@@ -8,13 +8,16 @@
 #ifndef __AIRTAUDIO_STREAM_OPTION_H__
 #define __AIRTAUDIO_STREAM_OPTION_H__
 
-namespace airtaudio {
+#include <airtaudio/Flags.h>
 
+namespace airtaudio {
 	enum timestampMode {
 		timestampMode_Hardware, //!< enable harware timestamp
 		timestampMode_trigered, //!< get harware triger time stamp and ingrement with duration
 		timestampMode_soft, //!< Simulate all timestamp.
 	};
+	std::ostream& operator <<(std::ostream& _os, enum airtaudio::timestampMode _obj);
+	
 	class StreamOptions {
 		public:
 			airtaudio::Flags flags; //!< A bit-mask of stream flags

@@ -361,7 +361,7 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
                                          uint32_t _sampleRate,
                                          enum audio::format _format,
                                          uint32_t *_bufferSize,
-                                         airtaudio::StreamOptions *_options) {
+                                         const airtaudio.::StreamOptions& _options) {
 	if (_channels + _firstChannel > 2) {
 		ATA_ERROR("DirectSound does not support more than 2 channels per device.");
 		return false;
@@ -402,12 +402,9 @@ bool airtaudio::api::Ds::probeDeviceOpen(uint32_t _device,
 	// low for capture, but it should work for playback.
 	int32_t nBuffers = 0;
 	/*
-	if (_options != nullptr) {
-		nBuffers = _options->numberOfBuffers;
-	}
+	nBuffers = _options.numberOfBuffers;
 	*/
-	if (    _options!= nullptr
-	     && _options->flags.m_minimizeLatency == true) {
+	if (_options.flags.m_minimizeLatency == true) {
 		nBuffers = 2;
 	}
 	if (nBuffers < 2) {

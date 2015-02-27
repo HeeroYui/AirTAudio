@@ -53,7 +53,7 @@ namespace airtaudio {
 				                     uint32_t _sampleRate,
 				                     audio::format _format,
 				                     uint32_t *_bufferSize,
-				                     airtaudio::StreamOptions *_options);
+				                     const airtaudio.::StreamOptions& _options);
 				static const char* getErrorCode(OSStatus _code);
 				static OSStatus xrunListener(AudioObjectID _inDevice,
 				                             uint32_t _nAddresses,

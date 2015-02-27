@@ -224,7 +224,7 @@ bool airtaudio::api::Asio::probeDeviceOpen(uint32_t _device,
                                            uint32_t _sampleRate,
                                            audio::format _format,
                                            uint32_t* _bufferSize,
-                                           airtaudio::StreamOptions *_options) {
+                                           const airtaudio::StreamOptions& _options) {
 	// For ASIO, a duplex stream MUST use the same driver.
 	if (    _mode == airtaudio::mode_input
 	     && m_mode == airtaudio::mode_output

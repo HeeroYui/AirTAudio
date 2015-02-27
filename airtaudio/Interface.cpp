@@ -149,7 +149,7 @@ enum airtaudio::error airtaudio::Interface::openStream(airtaudio::StreamParamete
                                                        uint32_t _sampleRate,
                                                        uint32_t* _bufferFrames,
                                                        airtaudio::AirTAudioCallback _callback,
-                                                       airtaudio::StreamOptions* _options) {
+                                                       const airtaudio::StreamOptions& _options) {
 	if (m_rtapi == nullptr) {
 		return airtaudio::error_inputNull;
 	}
@@ -162,6 +162,23 @@ enum airtaudio::error airtaudio::Interface::openStream(airtaudio::StreamParamete
 	                           _options);
 }
 
-
-
+bool airtaudio::Interface::isMasterOf(airtaudio::Interface& _interface) {
+	if (m_rtapi == nullptr) {
+		ATA_ERROR("Current Master API is nullptr ...");
+		return false;
+	}
+	if (_interface.m_rtapi == nullptr) {
+		ATA_ERROR("Current Slave API is nullptr ...");
+		return false;
+	}
+	if (m_rtapi->getCurrentApi() != _interface.m_rtapi->getCurrentApi()) {
+		ATA_ERROR("Can not link 2 Interface with not the same Low level type (???)");//" << _interface.m_adac->getCurrentApi() << " != " << m_adac->getCurrentApi() << ")");
+		return false;
+	}
+	if (m_rtapi->getCurrentApi() != airtaudio::type_alsa) {
+		ATA_ERROR("Link 2 device together work only if the interafec is ????");// << airtaudio::type_alsa << " not for " << m_rtapi->getCurrentApi());
+		return false;
+	}
+	return m_rtapi->isMasterOf(_interface.m_rtapi);
+}
 

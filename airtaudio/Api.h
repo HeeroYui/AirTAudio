@@ -68,7 +68,7 @@ namespace airtaudio {
 			                                 uint32_t _sampleRate,
 			                                 uint32_t* _nbChunk,
 			                                 airtaudio::AirTAudioCallback _callback,
-			                                 airtaudio::StreamOptions* _options);
+			                                 const airtaudio::StreamOptions& _options);
 			virtual enum airtaudio::error closeStream();
 			virtual enum airtaudio::error startStream();
 			virtual enum airtaudio::error stopStream() = 0;
@@ -123,7 +123,7 @@ namespace airtaudio {
 			                             uint32_t _sampleRate,
 			                             enum audio::format _format,
 			                             uint32_t *_bufferSize,
-			                             airtaudio::StreamOptions *_options);
+			                             const airtaudio::StreamOptions& _options);
 			virtual bool probeDeviceOpenName(const std::string& _deviceName,
 			                                 airtaudio::mode _mode,
 			                                 uint32_t _channels,
@@ -131,7 +131,7 @@ namespace airtaudio {
 			                                 uint32_t _sampleRate,
 			                                 audio::format _format,
 			                                 uint32_t *_bufferSize,
-			                                 airtaudio::StreamOptions *_options) { return false; }
+			                                 const airtaudio::StreamOptions& _options) { return false; }
 			/**
 			 * @brief Increment the stream time.
 			 */
@@ -163,6 +163,11 @@ namespace airtaudio {
 			 */
 			void setConvertInfo(enum airtaudio::mode _mode,
 			                    uint32_t _firstChannel);
+			
+		public:
+			virtual bool isMasterOf(airtaudio::Api* _api) {
+				return false;
+			};
 	};
 };
 /**

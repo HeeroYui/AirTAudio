@@ -40,7 +40,7 @@ namespace airtaudio {
 				                     uint32_t _sampleRate,
 				                     audio::format _format,
 				                     uint32_t *_bufferSize,
-				                     airtaudio::StreamOptions *_options);
+				                     const airtaudio.::StreamOptions& _options);
 		};
 	};
 };

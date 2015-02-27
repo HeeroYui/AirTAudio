@@ -55,7 +55,7 @@ namespace airtaudio {
 				                     uint32_t _sampleRate,
 				                     enum audio::format _format,
 				                     uint32_t *_bufferSize,
-				                     airtaudio::StreamOptions *_options);
+				                     const airtaudio::StreamOptions& _options);
 				
 				virtual bool probeDeviceOpenName(const std::string& _deviceName,
 				                                 airtaudio::mode _mode,
@@ -64,8 +64,10 @@ namespace airtaudio {
 				                                 uint32_t _sampleRate,
 				                                 audio::format _format,
 				                                 uint32_t *_bufferSize,
-				                                 airtaudio::StreamOptions *_options);
+				                                 const airtaudio::StreamOptions& _options);
 				virtual std11::chrono::system_clock::time_point getStreamTime();
+			public:
+				bool isMasterOf(airtaudio::Api* _api);
 		};
 	};
 };

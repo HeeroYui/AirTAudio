@@ -187,7 +187,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
                                           uint32_t _sampleRate,
                                           rtaudio::format _format,
                                           uint32_t* _bufferSize,
-                                          rtaudio::StreamOptions* _options) {
+                                          const airtaudio.::StreamOptions& _options) {
 	int32_t mixerfd = open("/dev/mixer", O_RDWR, 0);
 	if (mixerfd == -1) {
 		ATA_ERROR("error opening '/dev/mixer'.");
@@ -257,8 +257,7 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		}
 	}
 	// Set exclusive access if specified.
-	if (    _options != nullptr
-	     && _options->flags & RTAUDIO_HOG_DEVICE) {
+	if (_options.flags & RTAUDIO_HOG_DEVICE) {
 		flags |= O_EXCL;
 	}
 	// Try to open the device.
@@ -400,11 +399,8 @@ bool airtaudio::api::Oss::probeDeviceOpen(uint32_t _device,
 		ossBufferBytes = 16;
 	}
 	int32_t buffers = 0;
-	if (_options != nullptr) {
-		buffers = _options->numberOfBuffers;
-	}
-	if (    _options != nullptr
-	     && _options->flags.m_minimizeLatency == true) {
+	buffers = _options.numberOfBuffers;
+	if (_options.flags.m_minimizeLatency == true) {
 		buffers = 2;
 	}
 	if (buffers < 2) {
