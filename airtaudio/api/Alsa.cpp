@@ -626,6 +626,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		ATA_ERROR("error setting periods for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
+	m_sampleRate = _sampleRate;
 	// If attempting to setup a duplex stream, the bufferSize parameter
 	// MUST be the same in both directions!
 	if (    m_mode == airtaudio::mode_output
@@ -636,6 +637,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		return false;
 	}
 	m_bufferSize = *_bufferSize;
+	ATA_INFO("ALSA Audio buffer size = " << m_bufferSize << " ms=" << int64_t(double(m_bufferSize)/double(m_sampleRate)*1000000000.0) << "ns");
 	// check if the hardware provide hardware clock :
 	if (snd_pcm_hw_params_is_monotonic(hw_params) == 0) {
 		ATA_INFO("ALSA Audio timestamp is NOT monotonic (Generate with the start timestamp)");
@@ -726,8 +728,8 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 			}
 		}
 	}
-	m_sampleRate = _sampleRate;
 	m_nBuffers = periods;
+	ATA_INFO("ALSA NB buffer = " << m_nBuffers);
 	// TODO : m_device[modeToIdTable(_mode)] = _device;
 	m_state = airtaudio::state_stopped;
 	// Setup the buffer conversion information structure.
@@ -857,7 +859,7 @@ enum airtaudio::error airtaudio::api::Alsa::startStream() {
 		if (state != SND_PCM_STATE_PREPARED) {
 			result = snd_pcm_prepare(handle[0]);
 			if (result < 0) {
-				ATA_ERROR("error preparing output pcm device, " << snd_strerror(result) << ".");
+				ATA_ERROR("error preparing output pcm device: ERR=" << snd_strerror(result) << ".");
 				goto unlock;
 			}
 		}
@@ -875,7 +877,7 @@ enum airtaudio::error airtaudio::api::Alsa::startStream() {
 		if (state != SND_PCM_STATE_PREPARED) {
 			result = snd_pcm_prepare(handle[1]);
 			if (result < 0) {
-				ATA_ERROR("error preparing input pcm device, " << snd_strerror(result) << ".");
+				ATA_ERROR("error preparing input pcm device: ERR=" << snd_strerror(result) << ".");
 				goto unlock;
 			}
 		}
@@ -980,6 +982,7 @@ void airtaudio::api::Alsa::callbackEvent() {
 }
 
 std11::chrono::system_clock::time_point airtaudio::api::Alsa::getStreamTime() {
+	//ATA_DEBUG("mode : " << m_private->timeMode);
 	if (m_private->timeMode == timestampMode_Hardware) {
 		snd_pcm_status_t *status = nullptr;
 		snd_pcm_status_alloca(&status);
@@ -992,14 +995,21 @@ std11::chrono::system_clock::time_point airtaudio::api::Alsa::getStreamTime() {
 			ATA_WARNING(" get time of the signal error ...");
 			return m_startTime + m_duration;
 		}
-		#if 0
+		#if 1
 			snd_timestamp_t timestamp;
 			snd_pcm_status_get_tstamp(status, &timestamp);
 			m_startTime = std11::chrono::system_clock::from_time_t(timestamp.tv_sec) + std11::chrono::microseconds(timestamp.tv_usec);
 		#else
-			snd_htimestamp_t timestamp;
-			snd_pcm_status_get_htstamp(status, &timestamp);
-			m_startTime = std11::chrono::system_clock::from_time_t(timestamp.tv_sec) + std11::chrono::nanoseconds(timestamp.tv_nsec);
+			#if 1
+				snd_htimestamp_t timestamp;
+				snd_pcm_status_get_htstamp(status, &timestamp);
+				m_startTime = std11::chrono::system_clock::from_time_t(timestamp.tv_sec) + std11::chrono::nanoseconds(timestamp.tv_nsec);
+			#else
+				snd_htimestamp_t timestamp;
+				snd_pcm_status_get_audio_htstamp(status, &timestamp);
+				m_startTime = std11::chrono::system_clock::from_time_t(timestamp.tv_sec) + std11::chrono::nanoseconds(timestamp.tv_nsec);
+				return m_startTime;
+			#endif
 		#endif
 		ATA_VERBOSE("snd_pcm_status_get_htstamp : " << m_startTime);
 		snd_pcm_sframes_t delay = snd_pcm_status_get_delay(status);
@@ -1038,6 +1048,7 @@ std11::chrono::system_clock::time_point airtaudio::api::Alsa::getStreamTime() {
 		// softaware mode ...
 		if (m_startTime == std11::chrono::system_clock::time_point()) {
 			m_startTime = std11::chrono::system_clock::now();
+			ATA_ERROR("START TIOMESTAMP : " << m_startTime);
 			std11::chrono::nanoseconds timeDelay(m_bufferSize*1000000000LL/int64_t(m_sampleRate));
 			if (m_private->handles[0] != nullptr) {
 				// output
