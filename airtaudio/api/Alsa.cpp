@@ -1161,7 +1161,7 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 		// Check stream latency
 		result = snd_pcm_delay(handle[1], &frames);
 		if (result == 0 && frames > 0) {
-			ATA_WARNING("Delay in the Input " << frames << " chunk");
+			ATA_VERBOSE("Delay in the Input " << frames << " chunk");
 			m_latency[1] = frames;
 		}
 	}
@@ -1230,7 +1230,7 @@ noInput:
 		// Check stream latency
 		result = snd_pcm_delay(handle[0], &frames);
 		if (result == 0 && frames > 0) {
-			ATA_WARNING("Delay in the Output " << frames << " chunk");
+			ATA_VERBOSE("Delay in the Output " << frames << " chunk");
 			m_latency[0] = frames;
 		}
 	}
