@@ -903,13 +903,12 @@ enum airtaudio::error airtaudio::api::Alsa::stopStream() {
 	m_state = airtaudio::state_stopped;
 	std11::unique_lock<std11::mutex> lck(m_mutex);
 	int32_t result = 0;
-	snd_pcm_t **handle = (snd_pcm_t **) m_private->handles;
 	if (    m_mode == airtaudio::mode_output
 	     || m_mode == airtaudio::mode_duplex) {
 		if (m_private->synchronized) {
-			result = snd_pcm_drop(handle[0]);
+			result = snd_pcm_drop( m_private->handles[0]);
 		} else {
-			result = snd_pcm_drain(handle[0]);
+			result = snd_pcm_drain( m_private->handles[0]);
 		}
 		if (result < 0) {
 			ATA_ERROR("error draining output pcm device, " << snd_strerror(result) << ".");
@@ -919,7 +918,7 @@ enum airtaudio::error airtaudio::api::Alsa::stopStream() {
 	if (    (    m_mode == airtaudio::mode_input
 	          || m_mode == airtaudio::mode_duplex)
 	     && !m_private->synchronized) {
-		result = snd_pcm_drop(handle[1]);
+		result = snd_pcm_drop( m_private->handles[1]);
 		if (result < 0) {
 			ATA_ERROR("error stopping input pcm device, " << snd_strerror(result) << ".");
 			goto unlock;
@@ -1146,6 +1145,7 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 				}
 			} else {
 				ATA_ERROR("audio read error, " << snd_strerror(result) << ".");
+				usleep(10000);
 			}
 			// TODO : Notify application ... airtaudio::error_warning;
 			goto noInput;
