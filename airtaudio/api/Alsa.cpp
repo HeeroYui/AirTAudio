@@ -663,6 +663,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 	snd_pcm_sw_params_t *swParams = nullptr;
 	snd_pcm_sw_params_alloca(&swParams);
 	snd_pcm_sw_params_current(phandle, swParams);
+	
 	snd_pcm_sw_params_set_start_threshold(phandle, swParams, *_bufferSize);
 	snd_pcm_sw_params_set_stop_threshold(phandle, swParams, ULONG_MAX);
 	snd_pcm_sw_params_set_silence_threshold(phandle, swParams, 0);
@@ -681,6 +682,15 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		ATA_ERROR("error installing software configuration on device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
+	
+	{
+		snd_pcm_uframes_t _period_size = 0;
+		snd_pcm_uframes_t _buffer_size = 0;
+		snd_pcm_hw_params_get_period_size(hw_params, &_period_size, &dir);
+		snd_pcm_hw_params_get_buffer_size(hw_params, &_buffer_size);
+		ATA_ERROR("ploooooo _period_size=" << _period_size << " _buffer_size=" << _buffer_size);
+	}
+	
 	// Set flags for buffer conversion
 	m_doConvertBuffer[modeToIdTable(_mode)] = false;
 	if (m_userFormat != m_deviceFormat[modeToIdTable(_mode)]) {
@@ -1099,7 +1109,6 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 	snd_pcm_t **handle;
 	snd_pcm_sframes_t frames;
 	audio::format format;
-	handle = (snd_pcm_t **) m_private->handles;
 	
 	if (m_state == airtaudio::state_stopped) {
 		goto unlock;
@@ -1120,23 +1129,23 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 		}
 		// Read samples from device in interleaved/non-interleaved format.
 		if (m_deviceInterleaved[1]) {
-			result = snd_pcm_readi(handle[1], buffer, m_bufferSize);
+			result = snd_pcm_readi(m_private->handles[1], buffer, m_bufferSize);
 		} else {
 			void *bufs[channels];
 			size_t offset = m_bufferSize * audio::getFormatBytes(format);
 			for (int32_t i=0; i<channels; i++)
 				bufs[i] = (void *) (buffer + (i * offset));
-			result = snd_pcm_readn(handle[1], bufs, m_bufferSize);
+			result = snd_pcm_readn(m_private->handles[1], bufs, m_bufferSize);
 		}
 		// get timestamp : (to init here ...
 		streamTime = getStreamTime();
 		if (result < (int) m_bufferSize) {
 			// Either an error or overrun occured.
 			if (result == -EPIPE) {
-				snd_pcm_state_t state = snd_pcm_state(handle[1]);
+				snd_pcm_state_t state = snd_pcm_state(m_private->handles[1]);
 				if (state == SND_PCM_STATE_XRUN) {
 					m_private->xrun[1] = true;
-					result = snd_pcm_prepare(handle[1]);
+					result = snd_pcm_prepare(m_private->handles[1]);
 					if (result < 0) {
 						ATA_ERROR("error preparing device after overrun, " << snd_strerror(result) << ".");
 					}
@@ -1159,7 +1168,7 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 			convertBuffer(&m_userBuffer[1][0], m_deviceBuffer, m_convertInfo[1]);
 		}
 		// Check stream latency
-		result = snd_pcm_delay(handle[1], &frames);
+		result = snd_pcm_delay(m_private->handles[1], &frames);
 		if (result == 0 && frames > 0) {
 			ATA_VERBOSE("Delay in the Input " << frames << " chunk");
 			m_latency[1] = frames;
@@ -1168,12 +1177,21 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 
 noInput:
 	streamTime = getStreamTime();
-	doStopStream = m_callback(&m_userBuffer[1][0],
-	                          streamTime,// - std11::chrono::nanoseconds(m_latency[1]*1000000000LL/int64_t(m_sampleRate)),
-	                          &m_userBuffer[0][0],
-	                          streamTime,// + std11::chrono::nanoseconds(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
-	                          m_bufferSize,
-	                          status);
+	{
+		std11::chrono::system_clock::time_point startCall = std11::chrono::system_clock::now();
+		doStopStream = m_callback(&m_userBuffer[1][0],
+		                          streamTime,// - std11::chrono::nanoseconds(m_latency[1]*1000000000LL/int64_t(m_sampleRate)),
+		                          &m_userBuffer[0][0],
+		                          streamTime,// + std11::chrono::nanoseconds(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
+		                          m_bufferSize,
+		                          status);
+		std11::chrono::system_clock::time_point stopCall = std11::chrono::system_clock::now();
+		std11::chrono::nanoseconds timeDelay(m_bufferSize*1000000000LL/int64_t(m_sampleRate));
+		std11::chrono::nanoseconds timeProcess = stopCall - startCall;
+		if (timeDelay <= timeProcess) {
+			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay.count() << " < " << timeProcess.count() << " (process time) ns");
+		}
+	}
 	if (doStopStream == 2) {
 		abortStream();
 		return;
@@ -1199,22 +1217,22 @@ noInput:
 		}
 		// Write samples to device in interleaved/non-interleaved format.
 		if (m_deviceInterleaved[0]) {
-			result = snd_pcm_writei(handle[0], buffer, m_bufferSize);
+			result = snd_pcm_writei(m_private->handles[0], buffer, m_bufferSize);
 		} else {
 			void *bufs[channels];
 			size_t offset = m_bufferSize * audio::getFormatBytes(format);
 			for (int32_t i=0; i<channels; i++) {
 				bufs[i] = (void *) (buffer + (i * offset));
 			}
-			result = snd_pcm_writen(handle[0], bufs, m_bufferSize);
+			result = snd_pcm_writen(m_private->handles[0], bufs, m_bufferSize);
 		}
 		if (result < (int) m_bufferSize) {
 			// Either an error or underrun occured.
 			if (result == -EPIPE) {
-				snd_pcm_state_t state = snd_pcm_state(handle[0]);
+				snd_pcm_state_t state = snd_pcm_state(m_private->handles[0]);
 				if (state == SND_PCM_STATE_XRUN) {
 					m_private->xrun[0] = true;
-					result = snd_pcm_prepare(handle[0]);
+					result = snd_pcm_prepare(m_private->handles[0]);
 					if (result < 0) {
 						ATA_ERROR("error preparing device after underrun, " << snd_strerror(result) << ".");
 					}
@@ -1228,7 +1246,7 @@ noInput:
 			goto unlock;
 		}
 		// Check stream latency
-		result = snd_pcm_delay(handle[0], &frames);
+		result = snd_pcm_delay(m_private->handles[0], &frames);
 		if (result == 0 && frames > 0) {
 			ATA_VERBOSE("Delay in the Output " << frames << " chunk");
 			m_latency[0] = frames;
