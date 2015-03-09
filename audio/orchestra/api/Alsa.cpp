@@ -504,7 +504,7 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	snd_pcm_t *phandle;
 	int32_t openMode = SND_PCM_ASYNC;
 	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode);
-	ATA_DEBUG("Configure Mode : SND_PCM_ASYNC");
+	ATA_INFO("Configure Mode : SND_PCM_ASYNC");
 	if (result < 0) {
 		if (_mode == audio::orchestra::mode_output) {
 			ATA_ERROR("pcm device (" << _deviceName << ") won't open for output.");
@@ -523,10 +523,10 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 		return false;
 	}
 	// Open stream all time in interleave mode (by default): (open in non interleave if we have no choice
-	ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_INTERLEAVED");
+	ATA_INFO("configure Acces: SND_PCM_ACCESS_RW_INTERLEAVED");
 	result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
 	if (result < 0) {
-		ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_NONINTERLEAVED");
+		ATA_INFO("configure Acces: SND_PCM_ACCESS_RW_NONINTERLEAVED");
 		result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
 		m_deviceInterleaved[modeToIdTable(_mode)] =	false;
 	} else {
@@ -562,7 +562,7 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 		// TODO : display list of all supported format ..
 		return false;
 	}
-	ATA_DEBUG("configure format: " << _format);
+	ATA_INFO("configure format: " << _format);
 	result = snd_pcm_hw_params_set_format(phandle, hw_params, deviceFormat);
 	if (result < 0) {
 		snd_pcm_close(phandle);
@@ -574,7 +574,7 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	if (deviceFormat != SND_PCM_FORMAT_S8) {
 		result = snd_pcm_format_cpu_endian(deviceFormat);
 		if (result == 0) {
-			ATA_DEBUG("configure swap Byte");
+			ATA_INFO("configure swap Byte");
 			m_doByteSwap[modeToIdTable(_mode)] = true;
 		} else if (result < 0) {
 			snd_pcm_close(phandle);
@@ -582,7 +582,7 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 			return false;
 		}
 	}
-	ATA_DEBUG("Set frequency " << _sampleRate);
+	ATA_INFO("Set frequency " << _sampleRate);
 	// Set the sample rate.
 	result = snd_pcm_hw_params_set_rate_near(phandle, hw_params, (uint32_t*) &_sampleRate, 0);
 	if (result < 0) {
@@ -613,11 +613,11 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 		return false;
 	}
 	deviceChannels = value;
-	ATA_DEBUG("Device Channel : " << deviceChannels);
+	ATA_INFO("Device Channel : " << deviceChannels);
 	if (deviceChannels < _channels + _firstChannel) {
 		deviceChannels = _channels + _firstChannel;
 	}
-	ATA_DEBUG("snd_pcm_hw_params_set_channels: " << deviceChannels);
+	ATA_INFO("snd_pcm_hw_params_set_channels: " << deviceChannels);
 	m_nDeviceChannels[modeToIdTable(_mode)] = deviceChannels;
 	// Set the device channels.
 	result = snd_pcm_hw_params_set_channels(phandle, hw_params, deviceChannels);
@@ -626,9 +626,10 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 		ATA_ERROR("error setting channels for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
-	ATA_DEBUG("configure channels : " << deviceChannels);
+	ATA_INFO("configure channels : " << deviceChannels);
 	// Set the buffer (or period) size.
 	int32_t dir = 0;
+	
 	snd_pcm_uframes_t periodSize = *_bufferSize;
 	result = snd_pcm_hw_params_set_period_size_near(phandle, hw_params, &periodSize, &dir);
 	if (result < 0) {
@@ -637,7 +638,7 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 		return false;
 	}
 	*_bufferSize = periodSize;
-	ATA_DEBUG("configure periode size :" << periodSize);
+	ATA_INFO("configure periode size :" << periodSize);
 
 	// Set the buffer number, which in ALSA is referred to as the "period".
 	uint32_t periods = 0;
@@ -652,14 +653,25 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	if (periods < 2) {
 		periods = 4; // a fairly safe default value
 	}
+	//periods = 2;
 	result = snd_pcm_hw_params_set_periods_near(phandle, hw_params, &periods, &dir);
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("error setting periods for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
-	ATA_DEBUG("configure Buffer number: " << periods);
+	ATA_INFO("configure Buffer number: " << periods);
 	m_sampleRate = _sampleRate;
+	/*
+	snd_pcm_uframes_t periodSize = *_bufferSize;
+	result = snd_pcm_hw_params_set_period_size_near(phandle, hw_params, &periodSize, &dir);
+	if (result < 0) {
+		snd_pcm_close(phandle);
+		ATA_ERROR("error setting period size for device (" << _deviceName << "), " << snd_strerror(result) << ".");
+		return false;
+	}
+	*_bufferSize = periodSize;
+	*/
 	// If attempting to setup a duplex stream, the bufferSize parameter
 	// MUST be the same in both directions!
 	if (    m_mode == audio::orchestra::mode_output
@@ -698,73 +710,72 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	snd_pcm_sw_params_alloca(&swParams);
 	snd_pcm_sw_params_current(phandle, swParams);
 	#if 0
-		ATA_DEBUG("configure start_threshold: " << int64_t(*_bufferSize));
+		ATA_INFO("configure start_threshold: " << int64_t(*_bufferSize));
 		snd_pcm_sw_params_set_start_threshold(phandle, swParams, *_bufferSize);
 	#else
-		ATA_DEBUG("configure start_threshold: " << int64_t(1));
+		ATA_INFO("configure start_threshold: " << int64_t(1));
 		snd_pcm_sw_params_set_start_threshold(phandle, swParams, 1);
 	#endif
 	#if 0
-		ATA_DEBUG("configure stop_threshold: " << ULONG_MAX);
+		ATA_INFO("configure stop_threshold: " << ULONG_MAX);
 		snd_pcm_sw_params_set_stop_threshold(phandle, swParams, ULONG_MAX);
 	#else
-		ATA_DEBUG("configure stop_threshold: " << m_bufferSize*periods);
+		ATA_INFO("configure stop_threshold: " << m_bufferSize*periods);
 		snd_pcm_sw_params_set_stop_threshold(phandle, swParams, m_bufferSize*periods);
 	#endif
-	//ATA_DEBUG("configure silence_threshold: " << 0);
+	//ATA_INFO("configure silence_threshold: " << 0);
 	//snd_pcm_sw_params_set_silence_threshold(phandle, swParams, 0);
 	// The following two settings were suggested by Theo Veenker
 	#if 0
 		snd_pcm_sw_params_set_avail_min(phandle, swParams, *_bufferSize*periods/2);
 		snd_pcm_sw_params_get_avail_min(swParams, &val);
-		ATA_DEBUG("configure set availlable min: " << *_bufferSize*periods/2 << " really set: " << val);
+		ATA_INFO("configure set availlable min: " << *_bufferSize*periods/2 << " really set: " << val);
 	#endif
 	//int valInt;
 	//snd_pcm_sw_params_get_period_event(swParams, &valInt);
-        //ATA_DEBUG("configure get period_event: " << valInt);
+        //ATA_INFO("configure get period_event: " << valInt);
+
 	//snd_pcm_sw_params_set_xfer_align(phandle, swParams, 1);
 	// here are two options for a fix
 	//snd_pcm_sw_params_set_silence_size(phandle, swParams, ULONG_MAX);
 	
 	//snd_pcm_sw_params_set_tstamp_mode(phandle, swParams, SND_PCM_TSTAMP_ENABLE);
-	ATA_DEBUG("configuration: ");
+	ATA_INFO("configuration: ");
 
-	//ATA_DEBUG("    start_mode: " << snd_pcm_start_mode_name(snd_pcm_sw_params_get_start_mode(swParams)));
+	//ATA_INFO("    start_mode: " << snd_pcm_start_mode_name(snd_pcm_sw_params_get_start_mode(swParams)));
 
-	//ATA_DEBUG("    xrun_mode: " << snd_pcm_xrun_mode_name(snd_pcm_sw_params_get_xrun_mode(swParams)));
+	//ATA_INFO("    xrun_mode: " << snd_pcm_xrun_mode_name(snd_pcm_sw_params_get_xrun_mode(swParams)));
 	snd_pcm_tstamp_t valTsMode;
 	snd_pcm_sw_params_get_tstamp_mode(swParams, &valTsMode);
-	ATA_DEBUG("    tstamp_mode: " << snd_pcm_tstamp_mode_name(valTsMode));
+	ATA_INFO("    tstamp_mode: " << snd_pcm_tstamp_mode_name(valTsMode));
 	
-	//ATA_DEBUG("    period_step: " << swParams->period_step);
+	//ATA_INFO("    period_step: " << swParams->period_step);
 
-	//ATA_DEBUG("    sleep_min: " << swParams->sleep_min);
+	//ATA_INFO("    sleep_min: " << swParams->sleep_min);
 	snd_pcm_sw_params_get_avail_min(swParams, &val);
-	ATA_DEBUG("    avail_min: " << val);
+	ATA_INFO("    avail_min: " << val);
 	snd_pcm_sw_params_get_xfer_align(swParams, &val);
-	ATA_DEBUG("    xfer_align: " << val);
+	ATA_INFO("    xfer_align: " << val);
 	
 	snd_pcm_sw_params_get_silence_threshold(swParams, &val);
-	ATA_DEBUG("    silence_threshold: " << val);
+	ATA_INFO("    silence_threshold: " << val);
 	snd_pcm_sw_params_get_silence_size(swParams, &val);
-	ATA_DEBUG("    silence_size: " << val);
+	ATA_INFO("    silence_size: " << val);
 	snd_pcm_sw_params_get_boundary(swParams, &val);
-	ATA_DEBUG("    boundary: " << val);
+	ATA_INFO("    boundary: " << val);
 	result = snd_pcm_sw_params(phandle, swParams);
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("error installing software configuration on device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
-	
-	{
-		snd_pcm_uframes_t _period_size = 0;
-		snd_pcm_uframes_t _buffer_size = 0;
-		snd_pcm_hw_params_get_period_size(hw_params, &_period_size, &dir);
-		snd_pcm_hw_params_get_buffer_size(hw_params, &_buffer_size);
-		ATA_DEBUG("ploooooo _period_size=" << _period_size << " _buffer_size=" << _buffer_size);
-	}
-	
+
+	snd_pcm_uframes_t _period_size = 0;
+	snd_pcm_uframes_t _buffer_size = 0;
+	snd_pcm_hw_params_get_period_size(hw_params, &_period_size, &dir);
+	snd_pcm_hw_params_get_buffer_size(hw_params, &_buffer_size);
+	ATA_ERROR("ploooooo _period_size=" << _period_size << " _buffer_size=" << _buffer_size);
+
 	// Set flags for buffer conversion
 	m_doConvertBuffer[modeToIdTable(_mode)] = false;
 	if (m_userFormat != m_deviceFormat[modeToIdTable(_mode)]) {
@@ -1148,8 +1159,34 @@ audio::Time audio::orchestra::api::Alsa::getStreamTime() {
 	return m_startTime + m_duration;
 }
 
-void audio::orchestra::api::Alsa::callbackEventOneCycle() {
-	if (m_state == audio::orchestra::state_stopped) {
+#define ALSA_SAVE_FILE_MACRO(type,fileName,dataPointer,nbElement) \
+	do { \
+		static FILE *pointerOnFile = nullptr; \
+		static bool errorOpen = false; \
+		if (NULL==pointerOnFile) { \
+			ATA_WARNING("open file '" << fileName << "' type=" << #type); \
+			pointerOnFile = fopen(fileName,"w"); \
+			if (    errorOpen == false \
+			     && pointerOnFile == nullptr) { \
+				ATA_ERROR("ERROR OPEN file ... '" << fileName << "' type=" << #type); \
+				errorOpen=true; \
+			} \
+		} \
+		if (pointerOnFile != nullptr) { \
+			fwrite((dataPointer), sizeof(type), (nbElement), pointerOnFile); \
+			int16_t ploppp[4]; \
+			ploppp[0] = 0; \
+			ploppp[1] = 0; \
+			ploppp[2] = 0; \
+			ploppp[3] = 0; \
+			fwrite(ploppp, sizeof(type), 4, pointerOnFile); \
+			/* fflush(pointerOnFile);*/ \
+		} \
+	}while(0)
+
+
+void airtaudio::api::Alsa::callbackEventOneCycle() {
+	if (m_state == airtaudio::state_stopped) {
 		std11::unique_lock<std11::mutex> lck(m_mutex);
 		// TODO : Set this back ....
 		/*
@@ -1157,8 +1194,8 @@ void audio::orchestra::api::Alsa::callbackEventOneCycle() {
 			m_private->runnable_cv.wait(lck);
 		}
 		*/
-		usleep(1000);
-		if (m_state != audio::orchestra::state_running) {
+		if (m_state != airtaudio::state_running) {
+			usleep(1000);
 			return;
 		}
 	}
@@ -1193,11 +1230,12 @@ void audio::orchestra::api::Alsa::callbackEventOneCycle() {
 	     || m_mode == audio::orchestra::mode_duplex) {
 		std11::unique_lock<std11::mutex> lck(m_mutex);
 		// Setup parameters.
+		/*
 		if (m_doConvertBuffer[1]) {
 			buffer = m_deviceBuffer;
 			channels = m_nDeviceChannels[1];
 			format = m_deviceFormat[1];
-		} else {
+		} else */{
 			buffer = &m_userBuffer[1][0];
 			channels = m_nUserChannels[1];
 			format = m_userFormat;
@@ -1206,6 +1244,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycle() {
 		if (m_deviceInterleaved[1]) {
 			result = snd_pcm_readi(m_private->handles[1], buffer, m_bufferSize);
 		} else {
+			ATA_CRITICAL("plop");
 			void *bufs[channels];
 			size_t offset = m_bufferSize * audio::getFormatBytes(format);
 			for (int32_t i=0; i<channels; i++)
@@ -1215,6 +1254,13 @@ void audio::orchestra::api::Alsa::callbackEventOneCycle() {
 		{
 			snd_pcm_state_t state = snd_pcm_state(m_private->handles[1]);
 			ATA_VERBOSE("plop : " << state);
+			if (state == SND_PCM_STATE_XRUN) {
+				ATA_ERROR("Xrun...");
+			}
+		}
+		{
+			snd_pcm_state_t state = snd_pcm_state(handle[1]);
+			ATA_INFO("plop : " << state);
 			if (state == SND_PCM_STATE_XRUN) {
 				ATA_ERROR("Xrun...");
 			}
@@ -1241,7 +1287,9 @@ void audio::orchestra::api::Alsa::callbackEventOneCycle() {
 			// TODO : Notify application ... audio::orchestra::error_warning;
 			goto noInput;
 		}
+		//ALSA_SAVE_FILE_MACRO(int16_t, "alsa.plop.raw", &m_userBuffer[1][0], m_bufferSize * channels);
 		// Do byte swapping if necessary.
+		/*
 		if (m_doByteSwap[1]) {
 			byteSwapBuffer(buffer, m_bufferSize * channels, format);
 		}
@@ -1249,10 +1297,11 @@ void audio::orchestra::api::Alsa::callbackEventOneCycle() {
 		if (m_doConvertBuffer[1]) {
 			convertBuffer(&m_userBuffer[1][0], m_deviceBuffer, m_convertInfo[1]);
 		}
+		*/
 		// Check stream latency
 		result = snd_pcm_delay(m_private->handles[1], &frames);
 		if (result == 0 && frames > 0) {
-			ATA_VERBOSE("Delay in the Input " << frames << " chunk");
+			ATA_INFO("Delay in the Input " << frames << " chunk");
 			m_latency[1] = frames;
 		}
 	}
@@ -1260,16 +1309,16 @@ void audio::orchestra::api::Alsa::callbackEventOneCycle() {
 noInput:
 	streamTime = getStreamTime();
 	{
-		audio::Time startCall = audio::Time::now();
+		std11::chrono::system_clock::time_point startCall = std11::chrono::system_clock::now();
 		doStopStream = m_callback(&m_userBuffer[1][0],
-		                          streamTime,// - audio::Duration(m_latency[1]*1000000000LL/int64_t(m_sampleRate)),
+		                          streamTime,// - std11::chrono::nanoseconds(m_latency[1]*1000000000LL/int64_t(m_sampleRate)),
 		                          &m_userBuffer[0][0],
-		                          streamTime,// + audio::Duration(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
+		                          streamTime,// + std11::chrono::nanoseconds(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
 		                          m_bufferSize,
 		                          status);
-		audio::Time stopCall = audio::Time::now();
-		audio::Duration timeDelay(0, m_bufferSize*1000000000LL/int64_t(m_sampleRate));
-		audio::Duration timeProcess = stopCall - startCall;
+		std11::chrono::system_clock::time_point stopCall = std11::chrono::system_clock::now();
+		std11::chrono::nanoseconds timeDelay(m_bufferSize*1000000000LL/int64_t(m_sampleRate));
+		std11::chrono::nanoseconds timeProcess = stopCall - startCall;
 		if (timeDelay <= timeProcess) {
 			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay.count() << " < " << timeProcess.count() << " (process time) ns");
 		}
@@ -1279,8 +1328,9 @@ noInput:
 		return;
 	}
 
-	if (    m_mode == audio::orchestra::mode_output
-	     || m_mode == audio::orchestra::mode_duplex) {
+	
+	if (    m_mode == airtaudio::mode_output
+	     || m_mode == airtaudio::mode_duplex) {
 		std11::unique_lock<std11::mutex> lck(m_mutex);
 		// Setup parameters and do buffer conversion if necessary.
 		if (m_doConvertBuffer[0]) {
@@ -1330,7 +1380,7 @@ noInput:
 		// Check stream latency
 		result = snd_pcm_delay(m_private->handles[0], &frames);
 		if (result == 0 && frames > 0) {
-			ATA_VERBOSE("Delay in the Output " << frames << " chunk");
+			ATA_INFO("Delay in the Output " << frames << " chunk");
 			m_latency[0] = frames;
 		}
 	}
@@ -1387,3 +1437,4 @@ bool audio::orchestra::api::Alsa::isMasterOf(audio::orchestra::Api* _api) {
 
 
 #endif
+
