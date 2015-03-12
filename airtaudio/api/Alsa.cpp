@@ -1,5 +1,5 @@
 /** @file
- * @author Edouard DUPIN 
+ * @author Edouard DUPIN
  * @copyright 2011, Edouard DUPIN, all right reserved
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
@@ -118,6 +118,11 @@ bool airtaudio::api::Alsa::getNamedDeviceInfoLocal(const std::string& _deviceNam
 		ATA_ERROR("can not get control interface = '" << _deviceName << "' Can not plit at ',' ...");
 		return false;
 	}
+	if (listElement.size() == 1) {
+		// need to check if it is an input or output:
+		listElement = etk::split(_deviceName, '_');
+	}
+	ATA_INFO("Open control : " << listElement[0]);
 	result = snd_ctl_open(&chandle, listElement[0].c_str(), SND_CTL_NONBLOCK);
 	if (result < 0) {
 		ATA_ERROR("control open, card = " << listElement[0] << ", " << snd_strerror(result) << ".");
@@ -487,6 +492,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 	snd_pcm_t *phandle;
 	int32_t openMode = SND_PCM_ASYNC;
 	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode);
+	ATA_DEBUG("Configure Mode : SND_PCM_ASYNC");
 	if (result < 0) {
 		if (_mode == airtaudio::mode_output) {
 			ATA_ERROR("pcm device (" << _deviceName << ") won't open for output.");
@@ -505,8 +511,10 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		return false;
 	}
 	// Open stream all time in interleave mode (by default): (open in non interleave if we have no choice
+	ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_INTERLEAVED");
 	result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
 	if (result < 0) {
+		ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_NONINTERLEAVED");
 		result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
 		m_deviceInterleaved[modeToIdTable(_mode)] =	false;
 	} else {
@@ -542,6 +550,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		// TODO : display list of all supported format ..
 		return false;
 	}
+	ATA_DEBUG("configure format: " << _format);
 	result = snd_pcm_hw_params_set_format(phandle, hw_params, deviceFormat);
 	if (result < 0) {
 		snd_pcm_close(phandle);
@@ -553,6 +562,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 	if (deviceFormat != SND_PCM_FORMAT_S8) {
 		result = snd_pcm_format_cpu_endian(deviceFormat);
 		if (result == 0) {
+			ATA_DEBUG("configure swap Byte");
 			m_doByteSwap[modeToIdTable(_mode)] = true;
 		} else if (result < 0) {
 			snd_pcm_close(phandle);
@@ -560,6 +570,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 			return false;
 		}
 	}
+	ATA_DEBUG("Set frequency " << _sampleRate);
 	// Set the sample rate.
 	result = snd_pcm_hw_params_set_rate_near(phandle, hw_params, (uint32_t*) &_sampleRate, 0);
 	if (result < 0) {
@@ -586,9 +597,11 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		return false;
 	}
 	deviceChannels = value;
+	ATA_DEBUG("Device Channel : " << deviceChannels);
 	if (deviceChannels < _channels + _firstChannel) {
 		deviceChannels = _channels + _firstChannel;
 	}
+	ATA_DEBUG("snd_pcm_hw_params_set_channels: " << deviceChannels);
 	m_nDeviceChannels[modeToIdTable(_mode)] = deviceChannels;
 	// Set the device channels.
 	result = snd_pcm_hw_params_set_channels(phandle, hw_params, deviceChannels);
@@ -597,6 +610,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		ATA_ERROR("error setting channels for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
+	ATA_DEBUG("configure channels : " << deviceChannels);
 	// Set the buffer (or period) size.
 	int32_t dir = 0;
 	snd_pcm_uframes_t periodSize = *_bufferSize;
@@ -607,6 +621,8 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		return false;
 	}
 	*_bufferSize = periodSize;
+	ATA_DEBUG("configure periode size :" << periodSize);
+
 	// Set the buffer number, which in ALSA is referred to as the "period".
 	uint32_t periods = 0;
 	if (_options.flags.m_minimizeLatency == true) {
@@ -626,6 +642,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		ATA_ERROR("error setting periods for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
+	ATA_DEBUG("configure Buffer number: " << periods);
 	m_sampleRate = _sampleRate;
 	// If attempting to setup a duplex stream, the bufferSize parameter
 	// MUST be the same in both directions!
@@ -637,7 +654,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		return false;
 	}
 	m_bufferSize = *_bufferSize;
-	ATA_INFO("ALSA Audio buffer size = " << m_bufferSize << " ms=" << int64_t(double(m_bufferSize)/double(m_sampleRate)*1000000000.0) << "ns");
+	ATA_INFO("configure buffer size = " << m_bufferSize*periods << " periode time in ms=" << int64_t(double(m_bufferSize)/double(m_sampleRate)*1000000000.0) << "ns");
 	// check if the hardware provide hardware clock :
 	if (snd_pcm_hw_params_is_monotonic(hw_params) == 0) {
 		ATA_INFO("ALSA Audio timestamp is NOT monotonic (Generate with the start timestamp)");
@@ -659,23 +676,64 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		ATA_ERROR("error installing hardware configuration on device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
+	snd_pcm_uframes_t val;
 	// Set the software configuration to fill buffers with zeros and prevent device stopping on xruns.
 	snd_pcm_sw_params_t *swParams = nullptr;
 	snd_pcm_sw_params_alloca(&swParams);
 	snd_pcm_sw_params_current(phandle, swParams);
-	
-	snd_pcm_sw_params_set_start_threshold(phandle, swParams, *_bufferSize);
-	snd_pcm_sw_params_set_stop_threshold(phandle, swParams, ULONG_MAX);
-	snd_pcm_sw_params_set_silence_threshold(phandle, swParams, 0);
+	#if 0
+		ATA_DEBUG("configure start_threshold: " << int64_t(*_bufferSize));
+		snd_pcm_sw_params_set_start_threshold(phandle, swParams, *_bufferSize);
+	#else
+		ATA_DEBUG("configure start_threshold: " << int64_t(1));
+		snd_pcm_sw_params_set_start_threshold(phandle, swParams, 1);
+	#endif
+	#if 0
+		ATA_DEBUG("configure stop_threshold: " << ULONG_MAX);
+		snd_pcm_sw_params_set_stop_threshold(phandle, swParams, ULONG_MAX);
+	#else
+		ATA_DEBUG("configure stop_threshold: " << m_bufferSize*periods);
+		snd_pcm_sw_params_set_stop_threshold(phandle, swParams, m_bufferSize*periods);
+	#endif
+	//ATA_DEBUG("configure silence_threshold: " << 0);
+	//snd_pcm_sw_params_set_silence_threshold(phandle, swParams, 0);
 	// The following two settings were suggested by Theo Veenker
-	//snd_pcm_sw_params_set_avail_min(phandle, swParams, *_bufferSize);
+	#if 0
+		snd_pcm_sw_params_set_avail_min(phandle, swParams, *_bufferSize*periods/2);
+		snd_pcm_sw_params_get_avail_min(swParams, &val);
+		ATA_DEBUG("configure set availlable min: " << *_bufferSize*periods/2 << " really set: " << val);
+	#endif
+	//int valInt;
+	//snd_pcm_sw_params_get_period_event(swParams, &valInt);
+        //ATA_DEBUG("configure get period_event: " << valInt);
 	//snd_pcm_sw_params_set_xfer_align(phandle, swParams, 1);
 	// here are two options for a fix
 	//snd_pcm_sw_params_set_silence_size(phandle, swParams, ULONG_MAX);
-	snd_pcm_sw_params_set_tstamp_mode(phandle, swParams, SND_PCM_TSTAMP_ENABLE);
-	snd_pcm_uframes_t val;
+	
+	//snd_pcm_sw_params_set_tstamp_mode(phandle, swParams, SND_PCM_TSTAMP_ENABLE);
+	ATA_DEBUG("configuration: ");
+
+	//ATA_DEBUG("    start_mode: " << snd_pcm_start_mode_name(snd_pcm_sw_params_get_start_mode(swParams)));
+
+	//ATA_DEBUG("    xrun_mode: " << snd_pcm_xrun_mode_name(snd_pcm_sw_params_get_xrun_mode(swParams)));
+	snd_pcm_tstamp_t valTsMode;
+	snd_pcm_sw_params_get_tstamp_mode(swParams, &valTsMode);
+	ATA_DEBUG("    tstamp_mode: " << snd_pcm_tstamp_mode_name(valTsMode));
+	
+	//ATA_DEBUG("    period_step: " << swParams->period_step);
+
+	//ATA_DEBUG("    sleep_min: " << swParams->sleep_min);
+	snd_pcm_sw_params_get_avail_min(swParams, &val);
+	ATA_DEBUG("    avail_min: " << val);
+	snd_pcm_sw_params_get_xfer_align(swParams, &val);
+	ATA_DEBUG("    xfer_align: " << val);
+	
+	snd_pcm_sw_params_get_silence_threshold(swParams, &val);
+	ATA_DEBUG("    silence_threshold: " << val);
+	snd_pcm_sw_params_get_silence_size(swParams, &val);
+	ATA_DEBUG("    silence_size: " << val);
 	snd_pcm_sw_params_get_boundary(swParams, &val);
-	snd_pcm_sw_params_set_silence_size(phandle, swParams, val);
+	ATA_DEBUG("    boundary: " << val);
 	result = snd_pcm_sw_params(phandle, swParams);
 	if (result < 0) {
 		snd_pcm_close(phandle);
@@ -688,7 +746,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 		snd_pcm_uframes_t _buffer_size = 0;
 		snd_pcm_hw_params_get_period_size(hw_params, &_period_size, &dir);
 		snd_pcm_hw_params_get_buffer_size(hw_params, &_buffer_size);
-		ATA_ERROR("ploooooo _period_size=" << _period_size << " _buffer_size=" << _buffer_size);
+		ATA_DEBUG("ploooooo _period_size=" << _period_size << " _buffer_size=" << _buffer_size);
 	}
 	
 	// Set flags for buffer conversion
@@ -769,6 +827,33 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 			ATA_ERROR("creating callback thread!");
 			goto error;
 		}
+		int retcode;
+		int policy;
+		pthread_t threadID = (pthread_t) m_private->thread->native_handle();
+		struct sched_param param;
+		if ((retcode = pthread_getschedparam(threadID, &policy, &param)) != 0) {
+			ATA_ERROR("pthread_getschedparam " << retcode);
+		} else {
+			ATA_WARNING("INHERITED: ");
+			ATA_WARNING("    policy=" << ((policy == SCHED_FIFO)  ? "SCHED_FIFO" :
+			                              (policy == SCHED_RR)    ? "SCHED_RR" :
+					    	      (policy == SCHED_OTHER) ? "SCHED_OTHER" :
+					              "???") );
+			ATA_WARNING("    priority=" << param.sched_priority);
+		}
+		policy = SCHED_FIFO;
+		param.sched_priority = 6;
+		if ((retcode = pthread_setschedparam(threadID, policy, &param)) != 0) {
+			ATA_ERROR("pthread_setschedparam " << retcode);
+		} else {
+			ATA_WARNING("Change: ");
+			ATA_WARNING("    policy=" << ((policy == SCHED_FIFO)  ? "SCHED_FIFO" :
+			                              (policy == SCHED_RR)    ? "SCHED_RR" :
+			                              (policy == SCHED_OTHER) ? "SCHED_OTHER" :
+			                              "???") );
+			ATA_WARNING("    priority=" << param.sched_priority);
+		}
+
 	}
 	return true;
 error:
@@ -1136,6 +1221,13 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 			for (int32_t i=0; i<channels; i++)
 				bufs[i] = (void *) (buffer + (i * offset));
 			result = snd_pcm_readn(m_private->handles[1], bufs, m_bufferSize);
+		}
+		{
+			snd_pcm_state_t state = snd_pcm_state(handle[1]);
+			ATA_INFO("plop : " << state);
+			if (state == SND_PCM_STATE_XRUN) {
+				ATA_ERROR("Xrun...");
+			}
 		}
 		// get timestamp : (to init here ...
 		streamTime = getStreamTime();
