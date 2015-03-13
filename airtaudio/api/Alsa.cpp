@@ -1167,6 +1167,7 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 			m_private->runnable_cv.wait(lck);
 		}
 		*/
+		usleep(1000);
 		if (m_state != airtaudio::state_running) {
 			return;
 		}
@@ -1191,7 +1192,6 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 	int32_t result;
 	char *buffer;
 	int32_t channels;
-	snd_pcm_t **handle;
 	snd_pcm_sframes_t frames;
 	audio::format format;
 	
@@ -1223,8 +1223,8 @@ void airtaudio::api::Alsa::callbackEventOneCycle() {
 			result = snd_pcm_readn(m_private->handles[1], bufs, m_bufferSize);
 		}
 		{
-			snd_pcm_state_t state = snd_pcm_state(handle[1]);
-			ATA_INFO("plop : " << state);
+			snd_pcm_state_t state = snd_pcm_state(m_private->handles[1]);
+			ATA_VERBOSE("plop : " << state);
 			if (state == SND_PCM_STATE_XRUN) {
 				ATA_ERROR("Xrun...");
 			}
