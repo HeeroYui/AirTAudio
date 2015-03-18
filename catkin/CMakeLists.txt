@@ -62,8 +62,6 @@ add_library(${PROJECT_NAME}
 
 )
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -DDEBUG_LEVEL=3 -DDEBUG=1 -D__CPP_VERSION__=2011")
-
 add_definitions(-D__LINUX_ALSA__)
 add_definitions(-D__DUMMY__)
 
