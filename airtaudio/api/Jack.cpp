@@ -231,7 +231,7 @@ int32_t airtaudio::api::Jack::jackCallbackHandler(jack_nframes_t _nframes, void*
 // it this way because the jackShutdown() function must return before
 // the jack_deactivate() function (in closeStream()) will return.
 void airtaudio::api::Jack::jackCloseStream(void* _userData) {
-	etk::log::setThreadName("Jack_closeStream");
+	etk::thread::setName("Jack_closeStream");
 	airtaudio::api::Jack* myClass = reinterpret_cast<airtaudio::api::Jack*>(_userData);
 	myClass->closeStream();
 }
@@ -623,7 +623,7 @@ enum airtaudio::error airtaudio::api::Jack::abortStream() {
 // callbackEvent() function must return before the jack_deactivate()
 // function will return.
 static void jackStopStream(void* _userData) {
-	etk::log::setThreadName("Jack_stopStream");
+	etk::thread::setName("Jack_stopStream");
 	airtaudio::api::Jack* myClass = reinterpret_cast<airtaudio::api::Jack*>(_userData);
 	myClass->stopStream();
 }

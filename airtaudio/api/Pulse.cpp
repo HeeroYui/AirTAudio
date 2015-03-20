@@ -106,7 +106,7 @@ static void pulseaudio_callback(void* _userData) {
 }
 
 void airtaudio::api::Pulse::callbackEvent() {
-	etk::log::setThreadName("Pulse IO-" + m_name);
+	etk::thread::setName("Pulse IO-" + m_name);
 	while (m_private->threadRunning == true) {
 		callbackEventOneCycle();
 	}

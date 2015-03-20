@@ -13,6 +13,7 @@
 #include <airtaudio/Interface.h>
 #include <airtaudio/debug.h>
 #include <etk/stdTools.h>
+#include <etk/thread/tools.h>
 #include <limits.h>
 #include <airtaudio/api/Alsa.h>
 
@@ -827,33 +828,7 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 			ATA_ERROR("creating callback thread!");
 			goto error;
 		}
-		int retcode;
-		int policy;
-		pthread_t threadID = (pthread_t) m_private->thread->native_handle();
-		struct sched_param param;
-		if ((retcode = pthread_getschedparam(threadID, &policy, &param)) != 0) {
-			ATA_ERROR("pthread_getschedparam " << retcode);
-		} else {
-			ATA_WARNING("INHERITED: ");
-			ATA_WARNING("    policy=" << ((policy == SCHED_FIFO)  ? "SCHED_FIFO" :
-			                              (policy == SCHED_RR)    ? "SCHED_RR" :
-					    	      (policy == SCHED_OTHER) ? "SCHED_OTHER" :
-					              "???") );
-			ATA_WARNING("    priority=" << param.sched_priority);
-		}
-		policy = SCHED_FIFO;
-		param.sched_priority = 6;
-		if ((retcode = pthread_setschedparam(threadID, policy, &param)) != 0) {
-			ATA_ERROR("pthread_setschedparam " << retcode);
-		} else {
-			ATA_WARNING("Change: ");
-			ATA_WARNING("    policy=" << ((policy == SCHED_FIFO)  ? "SCHED_FIFO" :
-			                              (policy == SCHED_RR)    ? "SCHED_RR" :
-			                              (policy == SCHED_OTHER) ? "SCHED_OTHER" :
-			                              "???") );
-			ATA_WARNING("    priority=" << param.sched_priority);
-		}
-
+		etk::thread::setPriority(*m_private->thread, -6);
 	}
 	return true;
 error:
@@ -1069,7 +1044,7 @@ void airtaudio::api::Alsa::alsaCallbackEvent(void *_userData) {
 }
 
 void airtaudio::api::Alsa::callbackEvent() {
-	etk::log::setThreadName("Alsa IO-" + m_name);
+	etk::thread::setName("Alsa IO-" + m_name);
 	while (m_private->threadRunning == true) {
 		callbackEventOneCycle();
 	}
