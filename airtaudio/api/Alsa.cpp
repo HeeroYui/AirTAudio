@@ -469,6 +469,15 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
                                                audio::format _format,
                                                uint32_t *_bufferSize,
                                                const airtaudio::StreamOptions& _options) {
+	ATA_DEBUG("Probe ALSA device : ");
+	ATA_DEBUG("    _deviceName=" << _deviceName);
+	ATA_DEBUG("    _mode=" << _mode);
+	ATA_DEBUG("    _channels=" << _channels);
+	ATA_DEBUG("    _firstChannel=" << _firstChannel);
+	ATA_DEBUG("    _sampleRate=" << _sampleRate);
+	ATA_DEBUG("    _format=" << _format);
+	
+	
 	// I'm not using the "plug" interface ... too much inconsistent behavior.
 	unsigned nDevices = 0;
 	int32_t result, subdevice, card;
@@ -585,10 +594,14 @@ bool airtaudio::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
 	uint32_t value;
 	result = snd_pcm_hw_params_get_channels_max(hw_params, &value);
 	uint32_t deviceChannels = value;
-	if (    result < 0
-	     || deviceChannels < _channels + _firstChannel) {
+	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("requested channel parameters not supported by device (" << _deviceName << "), " << snd_strerror(result) << ".");
+		return false;
+	}
+	if (deviceChannels < _channels + _firstChannel) {
+		snd_pcm_close(phandle);
+		ATA_ERROR("requested channel " << _channels << " have : " << deviceChannels );
 		return false;
 	}
 	result = snd_pcm_hw_params_get_channels_min(hw_params, &value);
