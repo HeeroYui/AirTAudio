@@ -13,16 +13,7 @@
 namespace airtaudio {
 	int32_t getLogId();
 };
-// TODO : Review this problem of multiple intanciation of "std::stringbuf sb"
-#define ATA_BASE(info,data) \
-	do { \
-		if (info <= etk::log::getLevel(airtaudio::getLogId())) { \
-			std::stringbuf sb; \
-			std::ostream tmpStream(&sb); \
-			tmpStream << data; \
-			etk::log::logStream(airtaudio::getLogId(), info, __LINE__, __class__, __func__, tmpStream); \
-		} \
-	} while(0)
+#define ATA_BASE(info,data) TK_LOG_BASE(airtaudio::getLogId(),info,data)
 
 #define ATA_CRITICAL(data)      ATA_BASE(1, data)
 #define ATA_ERROR(data)         ATA_BASE(2, data)
