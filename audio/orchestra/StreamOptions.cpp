@@ -1,0 +1,45 @@
+/** @file
+ * @author Edouard DUPIN 
+ * @copyright 2011, Edouard DUPIN, all right reserved
+ * @license APACHE v2.0 (see license file)
+ * @fork from RTAudio
+ */
+
+#include <audio/orchestra/StreamOptions.h>
+#include <etk/stdTools.h>
+#include <audio/orchestra/debug.h>
+
+static const char* listValue[] = {
+	"hardware",
+	"trigered",
+	"soft"
+};
+
+std::ostream& audio::orchestra::operator <<(std::ostream& _os, enum audio::orchestra::timestampMode _obj) {
+	_os << listValue[_obj];
+	return _os;
+}
+
+namespace etk {
+	template <> bool from_string<enum audio::orchestra::timestampMode>(enum audio::orchestra::timestampMode& _variableRet, const std::string& _value) {
+		if (_value == "hardware") {
+			_variableRet = audio::orchestra::timestampMode_Hardware;
+			return true;
+		}
+		if (_value == "trigered") {
+			_variableRet = audio::orchestra::timestampMode_trigered;
+			return true;
+		}
+		if (_value == "soft") {
+			_variableRet = audio::orchestra::timestampMode_soft;
+			return true;
+		}
+		return false;
+	}
+	
+	template <enum audio::orchestra::timestampMode> std::string to_string(const enum audio::orchestra::timestampMode& _variable) {
+		return listValue[_variable];
+	}
+}
+
+
