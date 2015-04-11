@@ -5,7 +5,7 @@
  * @fork from RTAudio
  */
 
-#if defined(__DUMMY__)
+#if defined(ORCHESTRA_BUILD_DUMMY)
 #include <audio/orchestra/api/Dummy.h>
 #include <audio/orchestra/debug.h>
 
