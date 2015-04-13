@@ -712,7 +712,7 @@ void audio::orchestra::api::Oss::callbackEvent() {
 	}
 	// Invoke user callback to get fresh output data.
 	int32_t doStopStream = 0;
-	std11::chrono::system_clock::time_point streamTime = getStreamTime();
+	audio::Time streamTime = getStreamTime();
 	std::vector<enum audio::orchestra::status> status;
 	if (    m_mode != audio::orchestra::mode_input
 	     && m_private->xrun[0] == true) {

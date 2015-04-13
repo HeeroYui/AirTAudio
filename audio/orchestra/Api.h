@@ -13,6 +13,8 @@
 #include <audio/orchestra/type.h>
 #include <audio/orchestra/state.h>
 #include <audio/orchestra/mode.h>
+#include <audio/Time.h>
+#include <audio/Duration.h>
 
 namespace audio {
 	namespace orchestra {
@@ -28,9 +30,9 @@ namespace audio {
 		 * @param _status List of error that occured in the laps of time.
 		 */
 		typedef std11::function<int32_t (const void* _inputBuffer,
-		                                 const std11::chrono::system_clock::time_point& _timeInput,
+		                                 const audio::Time& _timeInput,
 		                                 void* _outputBuffer,
-		                                 const std11::chrono::system_clock::time_point& _timeOutput,
+		                                 const audio::Time& _timeOutput,
 		                                 uint32_t _nbChunk,
 		                                 const std::vector<audio::orchestra::status>& _status)> AirTAudioCallback;
 		// A protected structure used for buffer conversion.
@@ -76,7 +78,7 @@ namespace audio {
 				virtual enum audio::orchestra::error abortStream() = 0;
 				long getStreamLatency();
 				uint32_t getStreamSampleRate();
-				virtual std11::chrono::system_clock::time_point getStreamTime();
+				virtual audio::Time getStreamTime();
 				bool isStreamOpen() const {
 					return m_state != audio::orchestra::state_closed;
 				}
@@ -106,9 +108,9 @@ namespace audio {
 				enum audio::format m_deviceFormat[2]; // Playback and record, respectively.
 				audio::orchestra::ConvertInfo m_convertInfo[2];
 				
-				//std11::chrono::system_clock::time_point
-				std11::chrono::system_clock::time_point m_startTime; //!< start time of the stream (restart at every stop, pause ...)
-				std11::chrono::nanoseconds m_duration; //!< duration from wich the stream is started
+				//audio::Time
+				audio::Time m_startTime; //!< start time of the stream (restart at every stop, pause ...)
+				audio::Duration m_duration; //!< duration from wich the stream is started
 				
 				/**
 				 * @brief api-specific method that attempts to open a device

@@ -66,7 +66,7 @@ namespace audio {
 					                                 audio::format _format,
 					                                 uint32_t *_bufferSize,
 					                                 const audio::orchestra::StreamOptions& _options);
-					virtual std11::chrono::system_clock::time_point getStreamTime();
+					virtual audio::Time getStreamTime();
 				public:
 					bool isMasterOf(audio::orchestra::Api* _api);
 			};

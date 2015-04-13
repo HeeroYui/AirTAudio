@@ -1012,9 +1012,9 @@ void audio::orchestra::api::Core::coreStopStream(void *_userData) {
 
 bool audio::orchestra::api::Core::callbackEvent(AudioDeviceID _deviceId,
                                          const AudioBufferList *_inBufferList,
-                                         const std11::chrono::system_clock::time_point& _inTime,
+                                         const audio::Time& _inTime,
                                          const AudioBufferList *_outBufferList,
-                                         const std11::chrono::system_clock::time_point& _outTime) {
+                                         const audio::Time& _outTime) {
 	if (    m_state == audio::orchestra::state_stopped
 	     || m_state == audio::orchestra::state_stopping) {
 		return true;

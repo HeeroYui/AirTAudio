@@ -694,7 +694,7 @@ bool audio::orchestra::api::Asio::callbackEvent(long bufferIndex) {
 	// Invoke user callback to get fresh output data UNLESS we are
 	// draining stream.
 	if (m_private->drainCounter == 0) {
-		std11::chrono::system_clock::time_point streamTime = getStreamTime();
+		audio::Time streamTime = getStreamTime();
 		std::vector<enum audio::orchestra::status status;
 		if (m_mode != audio::orchestra::mode_input && asioXRun == true) {
 			status.push_back(audio::orchestra::status_underflow);

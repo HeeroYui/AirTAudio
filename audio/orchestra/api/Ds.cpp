@@ -984,7 +984,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 	// Invoke user callback to get fresh output data UNLESS we are
 	// draining stream.
 	if (m_private->drainCounter == 0) {
-		std11::chrono::system_clock::time_point streamTime = getStreamTime();
+		audio::Time streamTime = getStreamTime();
 		audio::orchestra::status status = audio::orchestra::status_ok;
 		if (    m_mode != audio::orchestra::mode_input
 		     && m_private->xrun[0] == true) {

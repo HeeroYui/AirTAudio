@@ -277,9 +277,9 @@ namespace audio {
 				 * @brief If a stream is not open, an RtError (type = INVALID_USE) will be thrown.
 				 * @return the number of elapsed seconds since the stream was started.
 				 */
-				std11::chrono::system_clock::time_point getStreamTime() {
+				audio::Time getStreamTime() {
 					if (m_rtapi == nullptr) {
-						return std11::chrono::system_clock::time_point();
+						return audio::Time();
 					}
 					return m_rtapi->getStreamTime();
 				}

@@ -153,7 +153,7 @@ void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return;
 	}
-	std11::chrono::system_clock::time_point streamTime = getStreamTime();
+	audio::Time streamTime = getStreamTime();
 	std::vector<enum audio::orchestra::status> status;
 	int32_t doStopStream = m_callback(&m_userBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)][0],
 	                                  streamTime,

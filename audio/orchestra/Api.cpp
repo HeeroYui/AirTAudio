@@ -16,7 +16,6 @@
 #undef __class__
 #define __class__ "api"
 
-
 // Static variable definitions.
 const std::vector<uint32_t>& audio::orchestra::genericSampleRate() {
 	static std::vector<uint32_t> list;
@@ -57,7 +56,7 @@ audio::orchestra::Api::~Api() {
 
 enum audio::orchestra::error audio::orchestra::Api::startStream() {
 	ATA_VERBOSE("Start Stream");
-	m_startTime = std11::chrono::system_clock::now();
+	m_startTime = audio::Time::now();
 	m_duration = std11::chrono::microseconds(0);
 	return audio::orchestra::error_none;
 }
@@ -201,9 +200,9 @@ bool audio::orchestra::Api::probeDeviceOpen(uint32_t /*device*/,
 }
 
 void audio::orchestra::Api::tickStreamTime() {
-	//ATA_WARNING("tick : size=" << m_bufferSize << " rate=" << m_sampleRate << " time=" << std11::chrono::nanoseconds((int64_t(m_bufferSize) * int64_t(1000000000)) / int64_t(m_sampleRate)).count());
-	//ATA_WARNING("  one element=" << std11::chrono::nanoseconds((int64_t(1000000000)) / int64_t(m_sampleRate)).count());
-	m_duration += std11::chrono::nanoseconds((int64_t(m_bufferSize) * int64_t(1000000000)) / int64_t(m_sampleRate));
+	//ATA_WARNING("tick : size=" << m_bufferSize << " rate=" << m_sampleRate << " time=" << audio::Duration((int64_t(m_bufferSize) * int64_t(1000000000)) / int64_t(m_sampleRate)).count());
+	//ATA_WARNING("  one element=" << audio::Duration((int64_t(1000000000)) / int64_t(m_sampleRate)).count());
+	m_duration += audio::Duration((int64_t(m_bufferSize) * int64_t(1000000000)) / int64_t(m_sampleRate));
 }
 
 long audio::orchestra::Api::getStreamLatency() {
@@ -222,9 +221,9 @@ long audio::orchestra::Api::getStreamLatency() {
 	return totalLatency;
 }
 
-std11::chrono::system_clock::time_point audio::orchestra::Api::getStreamTime() {
+audio::Time audio::orchestra::Api::getStreamTime() {
 	if (verifyStream() != audio::orchestra::error_none) {
-		return std11::chrono::system_clock::time_point();
+		return audio::Time();
 	}
 	return m_startTime + m_duration;
 }
@@ -251,8 +250,8 @@ void audio::orchestra::Api::clearStreamInfo() {
 	m_bufferSize = 0;
 	m_nBuffers = 0;
 	m_userFormat = audio::format_unknow;
-	m_startTime = std11::chrono::system_clock::time_point();
-	m_duration = std11::chrono::nanoseconds(0);
+	m_startTime = audio::Time();
+	m_duration = audio::Duration(0);
 	m_deviceBuffer = nullptr;
 	m_callback = nullptr;
 	for (int32_t iii=0; iii<2; ++iii) {

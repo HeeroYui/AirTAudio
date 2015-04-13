@@ -110,11 +110,11 @@ enum audio::orchestra::error audio::orchestra::api::Android::abortStream() {
 void audio::orchestra::api::Android::callBackEvent(void* _data,
                                             int32_t _frameRate) {
 	int32_t doStopStream = 0;
-	std11::chrono::system_clock::time_point streamTime = getStreamTime();
+	audio::Time streamTime = getStreamTime();
 	std::vector<enum audio::orchestra::status> status;
 	if (m_doConvertBuffer[audio::orchestra::mode_output] == true) {
 		doStopStream = m_callback(nullptr,
-		                          std11::chrono::system_clock::time_point(),
+		                          audio::Time(),
 		                          m_userBuffer[audio::orchestra::mode_output],
 		                          streamTime,
 		                          _frameRate,
@@ -124,7 +124,7 @@ void audio::orchestra::api::Android::callBackEvent(void* _data,
 		doStopStream = m_callback(_data,
 		                          streamTime,
 		                          nullptr,
-		                          std11::chrono::system_clock::time_point(),
+		                          audio::Time(),
 		                          _frameRate,
 		                          status);
 	}

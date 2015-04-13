@@ -129,7 +129,7 @@ void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
 	return;
 	#endif
 	int32_t doStopStream = 0;
-	std11::chrono::system_clock::time_point streamTime = getStreamTime();
+	audio::Time streamTime = getStreamTime();
 	std::vector<enum audio::orchestra::status> status;
 	if (m_doConvertBuffer[modeToIdTable(audio::orchestra::mode_output)] == true) {
 		doStopStream = m_callback(nullptr,

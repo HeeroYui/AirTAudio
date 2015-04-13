@@ -1065,7 +1065,7 @@ void audio::orchestra::api::Alsa::callbackEvent() {
 	}
 }
 
-std11::chrono::system_clock::time_point audio::orchestra::api::Alsa::getStreamTime() {
+audio::Time audio::orchestra::api::Alsa::getStreamTime() {
 	//ATA_DEBUG("mode : " << m_private->timeMode);
 	if (m_private->timeMode == timestampMode_Hardware) {
 		snd_pcm_status_t *status = nullptr;
@@ -1082,22 +1082,22 @@ std11::chrono::system_clock::time_point audio::orchestra::api::Alsa::getStreamTi
 		#if 1
 			snd_timestamp_t timestamp;
 			snd_pcm_status_get_tstamp(status, &timestamp);
-			m_startTime = std11::chrono::system_clock::from_time_t(timestamp.tv_sec) + std11::chrono::microseconds(timestamp.tv_usec);
+			m_startTime = audio::Time(timestamp.tv_sec, timestamp.tv_usec * 1000);
 		#else
 			#if 1
 				snd_htimestamp_t timestamp;
 				snd_pcm_status_get_htstamp(status, &timestamp);
-				m_startTime = std11::chrono::system_clock::from_time_t(timestamp.tv_sec) + std11::chrono::nanoseconds(timestamp.tv_nsec);
+				m_startTime = audio::Time(timestamp.tv_sec, timestamp.tv_nsec);
 			#else
 				snd_htimestamp_t timestamp;
 				snd_pcm_status_get_audio_htstamp(status, &timestamp);
-				m_startTime = std11::chrono::system_clock::from_time_t(timestamp.tv_sec) + std11::chrono::nanoseconds(timestamp.tv_nsec);
+				m_startTime = audio::Time(timestamp.tv_sec, timestamp.tv_nsec);
 				return m_startTime;
 			#endif
 		#endif
 		ATA_VERBOSE("snd_pcm_status_get_htstamp : " << m_startTime);
 		snd_pcm_sframes_t delay = snd_pcm_status_get_delay(status);
-		std11::chrono::nanoseconds timeDelay(delay*1000000000LL/int64_t(m_sampleRate));
+		audio::Duration timeDelay = audio::Duration(0, delay*1000000000LL/int64_t(m_sampleRate));
 		ATA_VERBOSE("delay : " << timeDelay.count() << " ns");
 		//return m_startTime + m_duration;
 		if (m_private->handles[0] != nullptr) {
@@ -1109,7 +1109,7 @@ std11::chrono::system_clock::time_point audio::orchestra::api::Alsa::getStreamTi
 		}
 		return m_startTime;
 	} else if (m_private->timeMode == timestampMode_trigered) {
-		if (m_startTime == std11::chrono::system_clock::time_point()) {
+		if (m_startTime == audio::Time()) {
 			snd_pcm_status_t *status = nullptr;
 			snd_pcm_status_alloca(&status);
 			// get harware timestamp all the time:
@@ -1124,16 +1124,16 @@ std11::chrono::system_clock::time_point audio::orchestra::api::Alsa::getStreamTi
 			// get start time:
 			snd_timestamp_t timestamp;
 			snd_pcm_status_get_trigger_tstamp(status, &timestamp);
-			m_startTime = std11::chrono::system_clock::from_time_t(timestamp.tv_sec) + std11::chrono::microseconds(timestamp.tv_usec);
+			m_startTime = audio::Time(timestamp.tv_sec, timestamp.tv_usec);
 			ATA_VERBOSE("snd_pcm_status_get_trigger_tstamp : " << m_startTime);
 		}
 		return m_startTime + m_duration;
 	} else {
 		// softaware mode ...
-		if (m_startTime == std11::chrono::system_clock::time_point()) {
-			m_startTime = std11::chrono::system_clock::now();
+		if (m_startTime == audio::Time()) {
+			m_startTime = audio::Time::now();
 			ATA_ERROR("START TIOMESTAMP : " << m_startTime);
-			std11::chrono::nanoseconds timeDelay(m_bufferSize*1000000000LL/int64_t(m_sampleRate));
+			audio::Duration timeDelay = audio::Duration(0, m_bufferSize*1000000000LL/int64_t(m_sampleRate));
 			if (m_private->handles[0] != nullptr) {
 				// output
 				m_startTime += timeDelay;
@@ -1141,7 +1141,7 @@ std11::chrono::system_clock::time_point audio::orchestra::api::Alsa::getStreamTi
 				// input
 				m_startTime -= timeDelay;
 			}
-			m_duration = std11::chrono::microseconds(0);
+			m_duration = audio::Duration(0);
 		}
 		return m_startTime + m_duration;
 	}
@@ -1167,7 +1167,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycle() {
 		return; // TODO : notify appl: audio::orchestra::error_warning;
 	}
 	int32_t doStopStream = 0;
-	std11::chrono::system_clock::time_point streamTime;
+	audio::Time streamTime;
 	std::vector<enum audio::orchestra::status> status;
 	if (    m_mode != audio::orchestra::mode_input
 	     && m_private->xrun[0] == true) {
@@ -1260,16 +1260,16 @@ void audio::orchestra::api::Alsa::callbackEventOneCycle() {
 noInput:
 	streamTime = getStreamTime();
 	{
-		std11::chrono::system_clock::time_point startCall = std11::chrono::system_clock::now();
+		audio::Time startCall = audio::Time::now();
 		doStopStream = m_callback(&m_userBuffer[1][0],
-		                          streamTime,// - std11::chrono::nanoseconds(m_latency[1]*1000000000LL/int64_t(m_sampleRate)),
+		                          streamTime,// - audio::Duration(m_latency[1]*1000000000LL/int64_t(m_sampleRate)),
 		                          &m_userBuffer[0][0],
-		                          streamTime,// + std11::chrono::nanoseconds(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
+		                          streamTime,// + audio::Duration(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
 		                          m_bufferSize,
 		                          status);
-		std11::chrono::system_clock::time_point stopCall = std11::chrono::system_clock::now();
-		std11::chrono::nanoseconds timeDelay(m_bufferSize*1000000000LL/int64_t(m_sampleRate));
-		std11::chrono::nanoseconds timeProcess = stopCall - startCall;
+		audio::Time stopCall = audio::Time::now();
+		audio::Duration timeDelay(0, m_bufferSize*1000000000LL/int64_t(m_sampleRate));
+		audio::Duration timeProcess = stopCall - startCall;
 		if (timeDelay <= timeProcess) {
 			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay.count() << " < " << timeProcess.count() << " (process time) ns");
 		}

@@ -656,7 +656,7 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 	}
 	// Invoke user callback first, to get fresh output data.
 	if (m_private->drainCounter == 0) {
-		std11::chrono::time_point<std11::chrono::system_clock> streamTime = getStreamTime();
+		audio::Time streamTime = getStreamTime();
 		std::vector<enum audio::orchestra::status> status;
 		if (m_mode != audio::orchestra::mode_input && m_private->xrun[0] == true) {
 			status.push_back(audio::orchestra::status_underflow);

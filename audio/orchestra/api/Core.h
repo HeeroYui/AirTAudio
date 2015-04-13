@@ -35,9 +35,9 @@ namespace audio {
 					long getStreamLatency();
 					bool callbackEvent(AudioDeviceID _deviceId,
 					                   const AudioBufferList *_inBufferList,
-					                   const std11::chrono::system_clock::time_point& _inTime,
+					                   const audio::Time& _inTime,
 					                   const AudioBufferList *_outBufferList,
-					                   const std11::chrono::system_clock::time_point& _outTime);
+					                   const audio::Time& _outTime);
 					static OSStatus callbackEvent(AudioDeviceID _inDevice,
 					                              const AudioTimeStamp* _inNow,
 					                              const AudioBufferList* _inInputData,
