@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>airtaudio</name>
+  <name>audio_orchestra</name>
   <version>0.3.0</version>
   <description>Ewol RTAudio fork</description>
   <maintainer email="yui.heero@gmail.com">Edouard DUPIN</maintainer>

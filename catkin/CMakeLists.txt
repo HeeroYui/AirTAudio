@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(airtaudio)
+project(audio_orchestra)
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -42,24 +42,23 @@ include_directories(
 
 ## Declare a cpp library
 add_library(${PROJECT_NAME}
-  ../${PROJECT_NAME}/debug.cpp
-  ../${PROJECT_NAME}/status.cpp
-  ../${PROJECT_NAME}/type.cpp
-  ../${PROJECT_NAME}/mode.cpp
-  ../${PROJECT_NAME}/state.cpp
-  ../${PROJECT_NAME}/error.cpp
-  ../${PROJECT_NAME}/base.cpp
-  ../${PROJECT_NAME}/Interface.cpp
-  ../${PROJECT_NAME}/Flags.cpp
-  ../${PROJECT_NAME}/Api.cpp
-  ../${PROJECT_NAME}/DeviceInfo.cpp
-  ../${PROJECT_NAME}/StreamOptions.cpp
-  ../${PROJECT_NAME}/api/Dummy.cpp
-  ../${PROJECT_NAME}/api/Alsa.cpp
-  ../${PROJECT_NAME}/api/Jack.cpp
-  ../${PROJECT_NAME}/api/Pulse.cpp
-  ../${PROJECT_NAME}/api/Oss.cpp
-
+  ../audio/orchestra/debug.cpp
+  ../audio/orchestra/status.cpp
+  ../audio/orchestra/type.cpp
+  ../audio/orchestra/mode.cpp
+  ../audio/orchestra/state.cpp
+  ../audio/orchestra/error.cpp
+  ../audio/orchestra/base.cpp
+  ../audio/orchestra/Interface.cpp
+  ../audio/orchestra/Flags.cpp
+  ../audio/orchestra/Api.cpp
+  ../audio/orchestra/DeviceInfo.cpp
+  ../audio/orchestra/StreamOptions.cpp
+  ../audio/orchestra/api/Dummy.cpp
+  ../audio/orchestra/api/Alsa.cpp
+  ../audio/orchestra/api/Jack.cpp
+  ../audio/orchestra/api/Pulse.cpp
+  ../audio/orchestra/api/Oss.cpp
 )
 
 add_definitions(-D__LINUX_ALSA__)
@@ -86,7 +85,7 @@ install(TARGETS ${PROJECT_NAME}
 )
 
 ## Mark cpp header files for installation
-install(DIRECTORY ../${PROJECT_NAME}/
+install(DIRECTORY ../audio/orchestra/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
   FILES_MATCHING PATTERN "*.h"
 )
