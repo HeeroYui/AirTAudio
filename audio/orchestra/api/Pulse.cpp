@@ -401,8 +401,7 @@ bool audio::orchestra::api::Pulse::probeDeviceOpen(uint32_t _device,
 	}
 	if (!m_private->threadRunning) {
 		m_private->threadRunning = true;
-		std11::shared_ptr<std11::thread> tmpThread(new std11::thread(&pulseaudio_callback, this));
-		m_private->thread =	std::move(tmpThread);
+		m_private->thread = std11::make_shared<std11::thread>(&pulseaudio_callback, this);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating thread.");
 			goto error;
