@@ -18,7 +18,7 @@
 #undef __class__
 #define __class__ "api::Jack"
 
-audio::orchestra::Api* audio::orchestra::api::Jack::Create() {
+audio::orchestra::Api* audio::orchestra::api::Jack::create() {
 	return new audio::orchestra::api::Jack();
 }
 

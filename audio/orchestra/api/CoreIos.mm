@@ -18,7 +18,7 @@
 #undef __class__
 #define __class__ "api::CoreIos"
 
-audio::orchestra::Api* audio::orchestra::api::CoreIos::Create(void) {
+audio::orchestra::Api* audio::orchestra::api::CoreIos::create() {
 	ATA_INFO("Create CoreIos device ... ");
 	return new audio::orchestra::api::CoreIos();
 }
@@ -113,37 +113,23 @@ enum audio::orchestra::error audio::orchestra::api::CoreIos::abortStream(void) {
 }
 
 void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
-                                            int32_t _nbChunk) {
-	
-	#if 0
-	static double value=0;
-	int16_t* vals = (int16_t*)_data;
-	for (int32_t iii=0; iii<_frameRate; ++iii) {
-		*vals++ = (int16_t)(sin(value) * 32760.0);
-		*vals++ = (int16_t)(sin(value) * 32760.0);
-		value += 0.09;
-		if (value >= M_PI*2.0) {
-			value -= M_PI*2.0;
-		}
-	}
-	return;
-	#endif
+                                                   int32_t _nbChunk,
+												   const audio::Time& _time) {
 	int32_t doStopStream = 0;
-	audio::Time streamTime = getStreamTime();
 	std::vector<enum audio::orchestra::status> status;
 	if (m_doConvertBuffer[modeToIdTable(audio::orchestra::mode_output)] == true) {
 		doStopStream = m_callback(nullptr,
-		                          streamTime,
+								  audio::Time(),
 		                          &m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0],
-		                          streamTime,
+		                          _time,
 		                          _nbChunk,
 		                          status);
 		convertBuffer((char*)_data, &m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0], m_convertInfo[modeToIdTable(audio::orchestra::mode_output)]);
 	} else {
 		doStopStream = m_callback(_data,
-		                          streamTime,
+		                          _time,
 		                          nullptr,
-		                          streamTime,
+								  audio::Time(),
 		                          _nbChunk,
 		                          status);
 	}
@@ -157,7 +143,7 @@ void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
 
 static OSStatus playbackCallback(void *_userData,
                                  AudioUnitRenderActionFlags* _ioActionFlags,
-                                 const AudioTimeStamp* _inTimeStamp,
+                                 const AudioTimeStamp* _inTime,
                                  uint32_t _inBusNumber,
                                  uint32_t _inNumberFrames,
                                  AudioBufferList* _ioData) {
@@ -165,13 +151,17 @@ static OSStatus playbackCallback(void *_userData,
 		ATA_ERROR("callback event ... nullptr pointer");
 		return -1;
 	}
+	audio::Time tmpTimeime;
+	if (_inTime != nullptr) {
+		tmpTimeime = audio::Time(_inTime->mHostTime/1000000000LL, _inTime->mHostTime%1000000000LL);
+	}
 	audio::orchestra::api::CoreIos* myClass = static_cast<audio::orchestra::api::CoreIos*>(_userData);
 	// get all requested buffer :
 	for (int32_t iii=0; iii < _ioData->mNumberBuffers; iii++) {
 		AudioBuffer buffer = _ioData->mBuffers[iii];
 		int32_t numberFrame = buffer.mDataByteSize/2/*stereo*/ /sizeof(int16_t);
 		ATA_VERBOSE("request data size: " << numberFrame << " busNumber=" << _inBusNumber);
-		myClass->callBackEvent(buffer.mData, numberFrame);
+		myClass->callBackEvent(buffer.mData, numberFrame, tmpTimeime);
 	}
 	return noErr;
 }

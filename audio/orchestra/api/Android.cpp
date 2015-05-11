@@ -16,7 +16,7 @@
 #undef __class__
 #define __class__ "api::Android"
 
-audio::orchestra::Api* audio::orchestra::api::Android::Create() {
+audio::orchestra::Api* audio::orchestra::api::Android::create() {
 	ATA_INFO("Create Android device ... ");
 	return new audio::orchestra::api::Android();
 }

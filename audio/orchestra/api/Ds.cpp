@@ -13,7 +13,7 @@
 #undef __class__
 #define __class__ "api::Ds"
 
-audio::orchestra::Api* audio::orchestra::api::Ds::Create() {
+audio::orchestra::Api* audio::orchestra::api::Ds::create() {
 	return new audio::orchestra::api::Ds();
 }
 

@@ -48,43 +48,43 @@ audio::orchestra::Interface::Interface() :
 	ATA_DEBUG("Add interface:");
 #if defined(ORCHESTRA_BUILD_JACK)
 	ATA_DEBUG("    JACK");
-	addInterface(audio::orchestra::type_jack, audio::orchestra::api::Jack::Create);
+	addInterface(audio::orchestra::type_jack, audio::orchestra::api::Jack::create);
 #endif
 #if defined(ORCHESTRA_BUILD_ALSA)
 	ATA_DEBUG("    ALSA");
-	addInterface(audio::orchestra::type_alsa, audio::orchestra::api::Alsa::Create);
+	addInterface(audio::orchestra::type_alsa, audio::orchestra::api::Alsa::create);
 #endif
 #if defined(ORCHESTRA_BUILD_PULSE)
 	ATA_DEBUG("    PULSE");
-	addInterface(audio::orchestra::type_pulse, audio::orchestra::api::Pulse::Create);
+	addInterface(audio::orchestra::type_pulse, audio::orchestra::api::Pulse::create);
 #endif
 #if defined(ORCHESTRA_BUILD_OSS)
 	ATA_DEBUG("    OSS");
-	addInterface(audio::orchestra::type_oss, audio::orchestra::api::Oss::Create);
+	addInterface(audio::orchestra::type_oss, audio::orchestra::api::Oss::create);
 #endif
 #if defined(ORCHESTRA_BUILD_ASIO)
 	ATA_DEBUG("    ASIO");
-	addInterface(audio::orchestra::type_asio, audio::orchestra::api::Asio::Create);
+	addInterface(audio::orchestra::type_asio, audio::orchestra::api::Asio::create);
 #endif
 #if defined(ORCHESTRA_BUILD_DS)
 	ATA_DEBUG("    DS");
-	addInterface(audio::orchestra::type_ds, audio::orchestra::api::Ds::Create);
+	addInterface(audio::orchestra::type_ds, audio::orchestra::api::Ds::create);
 #endif
 #if defined(ORCHESTRA_BUILD_MACOSX_CORE)
 	ATA_DEBUG("    CORE OSX");
-	addInterface(audio::orchestra::type_coreOSX, audio::orchestra::api::Core::Create);
+	addInterface(audio::orchestra::type_coreOSX, audio::orchestra::api::Core::create);
 #endif
 #if defined(ORCHESTRA_BUILD_IOS_CORE)
 	ATA_DEBUG("    CORE IOS");
-	addInterface(audio::orchestra::type_coreIOS, audio::orchestra::api::CoreIos::Create);
+	addInterface(audio::orchestra::type_coreIOS, audio::orchestra::api::CoreIos::create);
 #endif
 #if defined(ORCHESTRA_BUILD_JAVA)
 	ATA_DEBUG("    JAVA");
-	addInterface(audio::orchestra::type_java, audio::orchestra::api::Android::Create);
+	addInterface(audio::orchestra::type_java, audio::orchestra::api::Android::create);
 #endif
 #if defined(ORCHESTRA_BUILD_DUMMY)
 	ATA_DEBUG("    DUMMY");
-	addInterface(audio::orchestra::type_dummy, audio::orchestra::api::Dummy::Create);
+	addInterface(audio::orchestra::type_dummy, audio::orchestra::api::Dummy::create);
 #endif
 }
 

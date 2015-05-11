@@ -15,7 +15,7 @@ namespace audio {
 			class CoreIosPrivate;
 			class CoreIos: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* Create();
+					static audio::orchestra::Api* create();
 				public:
 					CoreIos();
 					virtual ~CoreIos();
@@ -46,7 +46,8 @@ namespace audio {
 					                     const audio::orchestra::StreamOptions& _options);
 				public:
 					void callBackEvent(void* _data,
-					                   int32_t _frameRate);
+					                   int32_t _nbChunk,
+									   const audio::Time& _time);
 				public:
 					std11::shared_ptr<CoreIosPrivate> m_private;
 			};

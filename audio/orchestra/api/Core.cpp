@@ -12,12 +12,14 @@
 //
 // *************************************************** //
 
-#if defined(__MACOSX_CORE__) || defined(ORCHESTRA_BUILD_IOS_CORE)
+#if defined(__MACOSX_CORE__) || defined(ORCHESTRA_BUILD_MACOSX_CORE)
 
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
+#include <etk/thread.h>
+#include <etk/thread/tools.h>
 
-audio::orchestra::Api* audio::orchestra::api::Core::Create() {
+audio::orchestra::Api* audio::orchestra::api::Core::create() {
 	return new audio::orchestra::api::Core();
 }
 
@@ -384,7 +386,15 @@ OSStatus audio::orchestra::api::Core::callbackEvent(AudioDeviceID _inDevice,
                                              const AudioTimeStamp* _inOutputTime,
                                              void* _userData) {
 	audio::orchestra::api::Core* myClass = reinterpret_cast<audio::orchestra::api::Core*>(_userData);
-	if (myClass->callbackEvent(_inDevice, _inInputData, _outOutputData) == false) {
+	audio::Time inputTime;
+	audio::Time outputTime;
+	if (_inInputTime != nullptr) {
+		inputTime = audio::Time(_inInputTime->mHostTime/1000000000LL, _inInputTime->mHostTime%1000000000LL);
+	}
+	if (_inOutputTime != nullptr) {
+		outputTime = audio::Time(_inOutputTime->mHostTime/1000000000LL, _inOutputTime->mHostTime%1000000000LL);
+	}
+	if (myClass->callbackEvent(_inDevice, _inInputData, inputTime, _outOutputData, outputTime) == false) {
 		return kAudioHardwareUnspecifiedError;
 	} else {
 		return kAudioHardwareNoError;

@@ -21,7 +21,7 @@
 #undef __class__
 #define __class__ "api::Oss"
 
-audio::orchestra::Api* audio::orchestra::api::Oss::Create() {
+audio::orchestra::Api* audio::orchestra::api::Oss::create() {
 	return new audio::orchestra::api::Oss();
 }
 

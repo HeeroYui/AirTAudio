@@ -16,7 +16,7 @@ namespace audio {
 		namespace api {
 			class Dummy: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* Create();
+					static audio::orchestra::Api* create();
 				public:
 					Dummy();
 					enum audio::orchestra::type getCurrentApi() {

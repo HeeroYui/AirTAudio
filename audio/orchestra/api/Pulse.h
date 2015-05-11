@@ -15,7 +15,7 @@ namespace audio {
 			class PulsePrivate;
 			class Pulse: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* Create();
+					static audio::orchestra::Api* create();
 				public:
 					Pulse();
 					virtual ~Pulse();

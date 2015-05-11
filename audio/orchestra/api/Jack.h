@@ -16,7 +16,7 @@ namespace audio {
 			class JackPrivate;
 			class Jack: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* Create();
+					static audio::orchestra::Api* create();
 				public:
 					Jack();
 					virtual ~Jack();

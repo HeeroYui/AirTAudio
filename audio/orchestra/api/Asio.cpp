@@ -11,7 +11,7 @@
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
 
-audio::orchestra::Api* audio::orchestra::api::Asio::Create() {
+audio::orchestra::Api* audio::orchestra::api::Asio::create() {
 	return new audio::orchestra::api::Asio();
 }
 

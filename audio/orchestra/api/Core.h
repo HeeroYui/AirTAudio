@@ -17,7 +17,7 @@ namespace audio {
 			class CorePrivate;
 			class Core: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* Create();
+					static audio::orchestra::Api* create();
 				public:
 					Core();
 					virtual ~Core();

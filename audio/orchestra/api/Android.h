@@ -13,7 +13,7 @@ namespace audio {
 		namespace api {
 			class Android: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* Create();
+					static audio::orchestra::Api* create();
 				public:
 					Android();
 					virtual ~Android();

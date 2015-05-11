@@ -14,7 +14,7 @@ namespace audio {
 			class AlsaPrivate;
 			class Alsa: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* Create();
+					static audio::orchestra::Api* create();
 				public:
 					Alsa();
 					virtual ~Alsa();
