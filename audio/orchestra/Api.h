@@ -19,7 +19,6 @@
 namespace audio {
 	namespace orchestra {
 		const std::vector<uint32_t>& genericSampleRate();
-		
 		/**
 		 * @brief airtaudio callback function prototype.
 		 * @param _inputBuffer For input (or duplex) streams, this buffer will hold _nbChunk of input audio chunk (nullptr if no data).

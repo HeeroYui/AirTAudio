@@ -16,7 +16,17 @@
 #include <etk/thread/tools.h>
 #include <limits.h>
 #include <audio/orchestra/api/Alsa.h>
-
+extern "C" {
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sched.h>
+#include <errno.h>
+#include <getopt.h>
+#include <sys/time.h>
+#include <math.h>
+#include <poll.h>
+}
 #undef __class__
 #define __class__ "api::Alsa"
 
@@ -36,12 +46,15 @@ namespace audio {
 					bool runnable;
 					std11::thread* thread;
 					bool threadRunning;
+					bool mmapInterface; //!< enable or disable mmap mode...
 					enum timestampMode timeMode; //!< the timestamp of the flow came from the harware.
+					std::vector<snd_pcm_channel_area_t> areas;
 					AlsaPrivate() :
 					  synchronized(false),
 					  runnable(false),
 					  thread(nullptr),
 					  threadRunning(false),
+					  mmapInterface(false),
 					  timeMode(timestampMode_soft) {
 						handles[0] = nullptr;
 						handles[1] = nullptr;
@@ -55,7 +68,7 @@ namespace audio {
 }
 
 audio::orchestra::api::Alsa::Alsa() :
-  m_private(new audio::orchestra::api::AlsaPrivate()) {
+  m_private(std::make_shared<audio::orchestra::api::AlsaPrivate>()) {
 	// Nothing to do here.
 }
 
@@ -464,13 +477,13 @@ foundDevice:
 }
 
 bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
-                                               audio::orchestra::mode _mode,
-                                               uint32_t _channels,
-                                               uint32_t _firstChannel,
-                                               uint32_t _sampleRate,
-                                               audio::format _format,
-                                               uint32_t *_bufferSize,
-                                               const audio::orchestra::StreamOptions& _options) {
+                                                      audio::orchestra::mode _mode,
+                                                      uint32_t _channels,
+                                                      uint32_t _firstChannel,
+                                                      uint32_t _sampleRate,
+                                                      audio::format _format,
+                                                      uint32_t *_bufferSize,
+                                                      const audio::orchestra::StreamOptions& _options) {
 	ATA_DEBUG("Probe ALSA device : ");
 	ATA_DEBUG("    _deviceName=" << _deviceName);
 	ATA_DEBUG("    _mode=" << _mode);
@@ -522,15 +535,35 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 		ATA_ERROR("error getting pcm device (" << _deviceName << ") parameters, " << snd_strerror(result) << ".");
 		return false;
 	}
-	// Open stream all time in interleave mode (by default): (open in non interleave if we have no choice
-	ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_INTERLEAVED");
-	result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
-	if (result < 0) {
-		ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_NONINTERLEAVED");
-		result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
-		m_deviceInterleaved[modeToIdTable(_mode)] =	false;
-	} else {
+	ATA_DEBUG("configure Acces: SND_PCM_ACCESS_MMAP_INTERLEAVED");
+	result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+	if (result >= 0) {
 		m_deviceInterleaved[modeToIdTable(_mode)] =	true;
+		m_private->mmapInterface = true;
+	} else {
+		ATA_DEBUG("configure Acces: SND_PCM_ACCESS_MMAP_NONINTERLEAVED");
+		result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+		if (result >= 0) {
+			m_deviceInterleaved[modeToIdTable(_mode)] =	false;
+			m_private->mmapInterface = true;
+		} else {
+			ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_INTERLEAVED");
+			result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+			if (result >= 0) {
+				m_deviceInterleaved[modeToIdTable(_mode)] =	true;
+				m_private->mmapInterface = false;
+			} else {
+				ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_NONINTERLEAVED");
+				result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+				if (result >= 0) {
+					m_deviceInterleaved[modeToIdTable(_mode)] =	false;
+					m_private->mmapInterface = false;
+				} else {
+					ATA_ERROR("Can not open the interface ...");
+					return false;
+				}
+			}
+		}
 	}
 	if (result < 0) {
 		snd_pcm_close(phandle);
@@ -787,6 +820,14 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 		ATA_ERROR("error allocating user buffer memory.");
 		goto error;
 	}
+	// allocate areas interface:
+	m_private->areas.resize(m_nUserChannels[modeToIdTable(_mode)]);
+	for (size_t iii=0; iii<m_private->areas.size(); ++iii) {
+		m_private->areas[iii].addr = &m_userBuffer[modeToIdTable(_mode)][0];
+		m_private->areas[iii].first = iii * audio::getFormatBytes(m_userFormat);
+		m_private->areas[iii].step = m_private->areas.size() * audio::getFormatBytes(m_userFormat);
+	}
+	// Generate conbverters:
 	if (m_doConvertBuffer[modeToIdTable(_mode)]) {
 		bool makeBuffer = true;
 		bufferBytes = m_nDeviceChannels[modeToIdTable(_mode)] * audio::getFormatBytes(m_deviceFormat[modeToIdTable(_mode)]);
@@ -1058,10 +1099,74 @@ void audio::orchestra::api::Alsa::alsaCallbackEvent(void *_userData) {
 	myClass->callbackEvent();
 }
 
+/**
+ * @briefTransfer method - write and wait for room in buffer using poll
+ */
+static int32_t wait_for_poll(snd_pcm_t* _handle, struct pollfd* _ufds, unsigned int _count) {
+	uint16_t revents;
+	while (true) {
+		poll(_ufds, _count, -1);
+		snd_pcm_poll_descriptors_revents(_handle, _ufds, _count, &revents);
+		if (revents & POLLERR) {
+			return -EIO;
+		}
+		if (revents & POLLOUT) {
+			return 0;
+		}
+	}
+}
+
 void audio::orchestra::api::Alsa::callbackEvent() {
 	etk::thread::setName("Alsa IO-" + m_name);
+	//Wait data with poll
+	/*
+	snd_pcm_channel_area_t *areas = nullptr;
+	areas = (snd_pcm_channel_area_t *)calloc(chennels, sizeof(snd_pcm_channel_area_t));
+	if (areas == nullptr) {
+		ATA_CRITICAL("No enough memory");
+	}
+	for (chn = 0; chn < channels; chn++) {
+		areas[chn].addr = samples;
+		areas[chn].first = chn * snd_pcm_format_physical_width(format);
+		areas[chn].step = channels * snd_pcm_format_physical_width(format);
+	}
+	*/
+	struct pollfd *ufds;
+	signed short *ptr;
+	int32_t err, count, cptr, init;
+	count = snd_pcm_poll_descriptors_count(m_private->handles[0]);
+	if (count <= 0) {
+		ATA_CRITICAL("Invalid poll descriptors count");
+	}
+	ufds = (struct pollfd*)malloc(sizeof(struct pollfd) * count);
+	if (ufds == nullptr) {
+		ATA_CRITICAL("No enough memory\n");
+	}
+	if ((err = snd_pcm_poll_descriptors(m_private->handles[0], ufds, count)) < 0) {
+		ATA_CRITICAL("Unable to obtain poll descriptors for playback: "<< snd_strerror(err));
+	}
+	init = 1;
 	while (m_private->threadRunning == true) {
-		callbackEventOneCycle();
+		err = wait_for_poll(m_private->handles[0], ufds, count);
+		ATA_INFO("plop " << err);
+		if (err < 0) {
+			ATA_ERROR(" POLL timeout ...");
+			return;
+		}
+		// have data or need data ...
+		if (m_private->mmapInterface == false) {
+			if (m_mode == audio::orchestra::mode_input) {
+				callbackEventOneCycleRead();
+			} else {
+				callbackEventOneCycleWrite();
+			}
+		} else {
+			if (m_mode == audio::orchestra::mode_input) {
+				callbackEventOneCycleMMAPRead();
+			} else {
+				callbackEventOneCycleMMAPWrite();
+			}
+		}
 	}
 }
 
@@ -1148,7 +1253,371 @@ audio::Time audio::orchestra::api::Alsa::getStreamTime() {
 	return m_startTime + m_duration;
 }
 
-void audio::orchestra::api::Alsa::callbackEventOneCycle() {
+void audio::orchestra::api::Alsa::callbackEventOneCycleRead() {
+	if (m_state == audio::orchestra::state_stopped) {
+		std11::unique_lock<std11::mutex> lck(m_mutex);
+		// TODO : Set this back ....
+		/*
+		while (!m_private->runnable) {
+			m_private->runnable_cv.wait(lck);
+		}
+		*/
+		usleep(1000);
+		if (m_state != audio::orchestra::state_running) {
+			return;
+		}
+	}
+	if (m_state == audio::orchestra::state_closed) {
+		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
+		return; // TODO : notify appl: audio::orchestra::error_warning;
+	}
+	int32_t doStopStream = 0;
+	audio::Time streamTime;
+	std::vector<enum audio::orchestra::status> status;
+	if (m_private->xrun[0] == true) {
+		status.push_back(audio::orchestra::status_underflow);
+		m_private->xrun[0] = false;
+	}
+	int32_t result;
+	char *buffer;
+	int32_t channels;
+	snd_pcm_sframes_t frames;
+	audio::format format;
+	
+	if (m_state == audio::orchestra::state_stopped) {
+		// !!! goto unlock;
+	}
+	
+	std11::unique_lock<std11::mutex> lck(m_mutex);
+	// Setup parameters.
+	if (m_doConvertBuffer[1]) {
+		buffer = m_deviceBuffer;
+		channels = m_nDeviceChannels[1];
+		format = m_deviceFormat[1];
+	} else {
+		buffer = &m_userBuffer[1][0];
+		channels = m_nUserChannels[1];
+		format = m_userFormat;
+	}
+	// Read samples from device in interleaved/non-interleaved format.
+	if (m_deviceInterleaved[1]) {
+		result = snd_pcm_readi(m_private->handles[1], buffer, m_bufferSize);
+	} else {
+		void *bufs[channels];
+		size_t offset = m_bufferSize * audio::getFormatBytes(format);
+		for (int32_t i=0; i<channels; i++)
+			bufs[i] = (void *) (buffer + (i * offset));
+		result = snd_pcm_readn(m_private->handles[1], bufs, m_bufferSize);
+	}
+	{
+		snd_pcm_state_t state = snd_pcm_state(m_private->handles[1]);
+		ATA_VERBOSE("plop : " << state);
+		if (state == SND_PCM_STATE_XRUN) {
+			ATA_ERROR("Xrun...");
+		}
+	}
+	// get timestamp : (to init here ...
+	streamTime = getStreamTime();
+	if (result < (int) m_bufferSize) {
+		// Either an error or overrun occured.
+		if (result == -EPIPE) {
+			snd_pcm_state_t state = snd_pcm_state(m_private->handles[1]);
+			if (state == SND_PCM_STATE_XRUN) {
+				m_private->xrun[1] = true;
+				result = snd_pcm_prepare(m_private->handles[1]);
+				if (result < 0) {
+					ATA_ERROR("error preparing device after overrun, " << snd_strerror(result) << ".");
+				}
+			} else {
+				ATA_ERROR("error, current state is " << snd_pcm_state_name(state) << ", " << snd_strerror(result) << ".");
+			}
+		} else {
+			ATA_ERROR("audio read error, " << snd_strerror(result) << ".");
+			usleep(10000);
+		}
+		// TODO : Notify application ... audio::orchestra::error_warning;
+		goto noInput;
+	}
+	// Do byte swapping if necessary.
+	if (m_doByteSwap[1]) {
+		byteSwapBuffer(buffer, m_bufferSize * channels, format);
+	}
+	// Do buffer conversion if necessary.
+	if (m_doConvertBuffer[1]) {
+		convertBuffer(&m_userBuffer[1][0], m_deviceBuffer, m_convertInfo[1]);
+	}
+	// Check stream latency
+	result = snd_pcm_delay(m_private->handles[1], &frames);
+	if (result == 0 && frames > 0) {
+		ATA_VERBOSE("Delay in the Input " << frames << " chunk");
+		m_latency[1] = frames;
+	}
+
+noInput:
+	streamTime = getStreamTime();
+	{
+		audio::Time startCall = audio::Time::now();
+		doStopStream = m_callback(&m_userBuffer[1][0],
+		                          streamTime,// - audio::Duration(m_latency[1]*1000000000LL/int64_t(m_sampleRate)),
+		                          nullptr,
+		                          audio::Time(),
+		                          m_bufferSize,
+		                          status);
+		audio::Time stopCall = audio::Time::now();
+		audio::Duration timeDelay(0, m_bufferSize*1000000000LL/int64_t(m_sampleRate));
+		audio::Duration timeProcess = stopCall - startCall;
+		if (timeDelay <= timeProcess) {
+			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay.count() << " < " << timeProcess.count() << " (process time) ns");
+		}
+	}
+	if (doStopStream == 2) {
+		abortStream();
+		return;
+	}
+
+unlock:
+	audio::orchestra::Api::tickStreamTime();
+	if (doStopStream == 1) {
+		this->stopStream();
+	}
+}
+
+void audio::orchestra::api::Alsa::callbackEventOneCycleWrite() {
+	if (m_state == audio::orchestra::state_stopped) {
+		std11::unique_lock<std11::mutex> lck(m_mutex);
+		// TODO : Set this back ....
+		/*
+		while (!m_private->runnable) {
+			m_private->runnable_cv.wait(lck);
+		}
+		*/
+		usleep(1000);
+		if (m_state != audio::orchestra::state_running) {
+			return;
+		}
+	}
+	if (m_state == audio::orchestra::state_closed) {
+		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
+		return; // TODO : notify appl: audio::orchestra::error_warning;
+	}
+	int32_t doStopStream = 0;
+	audio::Time streamTime;
+	std::vector<enum audio::orchestra::status> status;
+	if (m_private->xrun[1] == true) {
+		status.push_back(audio::orchestra::status_overflow);
+		m_private->xrun[1] = false;
+	}
+	int32_t result;
+	char *buffer;
+	int32_t channels;
+	snd_pcm_sframes_t frames;
+	audio::format format;
+	
+	if (m_state == audio::orchestra::state_stopped) {
+		// !!! goto unlock;
+	}
+	
+	streamTime = getStreamTime();
+	{
+		audio::Time startCall = audio::Time::now();
+		doStopStream = m_callback(nullptr,
+		                          audio::Time(),
+		                          &m_userBuffer[0][0],
+		                          streamTime,// + audio::Duration(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
+		                          m_bufferSize,
+		                          status);
+		audio::Time stopCall = audio::Time::now();
+		audio::Duration timeDelay(0, m_bufferSize*1000000000LL/int64_t(m_sampleRate));
+		audio::Duration timeProcess = stopCall - startCall;
+		if (timeDelay <= timeProcess) {
+			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay.count() << " < " << timeProcess.count() << " (process time) ns");
+		}
+	}
+	if (doStopStream == 2) {
+		abortStream();
+		return;
+	}
+	std11::unique_lock<std11::mutex> lck(m_mutex);
+	// Setup parameters and do buffer conversion if necessary.
+	if (m_doConvertBuffer[0]) {
+		buffer = m_deviceBuffer;
+		convertBuffer(buffer, &m_userBuffer[0][0], m_convertInfo[0]);
+		channels = m_nDeviceChannels[0];
+		format = m_deviceFormat[0];
+	} else {
+		buffer = &m_userBuffer[0][0];
+		channels = m_nUserChannels[0];
+		format = m_userFormat;
+	}
+	// Do byte swapping if necessary.
+	if (m_doByteSwap[0]) {
+		byteSwapBuffer(buffer, m_bufferSize * channels, format);
+	}
+	// Write samples to device in interleaved/non-interleaved format.
+	if (m_deviceInterleaved[0]) {
+		result = snd_pcm_writei(m_private->handles[0], buffer, m_bufferSize);
+	} else {
+		void *bufs[channels];
+		size_t offset = m_bufferSize * audio::getFormatBytes(format);
+		for (int32_t i=0; i<channels; i++) {
+			bufs[i] = (void *) (buffer + (i * offset));
+		}
+		result = snd_pcm_writen(m_private->handles[0], bufs, m_bufferSize);
+	}
+	if (result < (int) m_bufferSize) {
+		// Either an error or underrun occured.
+		if (result == -EPIPE) {
+			snd_pcm_state_t state = snd_pcm_state(m_private->handles[0]);
+			if (state == SND_PCM_STATE_XRUN) {
+				m_private->xrun[0] = true;
+				result = snd_pcm_prepare(m_private->handles[0]);
+				if (result < 0) {
+					ATA_ERROR("error preparing device after underrun, " << snd_strerror(result) << ".");
+				}
+			} else {
+				ATA_ERROR("error, current state is " << snd_pcm_state_name(state) << ", " << snd_strerror(result) << ".");
+			}
+		} else {
+			ATA_ERROR("audio write error, " << snd_strerror(result) << ".");
+		}
+		// TODO : Notuify application audio::orchestra::error_warning;
+		goto unlock;
+	}
+	// Check stream latency
+	result = snd_pcm_delay(m_private->handles[0], &frames);
+	if (result == 0 && frames > 0) {
+		ATA_VERBOSE("Delay in the Output " << frames << " chunk");
+		m_latency[0] = frames;
+	}
+
+unlock:
+	audio::orchestra::Api::tickStreamTime();
+	if (doStopStream == 1) {
+		this->stopStream();
+	}
+}
+
+void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
+	
+	if (m_state == audio::orchestra::state_stopped) {
+		std11::unique_lock<std11::mutex> lck(m_mutex);
+		// TODO : Set this back ....
+		/*
+		while (!m_private->runnable) {
+			m_private->runnable_cv.wait(lck);
+		}
+		*/
+		usleep(1000);
+		if (m_state != audio::orchestra::state_running) {
+			return;
+		}
+	}
+	if (m_state == audio::orchestra::state_closed) {
+		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
+		return; // TODO : notify appl: audio::orchestra::error_warning;
+	}
+	int32_t doStopStream = 0;
+	audio::Time streamTime;
+	std::vector<enum audio::orchestra::status> status;
+	if (m_private->xrun[1] == true) {
+		status.push_back(audio::orchestra::status_overflow);
+		m_private->xrun[1] = false;
+	}
+	int32_t result;
+	char *buffer;
+	int32_t channels;
+	snd_pcm_sframes_t frames;
+	audio::format format;
+	
+	if (m_state == audio::orchestra::state_stopped) {
+		// !!! goto unlock;
+	}
+	
+	ATA_DEBUG("UPDATE");
+	int32_t avail = snd_pcm_avail_update(m_private->handles[0]);
+	if (avail < 0) {
+		ATA_ERROR("Can not get buffer data ..." << avail);
+		return;
+	}
+	streamTime = getStreamTime();
+	{
+		audio::Time startCall = audio::Time::now();
+		doStopStream = m_callback(nullptr,
+		                          audio::Time(),
+		                          &m_userBuffer[0][0],
+		                          streamTime,// + audio::Duration(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
+		                          m_bufferSize,
+		                          status);
+		audio::Time stopCall = audio::Time::now();
+		audio::Duration timeDelay(0, m_bufferSize*1000000000LL/int64_t(m_sampleRate));
+		audio::Duration timeProcess = stopCall - startCall;
+		if (timeDelay <= timeProcess) {
+			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay.count() << " < " << timeProcess.count() << " (process time) ns");
+		}
+	}
+	if (doStopStream == 2) {
+		abortStream();
+		return;
+	}
+	std11::unique_lock<std11::mutex> lck(m_mutex);
+	// Setup parameters and do buffer conversion if necessary.
+	if (m_doConvertBuffer[0]) {
+		buffer = m_deviceBuffer;
+		convertBuffer(buffer, &m_userBuffer[0][0], m_convertInfo[0]);
+		channels = m_nDeviceChannels[0];
+		format = m_deviceFormat[0];
+	} else {
+		buffer = &m_userBuffer[0][0];
+		channels = m_nUserChannels[0];
+		format = m_userFormat;
+	}
+	// Do byte swapping if necessary.
+	if (m_doByteSwap[0]) {
+		byteSwapBuffer(buffer, m_bufferSize * channels, format);
+	}
+	// Write samples to device in interleaved/non-interleaved format.
+	if (m_deviceInterleaved[0]) {
+		const snd_pcm_channel_area_t* myAreas = nullptr;
+		snd_pcm_uframes_t offset, frames;
+		frames = m_bufferSize;
+		ATA_DEBUG("START");
+		int err = snd_pcm_mmap_begin(m_private->handles[0], &myAreas, &offset, &frames);
+		if (err < 0) {
+			ATA_CRITICAL("SUPER_FAIL");
+		}
+		ATA_DEBUG("snd_pcm_mmap_begin " << offset << " frame=" << frames << " m_bufferSize=" << m_bufferSize);
+		
+		ATA_DEBUG("copy " << err << " addr=" << myAreas[0].addr << " first=" << myAreas[0].first << " step=" << myAreas[0].step);
+		//generate_sine(myAreas, offset, frames, &phase);
+		memcpy(myAreas[0].addr + offset, buffer, m_bufferSize);
+		ATA_DEBUG("commit " << offset << " frame=" << frames);
+		int commitres = snd_pcm_mmap_commit(m_private->handles[0], offset, frames);
+		if (    commitres < 0
+		     || (snd_pcm_uframes_t)commitres != frames) {
+			ATA_CRITICAL("MMAP commit error: " << snd_strerror(err));
+		}
+	} else {
+		void *bufs[channels];
+		size_t offset = m_bufferSize * audio::getFormatBytes(format);
+		for (int32_t i=0; i<channels; i++) {
+			bufs[i] = (void *) (buffer + (i * offset));
+		}
+		result = snd_pcm_writen(m_private->handles[0], bufs, m_bufferSize);
+	}
+	// Check stream latency
+	result = snd_pcm_delay(m_private->handles[0], &frames);
+	if (result == 0 && frames > 0) {
+		ATA_VERBOSE("Delay in the Output " << frames << " chunk");
+		m_latency[0] = frames;
+	}
+
+unlock:
+	audio::orchestra::Api::tickStreamTime();
+	if (doStopStream == 1) {
+		this->stopStream();
+	}
+}
+void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
 	if (m_state == audio::orchestra::state_stopped) {
 		std11::unique_lock<std11::mutex> lck(m_mutex);
 		// TODO : Set this back ....
@@ -1214,7 +1683,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycle() {
 		}
 		{
 			snd_pcm_state_t state = snd_pcm_state(m_private->handles[1]);
-			ATA_VERBOSE("plop : " << state);
+			ATA_VERBOSE("plop: " << state);
 			if (state == SND_PCM_STATE_XRUN) {
 				ATA_ERROR("Xrun...");
 			}
@@ -1341,6 +1810,7 @@ unlock:
 		this->stopStream();
 	}
 }
+
 
 bool audio::orchestra::api::Alsa::isMasterOf(audio::orchestra::Api* _api) {
 	audio::orchestra::api::Alsa* slave = dynamic_cast<audio::orchestra::api::Alsa*>(_api);

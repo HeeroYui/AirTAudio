@@ -42,9 +42,13 @@ namespace audio {
 					// which is not a member of RtAudio.	External use of this function
 					// will most likely produce highly undesireable results!
 					void callbackEvent();
-					void callbackEventOneCycle();
+					void callbackEventOneCycleRead();
+					void callbackEventOneCycleWrite();
+					void callbackEventOneCycleMMAPRead();
+					void callbackEventOneCycleMMAPWrite();
 				private:
 					static void alsaCallbackEvent(void* _userData);
+					static void alsaCallbackEventMMap(void* _userData);
 				private:
 					std11::shared_ptr<AlsaPrivate> m_private;
 					std::vector<audio::orchestra::DeviceInfo> m_devices;
