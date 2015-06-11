@@ -13,8 +13,8 @@
 #undef __class__
 #define __class__ "Interface"
 
-std::vector<enum audio::orchestra::type> audio::orchestra::Interface::getCompiledApi() {
-	std::vector<enum audio::orchestra::type> apis;
+std::vector<std::string> audio::orchestra::Interface::getListApi() {
+	std::vector<std::string> apis;
 	// The order here will control the order of RtAudio's API search in
 	// the constructor.
 	for (size_t iii=0; iii<m_apiAvaillable.size(); ++iii) {
@@ -25,7 +25,7 @@ std::vector<enum audio::orchestra::type> audio::orchestra::Interface::getCompile
 
 
 
-void audio::orchestra::Interface::openRtApi(enum audio::orchestra::type _api) {
+void audio::orchestra::Interface::openApi(const std::string& _api) {
 	delete m_rtapi;
 	m_rtapi = nullptr;
 	for (size_t iii=0; iii<m_apiAvaillable.size(); ++iii) {
@@ -47,61 +47,62 @@ audio::orchestra::Interface::Interface() :
   m_rtapi(nullptr) {
 	ATA_DEBUG("Add interface:");
 #if defined(ORCHESTRA_BUILD_JACK)
-	ATA_DEBUG("    JACK");
 	addInterface(audio::orchestra::type_jack, audio::orchestra::api::Jack::create);
 #endif
 #if defined(ORCHESTRA_BUILD_ALSA)
-	ATA_DEBUG("    ALSA");
 	addInterface(audio::orchestra::type_alsa, audio::orchestra::api::Alsa::create);
 #endif
 #if defined(ORCHESTRA_BUILD_PULSE)
-	ATA_DEBUG("    PULSE");
 	addInterface(audio::orchestra::type_pulse, audio::orchestra::api::Pulse::create);
 #endif
 #if defined(ORCHESTRA_BUILD_OSS)
-	ATA_DEBUG("    OSS");
 	addInterface(audio::orchestra::type_oss, audio::orchestra::api::Oss::create);
 #endif
 #if defined(ORCHESTRA_BUILD_ASIO)
-	ATA_DEBUG("    ASIO");
 	addInterface(audio::orchestra::type_asio, audio::orchestra::api::Asio::create);
 #endif
 #if defined(ORCHESTRA_BUILD_DS)
-	ATA_DEBUG("    DS");
 	addInterface(audio::orchestra::type_ds, audio::orchestra::api::Ds::create);
 #endif
 #if defined(ORCHESTRA_BUILD_MACOSX_CORE)
-	ATA_DEBUG("    CORE OSX");
 	addInterface(audio::orchestra::type_coreOSX, audio::orchestra::api::Core::create);
 #endif
 #if defined(ORCHESTRA_BUILD_IOS_CORE)
-	ATA_DEBUG("    CORE IOS");
 	addInterface(audio::orchestra::type_coreIOS, audio::orchestra::api::CoreIos::create);
 #endif
 #if defined(ORCHESTRA_BUILD_JAVA)
-	ATA_DEBUG("    JAVA");
 	addInterface(audio::orchestra::type_java, audio::orchestra::api::Android::create);
 #endif
 #if defined(ORCHESTRA_BUILD_DUMMY)
-	ATA_DEBUG("    DUMMY");
 	addInterface(audio::orchestra::type_dummy, audio::orchestra::api::Dummy::create);
 #endif
 }
 
-void audio::orchestra::Interface::addInterface(enum audio::orchestra::type _api, Api* (*_callbackCreate)()) {
-	m_apiAvaillable.push_back(std::pair<enum audio::orchestra::type, Api* (*)()>(_api, _callbackCreate));
+void audio::orchestra::Interface::addInterface(const std::string& _api, Api* (*_callbackCreate)()) {
+	m_apiAvaillable.push_back(std::pair<std::string, Api* (*)()>(_api, _callbackCreate));
 }
 
-enum audio::orchestra::error audio::orchestra::Interface::instanciate(enum audio::orchestra::type _api) {
+enum audio::orchestra::error audio::orchestra::Interface::clear() {
+	ATA_INFO("Clear API ...");
+	if (m_rtapi == nullptr) {
+		ATA_WARNING("Interface NOT started!");
+		return audio::orchestra::error_none;
+	}
+	delete m_rtapi;
+	m_rtapi = nullptr;
+	return audio::orchestra::error_none;
+}
+
+enum audio::orchestra::error audio::orchestra::Interface::instanciate(const std::string& _api) {
 	ATA_INFO("Instanciate API ...");
 	if (m_rtapi != nullptr) {
-		ATA_WARNING("Interface already started ...!");
+		ATA_WARNING("Interface already started!");
 		return audio::orchestra::error_none;
 	}
 	if (_api != audio::orchestra::type_undefined) {
 		ATA_INFO("API specified : " << _api);
 		// Attempt to open the specified API.
-		openRtApi(_api);
+		openApi(_api);
 		if (m_rtapi != nullptr) {
 			if (m_rtapi->getDeviceCount() != 0) {
 				ATA_INFO("    ==> api open");
@@ -116,11 +117,11 @@ enum audio::orchestra::error audio::orchestra::Interface::instanciate(enum audio
 	ATA_INFO("Auto choice API :");
 	// Iterate through the compiled APIs and return as soon as we find
 	// one with at least one device or we reach the end of the list.
-	std::vector<enum audio::orchestra::type> apis = getCompiledApi();
+	std::vector<std::string> apis = getListApi();
 	ATA_INFO(" find : " << apis.size() << " apis.");
 	for (size_t iii=0; iii<apis.size(); ++iii) {
 		ATA_INFO("try open ...");
-		openRtApi(apis[iii]);
+		openApi(apis[iii]);
 		if(m_rtapi == nullptr) {
 			ATA_ERROR("    ==> can not create ...");
 			continue;

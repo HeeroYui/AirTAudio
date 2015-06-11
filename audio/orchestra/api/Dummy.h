@@ -19,7 +19,7 @@ namespace audio {
 					static audio::orchestra::Api* create();
 				public:
 					Dummy();
-					enum audio::orchestra::type getCurrentApi() {
+					const std::string& getCurrentApi() {
 						return audio::orchestra::type_dummy;
 					}
 					uint32_t getDeviceCount();

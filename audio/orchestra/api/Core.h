@@ -21,7 +21,7 @@ namespace audio {
 				public:
 					Core();
 					virtual ~Core();
-					enum audio::orchestra::type getCurrentApi() {
+					const std::string& getCurrentApi() {
 						return audio::orchestra::type_coreOSX;
 					}
 					uint32_t getDeviceCount();

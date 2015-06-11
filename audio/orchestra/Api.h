@@ -55,7 +55,7 @@ namespace audio {
 				void setName(const std::string& _name) {
 					m_name = _name;
 				}
-				virtual audio::orchestra::type getCurrentApi() = 0;
+				virtual const std::string& getCurrentApi() = 0;
 				virtual uint32_t getDeviceCount() = 0;
 				virtual audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device) = 0;
 				// TODO : Check API ...
@@ -173,9 +173,5 @@ namespace audio {
 		};
 	}
 }
-/**
- * @brief Debug operator To display the curent element in a Human redeable information
- */
-std::ostream& operator <<(std::ostream& _os, const audio::orchestra::type& _obj);
 
 #endif

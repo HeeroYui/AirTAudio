@@ -18,7 +18,7 @@ namespace audio {
 				public:
 					Asio();
 					virtual ~Asio();
-					enum audio::orchestra::type getCurrentApi() {
+					const std::string& getCurrentApi() {
 						return audio::orchestra::WINDOWS_ASIO;
 					}
 					uint32_t getDeviceCount();

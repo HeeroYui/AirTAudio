@@ -38,7 +38,7 @@ namespace audio {
 		 */
 		class Interface {
 			protected:
-				std::vector<std::pair<enum audio::orchestra::type, Api* (*)()> > m_apiAvaillable;
+				std::vector<std::pair<std::string, Api* (*)()> > m_apiAvaillable;
 			protected:
 				audio::orchestra::Api *m_rtapi;
 			public:
@@ -50,13 +50,16 @@ namespace audio {
 					m_rtapi->setName(_name);
 				}
 				/**
-				 * @brief A static function to determine the available compiled audio APIs.
-				 * 
-				 * The values returned in the std::vector can be compared against
-				 * the enumerated list values. Note that there can be more than one
-				 * API compiled for certain operating systems.
+				 * @brief Get the list of all availlable API in the system.
+				 * @return the list of all APIs
 				 */
-				std::vector<enum audio::orchestra::type> getCompiledApi();
+				std::vector<std::string> getListApi();
+				/**
+				 * @brief Add an interface of the Possible List.
+				 * @param[in] _api Type of the interface.
+				 * @param[in] _callbackCreate API creation callback.
+				 */
+				void addInterface(const std::string& _api, Api* (*_callbackCreate)());
 				/**
 				 * @brief The class constructor.
 				 * @note the creating of the basic instance is done by Instanciate
@@ -70,19 +73,17 @@ namespace audio {
 				 */
 				virtual ~Interface();
 				/**
-				 * @brief Add an interface of the Possible List.
-				 * @param[in] _api Type of the interface.
-				 * @param[in] _callbackCreate API creation callback.
+				 * @brief Clear the current Interface
 				 */
-				void addInterface(enum audio::orchestra::type _api, Api* (*_callbackCreate)());
+				enum audio::orchestra::error clear();
 				/**
 				 * @brief Create an interface instance
 				 */
-				enum audio::orchestra::error instanciate(enum audio::orchestra::type _api = audio::orchestra::type_undefined);
+				enum audio::orchestra::error instanciate(const std::string& _api = audio::orchestra::type_undefined);
 				/**
 				 * @return the audio API specifier for the current instance of airtaudio.
 				 */
-				enum audio::orchestra::type getCurrentApi() {
+				const std::string& getCurrentApi() {
 					if (m_rtapi == nullptr) {
 						return audio::orchestra::type_undefined;
 					}
@@ -312,7 +313,7 @@ namespace audio {
 				}
 				bool isMasterOf(audio::orchestra::Interface& _interface);
 			protected:
-				void openRtApi(enum audio::orchestra::type _api);
+				void openApi(const std::string& _api);
 		};
 	}
 }

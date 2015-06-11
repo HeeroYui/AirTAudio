@@ -4,7 +4,7 @@ import lutin.tools as tools
 import lutin.debug as debug
 
 def get_desc():
-	return "audio_orchestra : Generic wrapper on all audio interface"
+	return "Generic wrapper on all audio interface"
 
 
 def create(target):
@@ -71,7 +71,6 @@ def create(target):
 	
 	myModule.add_export_path(tools.get_current_path(__file__))
 	
-	# add the currrent module at the 
 	return myModule
 
 

@@ -19,7 +19,7 @@ namespace audio {
 				public:
 					Oss();
 					virtual ~Oss();
-					enum audio::orchestra::type getCurrentApi() {
+					const std::string& getCurrentApi() {
 						return audio::orchestra::type_oss;
 					}
 					uint32_t getDeviceCount();

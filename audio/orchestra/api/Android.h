@@ -17,7 +17,7 @@ namespace audio {
 				public:
 					Android();
 					virtual ~Android();
-					enum audio::orchestra::type getCurrentApi() {
+					const std::string& getCurrentApi() {
 						return audio::orchestra::type_java;
 					}
 					uint32_t getDeviceCount();

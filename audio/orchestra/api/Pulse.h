@@ -19,7 +19,7 @@ namespace audio {
 				public:
 					Pulse();
 					virtual ~Pulse();
-					enum audio::orchestra::type getCurrentApi() {
+					const std::string& getCurrentApi() {
 						return audio::orchestra::type_pulse;
 					}
 					uint32_t getDeviceCount();

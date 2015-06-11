@@ -18,7 +18,7 @@ namespace audio {
 				public:
 					Alsa();
 					virtual ~Alsa();
-					enum audio::orchestra::type getCurrentApi() {
+					const std::string& getCurrentApi() {
 						return audio::orchestra::type_alsa;
 					}
 					uint32_t getDeviceCount();
