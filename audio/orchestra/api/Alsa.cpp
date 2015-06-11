@@ -152,7 +152,7 @@ bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _de
 	}
 	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode | SND_PCM_NONBLOCK);
 	if (result < 0) {
-		ATA_ERROR("snd_pcm_open error for device (" << _deviceName << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("snd_pcm_open error for device (" << _deviceName << "), " << snd_strerror(result) << ". (seems to be already open)");
 		// TODO : Return audio::orchestra::error_warning;
 		goto captureProbe;
 	}
@@ -173,6 +173,7 @@ bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _de
 		// TODO : Return audio::orchestra::error_warning;
 		goto captureProbe;
 	}
+	ATA_ERROR("Output channel = " << value);
 	_info.outputChannels = value;
 	snd_pcm_close(phandle);
 
@@ -193,7 +194,7 @@ captureProbe:
 	}
 	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode | SND_PCM_NONBLOCK);
 	if (result < 0) {
-		ATA_ERROR("snd_pcm_open error for device (" << _deviceName << "), " << snd_strerror(result) << ".");
+		ATA_ERROR("snd_pcm_open error for device (" << _deviceName << "), " << snd_strerror(result) << ". (seems to be already open)");
 		// TODO : Return audio::orchestra::error_warning;
 		if (_info.outputChannels == 0) {
 			return true;
@@ -221,13 +222,11 @@ captureProbe:
 		}
 		goto probeParameters;
 	}
+	ATA_ERROR("Input channel = " << value);
 	_info.inputChannels = value;
 	snd_pcm_close(phandle);
-	// If device opens for both playback and capture, we determine the channels.
-	if (    _info.outputChannels > 0
-	     && _info.inputChannels > 0) {
-		_info.duplexChannels = (_info.outputChannels > _info.inputChannels) ? _info.inputChannels : _info.outputChannels;
-	}
+	// ALSA does not support duplex, but synchronization between I/Os
+	_info.duplexChannels = 0;
 	// ALSA doesn't provide default devices so we'll use the first available one.
 	if (    _localDeviceId == 0
 	     && _info.outputChannels > 0) {
@@ -242,7 +241,7 @@ probeParameters:
 	// At this point, we just need to figure out the supported data
 	// formats and sample rates. We'll proceed by opening the device in
 	// the direction with the maximum number of channels, or playback if
-	// they are equal.	This might limit our sample rate options, but so
+	// they are equal. This might limit our sample rate options, but so
 	// be it.
 	if (_info.outputChannels >= _info.inputChannels) {
 		stream = SND_PCM_STREAM_PLAYBACK;
@@ -510,9 +509,10 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	} else {
 		stream = SND_PCM_STREAM_CAPTURE;
 	}
-	snd_pcm_t *phandle;
+	//int32_t openMode = SND_PCM_NONBLOCK;
 	int32_t openMode = SND_PCM_ASYNC;
-	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode);
+	//int32_t openMode = SND_PCM_ASYNC | SND_PCM_NONBLOCK;
+	result = snd_pcm_open(&m_private->handle, _deviceName.c_str(), stream, openMode);
 	ATA_DEBUG("Configure Mode : SND_PCM_ASYNC");
 	if (result < 0) {
 		if (_mode == audio::orchestra::mode_output) {
@@ -525,33 +525,33 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	// Fill the parameter structure.
 	snd_pcm_hw_params_t *hw_params;
 	snd_pcm_hw_params_alloca(&hw_params);
-	result = snd_pcm_hw_params_any(phandle, hw_params);
+	result = snd_pcm_hw_params_any(m_private->handle, hw_params);
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("error getting pcm device (" << _deviceName << ") parameters, " << snd_strerror(result) << ".");
 		return false;
 	}
 	#if 1
 		ATA_DEBUG("configure Acces: SND_PCM_ACCESS_MMAP_INTERLEAVED");
-		result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_MMAP_INTERLEAVED);
+		result = snd_pcm_hw_params_set_access(m_private->handle, hw_params, SND_PCM_ACCESS_MMAP_INTERLEAVED);
 		if (result >= 0) {
 			m_deviceInterleaved[modeToIdTable(_mode)] =	true;
 			m_private->mmapInterface = true;
 		} else {
 			ATA_DEBUG("configure Acces: SND_PCM_ACCESS_MMAP_NONINTERLEAVED");
-			result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
+			result = snd_pcm_hw_params_set_access(m_private->handle, hw_params, SND_PCM_ACCESS_MMAP_NONINTERLEAVED);
 			if (result >= 0) {
 				m_deviceInterleaved[modeToIdTable(_mode)] =	false;
 				m_private->mmapInterface = true;
 			} else {
 				ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_INTERLEAVED");
-				result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+				result = snd_pcm_hw_params_set_access(m_private->handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
 				if (result >= 0) {
 					m_deviceInterleaved[modeToIdTable(_mode)] =	true;
 					m_private->mmapInterface = false;
 				} else {
 					ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_NONINTERLEAVED");
-					result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+					result = snd_pcm_hw_params_set_access(m_private->handle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
 					if (result >= 0) {
 						m_deviceInterleaved[modeToIdTable(_mode)] =	false;
 						m_private->mmapInterface = false;
@@ -564,13 +564,13 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 		}
 	#else
 		ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_INTERLEAVED");
-		result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
+		result = snd_pcm_hw_params_set_access(m_private->handle, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED);
 		if (result >= 0) {
 			m_deviceInterleaved[modeToIdTable(_mode)] =	true;
 			m_private->mmapInterface = false;
 		} else {
 			ATA_DEBUG("configure Acces: SND_PCM_ACCESS_RW_NONINTERLEAVED");
-			result = snd_pcm_hw_params_set_access(phandle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
+			result = snd_pcm_hw_params_set_access(m_private->handle, hw_params, SND_PCM_ACCESS_RW_NONINTERLEAVED);
 			if (result >= 0) {
 				m_deviceInterleaved[modeToIdTable(_mode)] =	false;
 				m_private->mmapInterface = false;
@@ -581,7 +581,7 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 		}
 	#endif
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("error setting pcm device (" << _deviceName << ") access, " << snd_strerror(result) << ".");
 		return false;
 	}
@@ -601,19 +601,19 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	} else if (_format == audio::format_double) {
 		deviceFormat = SND_PCM_FORMAT_FLOAT64;
 	}
-	if (snd_pcm_hw_params_test_format(phandle, hw_params, deviceFormat) == 0) {
+	if (snd_pcm_hw_params_test_format(m_private->handle, hw_params, deviceFormat) == 0) {
 		m_deviceFormat[modeToIdTable(_mode)] = _format;
 	} else {
 		// If we get here, no supported format was found.
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("pcm device " << _deviceName << " data format not supported: " << _format);
 		// TODO : display list of all supported format ..
 		return false;
 	}
 	ATA_DEBUG("configure format: " << _format);
-	result = snd_pcm_hw_params_set_format(phandle, hw_params, deviceFormat);
+	result = snd_pcm_hw_params_set_format(m_private->handle, hw_params, deviceFormat);
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("error setting pcm device (" << _deviceName << ") data format, " << snd_strerror(result) << ".");
 		return false;
 	}
@@ -625,38 +625,38 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 			ATA_DEBUG("configure swap Byte");
 			m_doByteSwap[modeToIdTable(_mode)] = true;
 		} else if (result < 0) {
-			snd_pcm_close(phandle);
+			snd_pcm_close(m_private->handle);
 			ATA_ERROR("error getting pcm device (" << _deviceName << ") endian-ness, " << snd_strerror(result) << ".");
 			return false;
 		}
 	}
 	ATA_DEBUG("Set frequency " << _sampleRate);
 	// Set the sample rate.
-	result = snd_pcm_hw_params_set_rate_near(phandle, hw_params, (uint32_t*) &_sampleRate, 0);
+	result = snd_pcm_hw_params_set_rate_near(m_private->handle, hw_params, (uint32_t*) &_sampleRate, 0);
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("error setting sample rate on device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
-	// Determine the number of channels for this device.	We support a possible
+	// Determine the number of channels for this device. We support a possible
 	// minimum device channel number > than the value requested by the user.
 	m_nUserChannels[modeToIdTable(_mode)] = _channels;
 	uint32_t value;
 	result = snd_pcm_hw_params_get_channels_max(hw_params, &value);
 	uint32_t deviceChannels = value;
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("requested channel parameters not supported by device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
 	if (deviceChannels < _channels + _firstChannel) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("requested channel " << _channels << " have : " << deviceChannels );
 		return false;
 	}
 	result = snd_pcm_hw_params_get_channels_min(hw_params, &value);
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("error getting minimum channels for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
@@ -668,9 +668,9 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	ATA_DEBUG("snd_pcm_hw_params_set_channels: " << deviceChannels);
 	m_nDeviceChannels[modeToIdTable(_mode)] = deviceChannels;
 	// Set the device channels.
-	result = snd_pcm_hw_params_set_channels(phandle, hw_params, deviceChannels);
+	result = snd_pcm_hw_params_set_channels(m_private->handle, hw_params, deviceChannels);
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("error setting channels for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
@@ -678,9 +678,9 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	// Set the buffer (or period) size.
 	int32_t dir = 0;
 	snd_pcm_uframes_t periodSize = *_bufferSize;
-	result = snd_pcm_hw_params_set_period_size_near(phandle, hw_params, &periodSize, &dir);
+	result = snd_pcm_hw_params_set_period_size_near(m_private->handle, hw_params, &periodSize, &dir);
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("error setting period size for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
@@ -700,9 +700,9 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	if (periods < 2) {
 		periods = 4; // a fairly safe default value
 	}
-	result = snd_pcm_hw_params_set_periods_near(phandle, hw_params, &periods, &dir);
+	result = snd_pcm_hw_params_set_periods_near(m_private->handle, hw_params, &periods, &dir);
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("error setting periods for device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
@@ -713,7 +713,7 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	if (    m_mode == audio::orchestra::mode_output
 	     && _mode == audio::orchestra::mode_input
 	     && *_bufferSize != m_bufferSize) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("system error setting buffer size for duplex stream on device (" << _deviceName << ").");
 		return false;
 	}
@@ -734,9 +734,9 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	}
 
 	// Install the hardware configuration
-	result = snd_pcm_hw_params(phandle, hw_params);
+	result = snd_pcm_hw_params(m_private->handle, hw_params);
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("error installing hardware configuration on device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
@@ -744,39 +744,40 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	// Set the software configuration to fill buffers with zeros and prevent device stopping on xruns.
 	snd_pcm_sw_params_t *swParams = nullptr;
 	snd_pcm_sw_params_alloca(&swParams);
-	snd_pcm_sw_params_current(phandle, swParams);
+	snd_pcm_sw_params_current(m_private->handle, swParams);
 	#if 0
 		ATA_DEBUG("configure start_threshold: " << int64_t(*_bufferSize));
-		snd_pcm_sw_params_set_start_threshold(phandle, swParams, *_bufferSize);
+		snd_pcm_sw_params_set_start_threshold(m_private->handle, swParams, *_bufferSize);
 	#else
 		//ATA_DEBUG("configure start_threshold: " << int64_t(1));
-		//snd_pcm_sw_params_set_start_threshold(phandle, swParams, 1);
+		//snd_pcm_sw_params_set_start_threshold(m_private->handle, swParams, 1);
 		ATA_DEBUG("configure start_threshold: " << int64_t(0));
-		snd_pcm_sw_params_set_start_threshold(phandle, swParams, 0);
+		snd_pcm_sw_params_set_start_threshold(m_private->handle, swParams, 0);
 	#endif
 	#if 1
 		ATA_DEBUG("configure stop_threshold: " << ULONG_MAX);
-		snd_pcm_sw_params_set_stop_threshold(phandle, swParams, ULONG_MAX);
+		snd_pcm_sw_params_set_stop_threshold(m_private->handle, swParams, ULONG_MAX);
 	#else
 		ATA_DEBUG("configure stop_threshold: " << m_bufferSize*periods);
-		snd_pcm_sw_params_set_stop_threshold(phandle, swParams, m_bufferSize*periods);
+		snd_pcm_sw_params_set_stop_threshold(m_private->handle, swParams, m_bufferSize*periods);
 	#endif
 	//ATA_DEBUG("configure silence_threshold: " << 0);
-	//snd_pcm_sw_params_set_silence_threshold(phandle, swParams, 0);
+	//snd_pcm_sw_params_set_silence_threshold(m_private->handle, swParams, 0);
 	// The following two settings were suggested by Theo Veenker
-	#if 0
-		snd_pcm_sw_params_set_avail_min(phandle, swParams, *_bufferSize*periods/2);
+	#if 1
+		snd_pcm_sw_params_set_avail_min(m_private->handle, swParams, *_bufferSize*periods/2);
 		snd_pcm_sw_params_get_avail_min(swParams, &val);
 		ATA_DEBUG("configure set availlable min: " << *_bufferSize*periods/2 << " really set: " << val);
 	#endif
-	//int valInt;
-	//snd_pcm_sw_params_get_period_event(swParams, &valInt);
-	//ATA_DEBUG("configure get period_event: " << valInt);
-	//snd_pcm_sw_params_set_xfer_align(phandle, swParams, 1);
+	#if 0
+		int valInt;
+		snd_pcm_sw_params_get_period_event(swParams, &valInt);
+		ATA_DEBUG("configure get period_event: " << valInt);
+		snd_pcm_sw_params_set_xfer_align(m_private->handle, swParams, 1);
 	// here are two options for a fix
-	//snd_pcm_sw_params_set_silence_size(phandle, swParams, ULONG_MAX);
-	
-	//snd_pcm_sw_params_set_tstamp_mode(phandle, swParams, SND_PCM_TSTAMP_ENABLE);
+	//snd_pcm_sw_params_set_silence_size(m_private->handle, swParams, ULONG_MAX);
+	#endif
+	//snd_pcm_sw_params_set_tstamp_mode(m_private->handle, swParams, SND_PCM_TSTAMP_ENABLE);
 	ATA_DEBUG("configuration: ");
 
 	//ATA_DEBUG("    start_mode: " << snd_pcm_start_mode_name(snd_pcm_sw_params_get_start_mode(swParams)));
@@ -791,8 +792,8 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	//ATA_DEBUG("    sleep_min: " << swParams->sleep_min);
 	snd_pcm_sw_params_get_avail_min(swParams, &val);
 	ATA_DEBUG("    avail_min: " << val);
-	snd_pcm_sw_params_get_xfer_align(swParams, &val);
-	ATA_DEBUG("    xfer_align: " << val);
+	//snd_pcm_sw_params_get_xfer_align(swParams, &val);
+	//ATA_DEBUG("    xfer_align: " << val);
 	
 	snd_pcm_sw_params_get_silence_threshold(swParams, &val);
 	ATA_DEBUG("    silence_threshold: " << val);
@@ -800,9 +801,9 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	ATA_DEBUG("    silence_size: " << val);
 	snd_pcm_sw_params_get_boundary(swParams, &val);
 	ATA_DEBUG("    boundary: " << val);
-	result = snd_pcm_sw_params(phandle, swParams);
+	result = snd_pcm_sw_params(m_private->handle, swParams);
 	if (result < 0) {
-		snd_pcm_close(phandle);
+		snd_pcm_close(m_private->handle);
 		ATA_ERROR("error installing software configuration on device (" << _deviceName << "), " << snd_strerror(result) << ".");
 		return false;
 	}
@@ -827,8 +828,6 @@ bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _device
 	     && m_nUserChannels[modeToIdTable(_mode)] > 1) {
 		m_doConvertBuffer[modeToIdTable(_mode)] = true;
 	}
-	m_private->handle = phandle;
-	phandle = 0;
 	// Allocate necessary internal buffers.
 	uint64_t bufferBytes;
 	bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_userFormat);
@@ -882,9 +881,6 @@ error:
 	if (m_private->handle) {
 		snd_pcm_close(m_private->handle);
 		m_private->handle = nullptr;
-	}
-	if (phandle) {
-		snd_pcm_close(phandle);
 	}
 	for (int32_t iii=0; iii<2; ++iii) {
 		m_userBuffer[iii].clear();
@@ -1040,46 +1036,40 @@ static int32_t wait_for_poll(snd_pcm_t* _handle, struct pollfd* _ufds, unsigned 
 		if (revents & POLLOUT) {
 			return 0;
 		}
+		if (revents & POLLIN) {
+			return 0;
+		}
 	}
 }
 
 void audio::orchestra::api::Alsa::callbackEvent() {
+	// Lock while the system is not started ...
+	if (m_state == audio::orchestra::state_stopped) {
+		std11::unique_lock<std11::mutex> lck(m_mutex);
+		while (!m_private->runnable) {
+			m_private->runnable_cv.wait(lck);
+		}
+		if (m_state != audio::orchestra::state_running) {
+			return;
+		}
+	}
 	etk::thread::setName("Alsa IO-" + m_name);
 	//Wait data with poll
-	/*
-	snd_pcm_channel_area_t *areas = nullptr;
-	areas = (snd_pcm_channel_area_t *)calloc(chennels, sizeof(snd_pcm_channel_area_t));
-	if (areas == nullptr) {
-		ATA_CRITICAL("No enough memory");
-	}
-	for (chn = 0; chn < channels; chn++) {
-		areas[chn].addr = samples;
-		areas[chn].first = chn * snd_pcm_format_physical_width(format);
-		areas[chn].step = channels * snd_pcm_format_physical_width(format);
-	}
-	*/
-	struct pollfd *ufds;
+	std::vector<struct pollfd> ufds;
 	signed short *ptr;
 	int32_t err, count, cptr, init;
 	count = snd_pcm_poll_descriptors_count(m_private->handle);
 	if (count <= 0) {
 		ATA_CRITICAL("Invalid poll descriptors count");
 	}
-	ufds = (struct pollfd*)malloc(sizeof(struct pollfd) * count);
-	if (ufds == nullptr) {
+	ufds.resize(count);
+	if (ufds.size() == 0) {
 		ATA_CRITICAL("No enough memory\n");
 	}
-	if ((err = snd_pcm_poll_descriptors(m_private->handle, ufds, count)) < 0) {
+	if ((err = snd_pcm_poll_descriptors(m_private->handle, &(ufds[0]), count)) < 0) {
 		ATA_CRITICAL("Unable to obtain poll descriptors for playback: "<< snd_strerror(err));
 	}
 	while (m_private->threadRunning == true) {
-		ATA_INFO("Poll [Start] " << count);
-		err = wait_for_poll(m_private->handle, ufds, count);
-		ATA_INFO("Poll [STOP] " << err);
-		if (err < 0) {
-			ATA_ERROR(" POLL timeout ...");
-			return;
-		}
 		// have data or need data ...
 		if (m_private->mmapInterface == false) {
 			if (m_mode == audio::orchestra::mode_input) {
@@ -1094,8 +1084,15 @@ void audio::orchestra::api::Alsa::callbackEvent() {
 				callbackEventOneCycleMMAPWrite();
 			}
 		}
+		ATA_VERBOSE("Poll [Start] " << count);
+		err = wait_for_poll(m_private->handle, &(ufds[0]), count);
+		ATA_VERBOSE("Poll [STOP] " << err);
+		if (err < 0) {
+			ATA_ERROR(" POLL timeout ...");
+			return;
+		}
 	}
-	ATA_ERROR("End of thread");
+	ATA_DEBUG("End of thread");
 }
 
 audio::Time audio::orchestra::api::Alsa::getStreamTime() {
@@ -1168,19 +1165,6 @@ audio::Time audio::orchestra::api::Alsa::getStreamTime() {
 }
 
 void audio::orchestra::api::Alsa::callbackEventOneCycleRead() {
-	if (m_state == audio::orchestra::state_stopped) {
-		std11::unique_lock<std11::mutex> lck(m_mutex);
-		// TODO : Set this back ....
-		/*
-		while (!m_private->runnable) {
-			m_private->runnable_cv.wait(lck);
-		}
-		*/
-		usleep(1000);
-		if (m_state != audio::orchestra::state_running) {
-			return;
-		}
-	}
 	if (m_state == audio::orchestra::state_closed) {
 		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
 		return; // TODO : notify appl: audio::orchestra::error_warning;
@@ -1297,19 +1281,6 @@ unlock:
 }
 
 void audio::orchestra::api::Alsa::callbackEventOneCycleWrite() {
-	if (m_state == audio::orchestra::state_stopped) {
-		std11::unique_lock<std11::mutex> lck(m_mutex);
-		// TODO : Set this back ....
-		/*
-		while (!m_private->runnable) {
-			m_private->runnable_cv.wait(lck);
-		}
-		*/
-		usleep(1000);
-		if (m_state != audio::orchestra::state_running) {
-			return;
-		}
-	}
 	if (m_state == audio::orchestra::state_closed) {
 		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
 		return; // TODO : notify appl: audio::orchestra::error_warning;
@@ -1412,20 +1383,6 @@ unlock:
 }
 
 void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
-	
-	if (m_state == audio::orchestra::state_stopped) {
-		std11::unique_lock<std11::mutex> lck(m_mutex);
-		// TODO : Set this back ....
-		/*
-		while (!m_private->runnable) {
-			m_private->runnable_cv.wait(lck);
-		}
-		*/
-		usleep(1000);
-		if (m_state != audio::orchestra::state_running) {
-			return;
-		}
-	}
 	if (m_state == audio::orchestra::state_closed) {
 		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
 		return; // TODO : notify appl: audio::orchestra::error_warning;
@@ -1561,19 +1518,6 @@ unlock:
 	}
 }
 void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
-	if (m_state == audio::orchestra::state_stopped) {
-		std11::unique_lock<std11::mutex> lck(m_mutex);
-		// TODO : Set this back ....
-		/*
-		while (!m_private->runnable) {
-			m_private->runnable_cv.wait(lck);
-		}
-		*/
-		usleep(1000);
-		if (m_state != audio::orchestra::state_running) {
-			return;
-		}
-	}
 	if (m_state == audio::orchestra::state_closed) {
 		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
 		return; // TODO : notify appl: audio::orchestra::error_warning;
