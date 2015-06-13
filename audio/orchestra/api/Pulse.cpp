@@ -16,6 +16,7 @@
 #include <pulse/simple.h>
 #include <cstdio>
 #include <etk/thread/tools.h>
+#include <audio/orchestra/api/PulseDeviceList.h>
 
 #undef __class__
 #define __class__ "api::Pulse"
@@ -53,15 +54,13 @@ namespace audio {
 		namespace api {
 			class PulsePrivate {
 				public:
-					pa_simple *s_play;
-					pa_simple *s_rec;
+					pa_simple* handle;
 					std11::shared_ptr<std11::thread> thread;
 					bool threadRunning;
 					std11::condition_variable runnable_cv;
 					bool runnable;
 					PulsePrivate() :
-					  s_play(0),
-					  s_rec(0),
+					  handle(0),
 					  threadRunning(false),
 					  runnable(false) {
 						
@@ -82,16 +81,23 @@ audio::orchestra::api::Pulse::~Pulse() {
 }
 
 uint32_t audio::orchestra::api::Pulse::getDeviceCount() {
-	return 1;
+	#if 0
+		std::vector<audio::orchestra::api::pulse::Element> list = audio::orchestra::api::pulse::getDeviceList();
+		return list.size();
+	#else
+		return 1;
+	#endif
 }
 
 audio::orchestra::DeviceInfo audio::orchestra::api::Pulse::getDeviceInfo(uint32_t _device) {
 	audio::orchestra::DeviceInfo info;
+	//std::vector<audio::orchestra::api::pulse::Element> list = audio::orchestra::api::pulse::getDeviceList();
+	// TODO : Do it better... it is a little poor ...
 	info.probed = true;
 	info.name = "PulseAudio";
 	info.outputChannels = 2;
 	info.inputChannels = 2;
-	info.duplexChannels = 2;
+	info.duplexChannels = 0;
 	info.isDefaultOutput = true;
 	info.isDefaultInput = true;
 	for (const uint32_t *sr = SUPPORTED_SAMPLERATES; *sr; ++sr) {
@@ -124,13 +130,11 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::closeStream() {
 	}
 	m_mutex.unlock();
 	m_private->thread->join();
-	if (m_private->s_play) {
-		pa_simple_flush(m_private->s_play, nullptr);
-		pa_simple_free(m_private->s_play);
+	if (m_mode == audio::orchestra::mode_output) {
+		pa_simple_flush(m_private->handle, nullptr);
 	}
-	if (m_private->s_rec) {
-		pa_simple_free(m_private->s_rec);
-	}
+	pa_simple_free(m_private->handle);
+	m_private->handle = nullptr;
 	m_userBuffer[0].clear();
 	m_userBuffer[1].clear();
 	m_state = audio::orchestra::state_closed;
@@ -173,8 +177,7 @@ void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 	}
 	int32_t pa_error;
 	size_t bytes;
-	if (    m_mode == audio::orchestra::mode_output
-	     || m_mode == audio::orchestra::mode_duplex) {
+	if (m_mode == audio::orchestra::mode_output) {
 		if (m_doConvertBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_output)]) {
 			convertBuffer(m_deviceBuffer,
 			              &m_userBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_output)][0],
@@ -183,18 +186,18 @@ void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 		} else {
 			bytes = m_nUserChannels[audio::orchestra::modeToIdTable(audio::orchestra::mode_output)] * m_bufferSize * audio::getFormatBytes(m_userFormat);
 		}
-		if (pa_simple_write(m_private->s_play, pulse_out, bytes, &pa_error) < 0) {
+		if (pa_simple_write(m_private->handle, pulse_out, bytes, &pa_error) < 0) {
 			ATA_ERROR("audio write error, " << pa_strerror(pa_error) << ".");
 			return;
 		}
 	}
-	if (m_mode == audio::orchestra::mode_input || m_mode == audio::orchestra::mode_duplex) {
+	if (m_mode == audio::orchestra::mode_input) {
 		if (m_doConvertBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)]) {
 			bytes = m_nDeviceChannels[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)] * m_bufferSize * audio::getFormatBytes(m_deviceFormat[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)]);
 		} else {
 			bytes = m_nUserChannels[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)] * m_bufferSize * audio::getFormatBytes(m_userFormat);
 		}
-		if (pa_simple_read(m_private->s_rec, pulse_in, bytes, &pa_error) < 0) {
+		if (pa_simple_read(m_private->handle, pulse_in, bytes, &pa_error) < 0) {
 			ATA_ERROR("audio read error, " << pa_strerror(pa_error) << ".");
 			return;
 		}
@@ -244,9 +247,11 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::stopStream() {
 	}
 	m_state = audio::orchestra::state_stopped;
 	m_mutex.lock();
-	if (m_private->s_play) {
+	if (    m_private != nullptr
+	     && m_private->handle != nullptr
+	     && m_mode == audio::orchestra::mode_output) {
 		int32_t pa_error;
-		if (pa_simple_drain(m_private->s_play, &pa_error) < 0) {
+		if (pa_simple_drain(m_private->handle, &pa_error) < 0) {
 			ATA_ERROR("error draining output device, " << pa_strerror(pa_error) << ".");
 			m_mutex.unlock();
 			return audio::orchestra::error_systemError;
@@ -268,9 +273,11 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::abortStream() {
 	}
 	m_state = audio::orchestra::state_stopped;
 	m_mutex.lock();
-	if (m_private && m_private->s_play) {
+	if (    m_private != nullptr
+	     && m_private->handle != nullptr
+	     && m_mode == audio::orchestra::mode_output) {
 		int32_t pa_error;
-		if (pa_simple_flush(m_private->s_play, &pa_error) < 0) {
+		if (pa_simple_flush(m_private->handle, &pa_error) < 0) {
 			ATA_ERROR("error flushing output device, " << pa_strerror(pa_error) << ".");
 			m_mutex.unlock();
 			return audio::orchestra::error_systemError;
@@ -376,15 +383,15 @@ bool audio::orchestra::api::Pulse::probeDeviceOpen(uint32_t _device,
 	int32_t error;
 	switch (_mode) {
 		case audio::orchestra::mode_input:
-			m_private->s_rec = pa_simple_new(nullptr, "orchestra", PA_STREAM_RECORD, nullptr, "Record", &ss, nullptr, nullptr, &error);
-			if (!m_private->s_rec) {
+			m_private->handle = pa_simple_new(nullptr, "orchestra", PA_STREAM_RECORD, nullptr, "Record", &ss, nullptr, nullptr, &error);
+			if (m_private->handle == nullptr) {
 				ATA_ERROR("error connecting input to PulseAudio server.");
 				goto error;
 			}
 			break;
 		case audio::orchestra::mode_output:
-			m_private->s_play = pa_simple_new(nullptr, "orchestra", PA_STREAM_PLAYBACK, nullptr, "Playback", &ss, nullptr, nullptr, &error);
-			if (!m_private->s_play) {
+			m_private->handle = pa_simple_new(nullptr, "orchestra", PA_STREAM_PLAYBACK, nullptr, "Playback", &ss, nullptr, nullptr, &error);
+			if (m_private->handle == nullptr) {
 				ATA_ERROR("error connecting output to PulseAudio server.");
 				goto error;
 			}
@@ -394,12 +401,10 @@ bool audio::orchestra::api::Pulse::probeDeviceOpen(uint32_t _device,
 	}
 	if (m_mode == audio::orchestra::mode_unknow) {
 		m_mode = _mode;
-	} else if (m_mode == _mode) {
+	} else {
 		goto error;
-	}else {
-		m_mode = audio::orchestra::mode_duplex;
 	}
-	if (!m_private->threadRunning) {
+	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
 		m_private->thread = std11::make_shared<std11::thread>(&pulseaudio_callback, this);
 		if (m_private->thread == nullptr) {
@@ -410,8 +415,8 @@ bool audio::orchestra::api::Pulse::probeDeviceOpen(uint32_t _device,
 	m_state = audio::orchestra::state_stopped;
 	return true;
 error:
-	for (int32_t i=0; i<2; i++) {
-		m_userBuffer[i].clear();
+	for (int32_t iii=0; iii<2; ++iii) {
+		m_userBuffer[iii].clear();
 	}
 	if (m_deviceBuffer) {
 		free(m_deviceBuffer);
