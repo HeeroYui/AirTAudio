@@ -125,12 +125,11 @@ uint32_t audio::orchestra::api::Jack::getDeviceCount() {
 		free(ports);
 	}
 	jack_client_close(client);
-	return nDevices;
+	return nDevices*2;
 }
 
 audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t _device) {
 	audio::orchestra::DeviceInfo info;
-	info.probed = false;
 	jack_options_t options = (jack_options_t) (JackNoStartServer); //JackNullOption
 	jack_status_t *status = nullptr;
 	jack_client_t *client = jack_client_open("orchestraJackInfo", options, status);
@@ -143,16 +142,18 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 	std::string port, previousPort;
 	uint32_t nPorts = 0, nDevices = 0;
 	ports = jack_get_ports(client, nullptr, nullptr, 0);
+	int32_t deviceID = _device/2;
+	info.input = _device%2==0?true:false; // note that jack sens are inverted
 	if (ports) {
 		// Parse the port names up to the first colon (:).
 		size_t iColon = 0;
 		do {
-			port = (char *) ports[ nPorts ];
+			port = (char *) ports[nPorts];
 			iColon = port.find(":");
 			if (iColon != std::string::npos) {
 				port = port.substr(0, iColon);
 				if (port != previousPort) {
-					if (nDevices == _device) {
+					if (nDevices == deviceID) {
 						info.name = port;
 					}
 					nDevices++;
@@ -162,7 +163,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 		} while (ports[++nPorts]);
 		free(ports);
 	}
-	if (_device >= nDevices) {
+	if (deviceID >= nDevices) {
 		jack_client_close(client);
 		ATA_ERROR("device ID is invalid!");
 		// TODO : audio::orchestra::error_invalidUse;
@@ -171,50 +172,42 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 	// Get the current jack server sample rate.
 	info.sampleRates.clear();
 	info.sampleRates.push_back(jack_get_sample_rate(client));
-	// Count the available ports containing the client name as device
-	// channels.	Jack "input ports" equal RtAudio output channels.
-	uint32_t nChannels = 0;
-	ports = jack_get_ports(client, info.name.c_str(), nullptr, JackPortIsInput);
-	if (ports) {
-		while (ports[ nChannels ]) {
-			nChannels++;
+	if (info.input == true) {
+		ports = jack_get_ports(client, info.name.c_str(), nullptr, JackPortIsOutput);
+		if (ports) {
+			int32_t iii=0;
+			while (ports[iii]) {
+				ATA_ERROR(" ploppp='" << ports[iii] << "'");
+				info.channels.push_back(audio::channel_unknow);
+				iii++;
+			}
+			free(ports);
 		}
-		free(ports);
-		info.outputChannels = nChannels;
-	}
-	// Jack "output ports" equal RtAudio input channels.
-	nChannels = 0;
-	ports = jack_get_ports(client, info.name.c_str(), nullptr, JackPortIsOutput);
-	if (ports) {
-		while (ports[ nChannels ]) {
-			nChannels++;
+	} else {
+		ports = jack_get_ports(client, info.name.c_str(), nullptr, JackPortIsInput);
+		if (ports) {
+			int32_t iii=0;
+			while (ports[iii]) {
+				ATA_ERROR(" ploppp='" << ports[iii] << "'");
+				info.channels.push_back(audio::channel_unknow);
+				iii++;
+			}
+			free(ports);
 		}
-		free(ports);
-		info.inputChannels = nChannels;
 	}
-	if (info.outputChannels == 0 && info.inputChannels == 0) {
+	if (info.channels.size() == 0) {
 		jack_client_close(client);
 		ATA_ERROR("error determining Jack input/output channels!");
 		// TODO : audio::orchestra::error_warning;
 		return info;
 	}
-	// If device opens for both playback and capture, we determine the channels.
-	if (info.outputChannels > 0 && info.inputChannels > 0) {
-		info.duplexChannels = (info.outputChannels > info.inputChannels) ? info.inputChannels : info.outputChannels;
-	}
 	// Jack always uses 32-bit floats.
 	info.nativeFormats.push_back(audio::format_float);
 	// Jack doesn't provide default devices so we'll use the first available one.
-	if (    _device == 0
-	     && info.outputChannels > 0) {
-		info.isDefaultOutput = true;
-	}
-	if (    _device == 0
-	     && info.inputChannels > 0) {
-		info.isDefaultInput = true;
+	if (deviceID == 0) {
+		info.isDefault = true;
 	}
 	jack_client_close(client);
-	info.probed = true;
 	return info;
 }
 
@@ -295,6 +288,8 @@ bool audio::orchestra::api::Jack::probeDeviceOpen(uint32_t _device,
 	const char **ports;
 	std::string port, previousPort, deviceName;
 	uint32_t nPorts = 0, nDevices = 0;
+	int32_t deviceID = _device/2;
+	bool isInput = _device%2==0?true:false;
 	ports = jack_get_ports(client, nullptr, nullptr, 0);
 	if (ports) {
 		// Parse the port names up to the first colon (:).
@@ -305,7 +300,7 @@ bool audio::orchestra::api::Jack::probeDeviceOpen(uint32_t _device,
 			if (iColon != std::string::npos) {
 				port = port.substr(0, iColon);
 				if (port != previousPort) {
-					if (nDevices == _device) {
+					if (nDevices == deviceID) {
 						deviceName = port;
 					}
 					nDevices++;
@@ -323,7 +318,9 @@ bool audio::orchestra::api::Jack::probeDeviceOpen(uint32_t _device,
 	// channels.	Jack "input ports" equal RtAudio output channels.
 	uint32_t nChannels = 0;
 	uint64_t flag = JackPortIsInput;
-	if (_mode == audio::orchestra::mode_input) flag = JackPortIsOutput;
+	if (_mode == audio::orchestra::mode_input) {
+		flag = JackPortIsOutput;
+	}
 	ports = jack_get_ports(client, deviceName.c_str(), nullptr, flag);
 	if (ports) {
 		while (ports[ nChannels ]) {

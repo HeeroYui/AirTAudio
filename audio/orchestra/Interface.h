@@ -40,14 +40,14 @@ namespace audio {
 			protected:
 				std::vector<std::pair<std::string, Api* (*)()> > m_apiAvaillable;
 			protected:
-				audio::orchestra::Api *m_rtapi;
+				audio::orchestra::Api *m_api;
 			public:
 				void setName(const std::string& _name) {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						
 						return;
 					}
-					m_rtapi->setName(_name);
+					m_api->setName(_name);
 				}
 				/**
 				 * @brief Get the list of all availlable API in the system.
@@ -84,10 +84,10 @@ namespace audio {
 				 * @return the audio API specifier for the current instance of airtaudio.
 				 */
 				const std::string& getCurrentApi() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return audio::orchestra::type_undefined;
 					}
-					return m_rtapi->getCurrentApi();
+					return m_api->getCurrentApi();
 				}
 				/**
 				 * @brief A public function that queries for the number of audio devices available.
@@ -97,10 +97,10 @@ namespace audio {
 				 * a system error occurs during processing, a warning will be issued. 
 				 */
 				uint32_t getDeviceCount() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return 0;
 					}
-					return m_rtapi->getDeviceCount();
+					return m_api->getDeviceCount();
 				}
 				/**
 				 * @brief Any device integer between 0 and getDeviceCount() - 1 is valid.
@@ -114,17 +114,17 @@ namespace audio {
 				 * @return An audio::orchestra::DeviceInfo structure for a specified device number.
 				 */
 				audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device) {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return audio::orchestra::DeviceInfo();
 					}
-					return m_rtapi->getDeviceInfo(_device);
+					return m_api->getDeviceInfo(_device);
 				}
 				audio::orchestra::DeviceInfo getDeviceInfo(const std::string& _deviceName) {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return audio::orchestra::DeviceInfo();
 					}
 					audio::orchestra::DeviceInfo info;
-					m_rtapi->getNamedDeviceInfo(_deviceName, info);
+					m_api->getNamedDeviceInfo(_deviceName, info);
 					return info;
 				}
 				/**
@@ -137,10 +137,10 @@ namespace audio {
 				 * before attempting to open a stream.
 				 */
 				uint32_t getDefaultOutputDevice() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return 0;
 					}
-					return m_rtapi->getDefaultOutputDevice();
+					return m_api->getDefaultOutputDevice();
 				}
 				/**
 				 * @brief A function that returns the index of the default input device.
@@ -152,10 +152,10 @@ namespace audio {
 				 * before attempting to open a stream.
 				 */
 				uint32_t getDefaultInputDevice() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return 0;
 					}
-					return m_rtapi->getDefaultInputDevice();
+					return m_api->getDefaultInputDevice();
 				}
 				/**
 				 * @brief A public function for opening a stream with the specified parameters.
@@ -210,10 +210,10 @@ namespace audio {
 				 * returns (no exception is thrown).
 				 */
 				enum audio::orchestra::error closeStream() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return audio::orchestra::error_inputNull;
 					}
-					return m_rtapi->closeStream();
+					return m_api->closeStream();
 				}
 				/**
 				 * @brief A function that starts a stream.
@@ -224,10 +224,10 @@ namespace audio {
 				 * running.
 				 */
 				enum audio::orchestra::error startStream() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return audio::orchestra::error_inputNull;
 					}
-					return m_rtapi->startStream();
+					return m_api->startStream();
 				}
 				/**
 				 * @brief Stop a stream, allowing any samples remaining in the output queue to be played.
@@ -238,10 +238,10 @@ namespace audio {
 				 * stopped.
 				*/
 				enum audio::orchestra::error stopStream() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return audio::orchestra::error_inputNull;
 					}
-					return m_rtapi->stopStream();
+					return m_api->stopStream();
 				}
 				/**
 				 * @brief Stop a stream, discarding any samples remaining in the input/output queue.
@@ -251,38 +251,38 @@ namespace audio {
 				 * stopped.
 				 */
 				enum audio::orchestra::error abortStream() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return audio::orchestra::error_inputNull;
 					}
-					return m_rtapi->abortStream();
+					return m_api->abortStream();
 				}
 				/**
 				 * @return true if a stream is open and false if not.
 				 */
 				bool isStreamOpen() const {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return false;
 					}
-					return m_rtapi->isStreamOpen();
+					return m_api->isStreamOpen();
 				}
 				/**
 				 * @return true if the stream is running and false if it is stopped or not open.
 				 */
 				bool isStreamRunning() const {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return false;
 					}
-					return m_rtapi->isStreamRunning();
+					return m_api->isStreamRunning();
 				}
 				/**
 				 * @brief If a stream is not open, an RtError (type = INVALID_USE) will be thrown.
 				 * @return the number of elapsed seconds since the stream was started.
 				 */
 				audio::Time getStreamTime() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return audio::Time();
 					}
-					return m_rtapi->getStreamTime();
+					return m_api->getStreamTime();
 				}
 				/**
 				 * @brief The stream latency refers to delay in audio input and/or output
@@ -294,10 +294,10 @@ namespace audio {
 				 * @return The internal stream latency in sample frames.
 				 */
 				long getStreamLatency() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return 0;
 					}
-					return m_rtapi->getStreamLatency();
+					return m_api->getStreamLatency();
 				}
 				/**
 				 * @brief On some systems, the sample rate used may be slightly different
@@ -306,10 +306,10 @@ namespace audio {
 				 * @return Returns actual sample rate in use by the stream.
 				 */
 				uint32_t getStreamSampleRate() {
-					if (m_rtapi == nullptr) {
+					if (m_api == nullptr) {
 						return 0;
 					}
-					return m_rtapi->getStreamSampleRate();
+					return m_api->getStreamSampleRate();
 				}
 				bool isMasterOf(audio::orchestra::Interface& _interface);
 			protected:

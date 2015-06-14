@@ -81,8 +81,8 @@ audio::orchestra::api::Pulse::~Pulse() {
 }
 
 uint32_t audio::orchestra::api::Pulse::getDeviceCount() {
-	#if 0
-		std::vector<audio::orchestra::api::pulse::Element> list = audio::orchestra::api::pulse::getDeviceList();
+	#if 1
+		std::vector<audio::orchestra::DeviceInfo> list = audio::orchestra::api::pulse::getDeviceList();
 		return list.size();
 	#else
 		return 1;
@@ -90,23 +90,12 @@ uint32_t audio::orchestra::api::Pulse::getDeviceCount() {
 }
 
 audio::orchestra::DeviceInfo audio::orchestra::api::Pulse::getDeviceInfo(uint32_t _device) {
-	audio::orchestra::DeviceInfo info;
-	//std::vector<audio::orchestra::api::pulse::Element> list = audio::orchestra::api::pulse::getDeviceList();
-	// TODO : Do it better... it is a little poor ...
-	info.probed = true;
-	info.name = "PulseAudio";
-	info.outputChannels = 2;
-	info.inputChannels = 2;
-	info.duplexChannels = 0;
-	info.isDefaultOutput = true;
-	info.isDefaultInput = true;
-	for (const uint32_t *sr = SUPPORTED_SAMPLERATES; *sr; ++sr) {
-		info.sampleRates.push_back(*sr);
+	std::vector<audio::orchestra::DeviceInfo> list = audio::orchestra::api::pulse::getDeviceList();
+	if (_device >= list.size()) {
+		ATA_ERROR("Request device out of IDs:" << _device << " >= " << list.size());
+		return audio::orchestra::DeviceInfo();
 	}
-	info.nativeFormats.push_back(audio::format_int16);
-	info.nativeFormats.push_back(audio::format_int32);
-	info.nativeFormats.push_back(audio::format_float);
-	return info;
+	return list[_device];
 }
 
 static void pulseaudio_callback(void* _userData) {

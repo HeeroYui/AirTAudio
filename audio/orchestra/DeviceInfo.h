@@ -9,6 +9,7 @@
 #define __AUDIO_ORCHESTRA_DEVICE_INFO_H__
 
 #include <audio/format.h>
+#include <audio/channel.h>
 
 
 namespace audio {
@@ -18,24 +19,22 @@ namespace audio {
 		 */
 		class DeviceInfo {
 			public:
-				bool probed; //!< true if the device capabilities were successfully probed.
+				bool input; //!< true if the device in an input; false: output.
 				std::string name; //!< Character string device identifier.
-				uint32_t outputChannels; //!< Maximum output channels supported by device.
-				uint32_t inputChannels; //!< Maximum input channels supported by device.
-				uint32_t duplexChannels; //!< Maximum simultaneous input/output channels supported by device.
-				bool isDefaultOutput; //!< true if this is the default output device.
-				bool isDefaultInput; //!< true if this is the default input device.
+				std::string desc; //!< description of the device
+				std::vector<audio::channel> channels; //!< Channels interfaces.
 				std::vector<uint32_t> sampleRates; //!< Supported sample rates (queried from list of standard rates).
 				std::vector<audio::format> nativeFormats; //!< Bit mask of supported data formats.
+				bool isDefault; //! is default input/output
 				// Default constructor.
 				DeviceInfo() :
-				  probed(false),
-				  outputChannels(0),
-				  inputChannels(0),
-				  duplexChannels(0),
-				  isDefaultOutput(false),
-				  isDefaultInput(false),
-				  nativeFormats() {}
+				  input(false),
+				  name(),
+				  desc(),
+				  channels(),
+				  sampleRates(),
+				  nativeFormats(),
+				  isDefault(false) {}
 				void display(int32_t _tabNumber = 1) const;
 		};
 		std::ostream& operator <<(std::ostream& _os, const audio::orchestra::DeviceInfo& _obj);

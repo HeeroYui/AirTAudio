@@ -26,14 +26,14 @@ std::vector<std::string> audio::orchestra::Interface::getListApi() {
 
 
 void audio::orchestra::Interface::openApi(const std::string& _api) {
-	delete m_rtapi;
-	m_rtapi = nullptr;
+	delete m_api;
+	m_api = nullptr;
 	for (size_t iii=0; iii<m_apiAvaillable.size(); ++iii) {
 		ATA_INFO("try open " << m_apiAvaillable[iii].first);
 		if (_api == m_apiAvaillable[iii].first) {
 			ATA_INFO("    ==> call it");
-			m_rtapi = m_apiAvaillable[iii].second();
-			if (m_rtapi != nullptr) {
+			m_api = m_apiAvaillable[iii].second();
+			if (m_api != nullptr) {
 				return;
 			}
 		}
@@ -44,7 +44,7 @@ void audio::orchestra::Interface::openApi(const std::string& _api) {
 
 
 audio::orchestra::Interface::Interface() :
-  m_rtapi(nullptr) {
+  m_api(nullptr) {
 	ATA_DEBUG("Add interface:");
 #if defined(ORCHESTRA_BUILD_JACK)
 	addInterface(audio::orchestra::type_jack, audio::orchestra::api::Jack::create);
@@ -84,18 +84,18 @@ void audio::orchestra::Interface::addInterface(const std::string& _api, Api* (*_
 
 enum audio::orchestra::error audio::orchestra::Interface::clear() {
 	ATA_INFO("Clear API ...");
-	if (m_rtapi == nullptr) {
+	if (m_api == nullptr) {
 		ATA_WARNING("Interface NOT started!");
 		return audio::orchestra::error_none;
 	}
-	delete m_rtapi;
-	m_rtapi = nullptr;
+	delete m_api;
+	m_api = nullptr;
 	return audio::orchestra::error_none;
 }
 
 enum audio::orchestra::error audio::orchestra::Interface::instanciate(const std::string& _api) {
 	ATA_INFO("Instanciate API ...");
-	if (m_rtapi != nullptr) {
+	if (m_api != nullptr) {
 		ATA_WARNING("Interface already started!");
 		return audio::orchestra::error_none;
 	}
@@ -103,15 +103,15 @@ enum audio::orchestra::error audio::orchestra::Interface::instanciate(const std:
 		ATA_INFO("API specified : " << _api);
 		// Attempt to open the specified API.
 		openApi(_api);
-		if (m_rtapi != nullptr) {
-			if (m_rtapi->getDeviceCount() != 0) {
+		if (m_api != nullptr) {
+			if (m_api->getDeviceCount() != 0) {
 				ATA_INFO("    ==> api open");
 			}
 			return audio::orchestra::error_none;
 		}
 		// No compiled support for specified API value.	Issue a debug
 		// warning and continue as if no API was specified.
-		ATA_ERROR("RtAudio: no compiled support for specified API argument!");
+		ATA_ERROR("API NOT Supported '" << _api << "' not in " << getListApi());
 		return audio::orchestra::error_fail;
 	}
 	ATA_INFO("Auto choice API :");
@@ -122,26 +122,26 @@ enum audio::orchestra::error audio::orchestra::Interface::instanciate(const std:
 	for (size_t iii=0; iii<apis.size(); ++iii) {
 		ATA_INFO("try open ...");
 		openApi(apis[iii]);
-		if(m_rtapi == nullptr) {
+		if(m_api == nullptr) {
 			ATA_ERROR("    ==> can not create ...");
 			continue;
 		}
-		if (m_rtapi->getDeviceCount() != 0) {
+		if (m_api->getDeviceCount() != 0) {
 			ATA_INFO("    ==> api open");
 			break;
 		}
 	}
-	if (m_rtapi != nullptr) {
+	if (m_api != nullptr) {
 		return audio::orchestra::error_none;
 	}
-	ATA_ERROR("RtAudio: no compiled API support found ... critical error!!");
+	ATA_ERROR("API NOT Supported '" << _api << "' not in " << getListApi());
 	return audio::orchestra::error_fail;
 }
 
 audio::orchestra::Interface::~Interface() {
 	ATA_INFO("Remove interface");
-	delete m_rtapi;
-	m_rtapi = nullptr;
+	delete m_api;
+	m_api = nullptr;
 }
 
 enum audio::orchestra::error audio::orchestra::Interface::openStream(audio::orchestra::StreamParameters* _outputParameters,
@@ -151,10 +151,10 @@ enum audio::orchestra::error audio::orchestra::Interface::openStream(audio::orch
                                                                      uint32_t* _bufferFrames,
                                                                      audio::orchestra::AirTAudioCallback _callback,
                                                                      const audio::orchestra::StreamOptions& _options) {
-	if (m_rtapi == nullptr) {
+	if (m_api == nullptr) {
 		return audio::orchestra::error_inputNull;
 	}
-	return m_rtapi->openStream(_outputParameters,
+	return m_api->openStream(_outputParameters,
 	                           _inputParameters,
 	                           _format,
 	                           _sampleRate,
@@ -164,22 +164,22 @@ enum audio::orchestra::error audio::orchestra::Interface::openStream(audio::orch
 }
 
 bool audio::orchestra::Interface::isMasterOf(audio::orchestra::Interface& _interface) {
-	if (m_rtapi == nullptr) {
+	if (m_api == nullptr) {
 		ATA_ERROR("Current Master API is nullptr ...");
 		return false;
 	}
-	if (_interface.m_rtapi == nullptr) {
+	if (_interface.m_api == nullptr) {
 		ATA_ERROR("Current Slave API is nullptr ...");
 		return false;
 	}
-	if (m_rtapi->getCurrentApi() != _interface.m_rtapi->getCurrentApi()) {
+	if (m_api->getCurrentApi() != _interface.m_api->getCurrentApi()) {
 		ATA_ERROR("Can not link 2 Interface with not the same Low level type (?)");//" << _interface.m_adac->getCurrentApi() << " != " << m_adac->getCurrentApi() << ")");
 		return false;
 	}
-	if (m_rtapi->getCurrentApi() != audio::orchestra::type_alsa) {
-		ATA_ERROR("Link 2 device together work only if the interafec is ?");// << audio::orchestra::type_alsa << " not for " << m_rtapi->getCurrentApi());
+	if (m_api->getCurrentApi() != audio::orchestra::type_alsa) {
+		ATA_ERROR("Link 2 device together work only if the interafec is ?");// << audio::orchestra::type_alsa << " not for " << m_api->getCurrentApi());
 		return false;
 	}
-	return m_rtapi->isMasterOf(_interface.m_rtapi);
+	return m_api->isMasterOf(_interface.m_api);
 }
 

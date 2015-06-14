@@ -9,39 +9,13 @@
 #define __AUDIO_ORCHESTRA_API_PULSE_DEVICE_H__
 
 #include <etk/types.h>
+#include <audio/orchestra/DeviceInfo.h>
 
 namespace audio {
 	namespace orchestra {
 		namespace api {
 			namespace pulse {
-				class Element {
-					private:
-						size_t m_index;
-						bool m_input;
-						std::string m_name;
-						std::string m_description;
-					public:
-						Element(size_t _index, bool _input, const std::string& _name, const std::string& _desc) :
-						  m_index(_index),
-						  m_input(_input),
-						  m_name(_name),
-						  m_description(_desc) {
-							// nothing to do...
-						}
-						size_t getIndex() const {
-							return m_index;
-						}
-						bool isInput() const {
-							return m_input;
-						}
-						const std::string& getName() const {
-							return m_name;
-						}
-						const std::string& getDescription() const {
-							return m_description;
-						}
-				};
-				std::vector<audio::orchestra::api::pulse::Element> getDeviceList();
+				std::vector<audio::orchestra::DeviceInfo> getDeviceList();
 			}
 		}
 	}

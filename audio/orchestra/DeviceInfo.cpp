@@ -19,26 +19,22 @@ void audio::orchestra::DeviceInfo::display(int32_t _tabNumber) const {
 	for (int32_t iii=0; iii<_tabNumber; ++iii) {
 		space += "    ";
 	}
-	ATA_PRINT(space + "probe=" << probed);
+	ATA_PRINT(space + "mode=" << (input==true?"input":"output"));
 	ATA_PRINT(space + "name=" << name);
-	ATA_PRINT(space + "outputChannels=" << outputChannels);
-	ATA_PRINT(space + "inputChannels=" << inputChannels);
-	ATA_PRINT(space + "duplexChannels=" << duplexChannels);
-	ATA_PRINT(space + "isDefaultOutput=" << (isDefaultOutput==true?"true":"false"));
-	ATA_PRINT(space + "isDefaultInput=" << (isDefaultInput==true?"true":"false"));
-	ATA_PRINT(space + "rates=" << sampleRates);
-	ATA_PRINT(space + "native Format: " << nativeFormats);
+	ATA_PRINT(space + "desc=" << desc);
+	ATA_PRINT(space + "channel" << (channels.size()>1?"s":"") << "=" << channels.size() << " : " << channels);
+	ATA_PRINT(space + "rate" << (sampleRates.size()>1?"s":"") << "=" << sampleRates);
+	ATA_PRINT(space + "native Format" << (nativeFormats.size()>1?"s":"") << ": " << nativeFormats);
+	ATA_PRINT(space + "default=" << (isDefault==true?"true":"false"));
 }
+
 
 std::ostream& audio::orchestra::operator <<(std::ostream& _os, const audio::orchestra::DeviceInfo& _obj) {
 	_os << "{";
-	_os << "probe=" << _obj.probed << ", ";
 	_os << "name=" << _obj.name << ", ";
-	_os << "outputChannels=" << _obj.outputChannels << ", ";
-	_os << "inputChannels=" << _obj.inputChannels << ", ";
-	_os << "duplexChannels=" << _obj.duplexChannels << ", ";
-	_os << "isDefaultOutput=" << _obj.isDefaultOutput << ", ";
-	_os << "isDefaultInput=" << _obj.isDefaultInput << ", ";
+	_os << "description=" << _obj.desc << ", ";
+	_os << "channels=" << _obj.channels << ", ";
+	_os << "default=" << _obj.isDefault << ", ";
 	_os << "rates=" << _obj.sampleRates << ", ";
 	_os << "native Format: " << _obj.nativeFormats;
 	_os << "}";

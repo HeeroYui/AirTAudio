@@ -104,7 +104,8 @@ uint32_t audio::orchestra::api::Alsa::getDeviceCount() {
 			if (subdevice < 0) {
 				break;
 			}
-			nDevices++;
+			// input/output
+			nDevices+=2;
 		}
 nextcard:
 		snd_ctl_close(handle);
@@ -113,7 +114,7 @@ nextcard:
 	return nDevices;
 }
 
-bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _deviceName, audio::orchestra::DeviceInfo& _info, int32_t _cardId, int32_t _subdevice, int32_t _localDeviceId) {
+bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _deviceName, audio::orchestra::DeviceInfo& _info, int32_t _cardId, int32_t _subdevice, int32_t _localDeviceId, bool _input) {
 	int32_t result;
 	snd_ctl_t *chandle;
 	int32_t openMode = SND_PCM_ASYNC;
@@ -124,7 +125,12 @@ bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _de
 	snd_pcm_hw_params_t *params;
 	snd_pcm_hw_params_alloca(&params);
 	// First try for playback unless default _device (which has subdev -1)
-	stream = SND_PCM_STREAM_PLAYBACK;
+	_info.input = _input;
+	if (_input == true) {
+		stream = SND_PCM_STREAM_CAPTURE;
+	} else {
+		stream = SND_PCM_STREAM_PLAYBACK;
+	}
 	snd_pcm_info_set_stream(pcminfo, stream);
 	std::vector<std::string> listElement = etk::split(_deviceName, ',');
 	if (listElement.size() == 0) {
@@ -146,39 +152,14 @@ bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _de
 		snd_pcm_info_set_subdevice(pcminfo, 0);
 		result = snd_ctl_pcm_info(chandle, pcminfo);
 		if (result < 0) {
-			// Device probably doesn't support playback.
-			goto captureProbe;
+			// Device probably doesn't support IO.
+			return false;
 		}
 	}
-	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode | SND_PCM_NONBLOCK);
-	if (result < 0) {
-		ATA_ERROR("snd_pcm_open error for device (" << _deviceName << "), " << snd_strerror(result) << ". (seems to be already open)");
-		// TODO : Return audio::orchestra::error_warning;
-		goto captureProbe;
+	// ALSA doesn't provide default devices so we'll use the first available one.
+	if (_localDeviceId == 0) {
+		_info.isDefault = true;
 	}
-	// The device is open ... fill the parameter structure.
-	result = snd_pcm_hw_params_any(phandle, params);
-	if (result < 0) {
-		snd_pcm_close(phandle);
-		ATA_ERROR("snd_pcm_hw_params error for device (" << _deviceName << "), " << snd_strerror(result) << ".");
-		// TODO : Return audio::orchestra::error_warning;
-		goto captureProbe;
-	}
-	// Get output channel information.
-	uint32_t value;
-	result = snd_pcm_hw_params_get_channels_max(params, &value);
-	if (result < 0) {
-		snd_pcm_close(phandle);
-		ATA_ERROR("error getting device (" << _deviceName << ") output channels, " << snd_strerror(result) << ".");
-		// TODO : Return audio::orchestra::error_warning;
-		goto captureProbe;
-	}
-	ATA_ERROR("Output channel = " << value);
-	_info.outputChannels = value;
-	snd_pcm_close(phandle);
-
-captureProbe:
-	stream = SND_PCM_STREAM_CAPTURE;
 	snd_pcm_info_set_stream(pcminfo, stream);
 	// Now try for capture unless default device (with subdev = -1)
 	if (_subdevice != -1) {
@@ -186,82 +167,32 @@ captureProbe:
 		snd_ctl_close(chandle);
 		if (result < 0) {
 			// Device probably doesn't support capture.
-			if (_info.outputChannels == 0) {
-				return true;
-			}
-			goto probeParameters;
+			return false;
 		}
 	}
+	// open device:
 	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode | SND_PCM_NONBLOCK);
 	if (result < 0) {
 		ATA_ERROR("snd_pcm_open error for device (" << _deviceName << "), " << snd_strerror(result) << ". (seems to be already open)");
-		// TODO : Return audio::orchestra::error_warning;
-		if (_info.outputChannels == 0) {
-			return true;
-		}
-		goto probeParameters;
+		return true;
 	}
 	// The device is open ... fill the parameter structure.
 	result = snd_pcm_hw_params_any(phandle, params);
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("snd_pcm_hw_params error for device (" << _deviceName << "), " << snd_strerror(result) << ".");
-		// TODO : Return audio::orchestra::error_warning;
-		if (_info.outputChannels == 0) {
-			return true;
-		}
-		goto probeParameters;
+		return false;
 	}
+	unsigned int value;
 	result = snd_pcm_hw_params_get_channels_max(params, &value);
 	if (result < 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("error getting device (" << _deviceName << ") input channels, " << snd_strerror(result) << ".");
-		// TODO : Return audio::orchestra::error_warning;
-		if (_info.outputChannels == 0) {
-			return true;
-		}
-		goto probeParameters;
+		return false;
 	}
 	ATA_ERROR("Input channel = " << value);
-	_info.inputChannels = value;
-	snd_pcm_close(phandle);
-	// ALSA does not support duplex, but synchronization between I/Os
-	_info.duplexChannels = 0;
-	// ALSA doesn't provide default devices so we'll use the first available one.
-	if (    _localDeviceId == 0
-	     && _info.outputChannels > 0) {
-		_info.isDefaultOutput = true;
-	}
-	if (    _localDeviceId == 0
-	     && _info.inputChannels > 0) {
-		_info.isDefaultInput = true;
-	}
-
-probeParameters:
-	// At this point, we just need to figure out the supported data
-	// formats and sample rates. We'll proceed by opening the device in
-	// the direction with the maximum number of channels, or playback if
-	// they are equal. This might limit our sample rate options, but so
-	// be it.
-	if (_info.outputChannels >= _info.inputChannels) {
-		stream = SND_PCM_STREAM_PLAYBACK;
-	} else {
-		stream = SND_PCM_STREAM_CAPTURE;
-	}
-	snd_pcm_info_set_stream(pcminfo, stream);
-	result = snd_pcm_open(&phandle, _deviceName.c_str(), stream, openMode | SND_PCM_NONBLOCK);
-	if (result < 0) {
-		ATA_ERROR("snd_pcm_open error for device (" << _deviceName << "), " << snd_strerror(result) << ".");
-		// TODO : Return audio::orchestra::error_warning;
-		return false;
-	}
-	// The device is open ... fill the parameter structure.
-	result = snd_pcm_hw_params_any(phandle, params);
-	if (result < 0) {
-		snd_pcm_close(phandle);
-		ATA_ERROR("snd_pcm_hw_params error for device (" << _deviceName << "), " << snd_strerror(result) << ".");
-		// TODO : Return audio::orchestra::error_warning;
-		return false;
+	for (int32_t iii=0; iii<value; ++iii) {
+		_info.channels.push_back(audio::channel_unknow);
 	}
 	// Test our discrete set of sample rate values.
 	_info.sampleRates.clear();
@@ -275,7 +206,6 @@ probeParameters:
 	if (_info.sampleRates.size() == 0) {
 		snd_pcm_close(phandle);
 		ATA_ERROR("no supported sample rates found for device (" << _deviceName << ").");
-		// TODO : Return audio::orchestra::error_warning;
 		return false;
 	}
 	// Probe the supported data formats ... we don't care about endian-ness just yet
@@ -325,24 +255,16 @@ probeParameters:
 	}
 	// That's all ... close the device and return
 	snd_pcm_close(phandle);
-	_info.probed = true;
 	return true;
 }
 
 audio::orchestra::DeviceInfo audio::orchestra::api::Alsa::getDeviceInfo(uint32_t _device) {
 	audio::orchestra::DeviceInfo info;
-	/*
-	ATA_WARNING("plop");
-	getDeviceInfo("hw:0,0,0", info);
-	info.display();
-	getDeviceInfo("hw:0,0,1", info);
-	info.display();
-	*/
-	info.probed = false;
 	unsigned nDevices = 0;
 	int32_t result = -1;
 	int32_t subdevice = -1;
 	int32_t card = -1;
+	bool isInput = false;
 	char name[64];
 	snd_ctl_t *chandle;
 	// Count cards and devices
@@ -366,10 +288,18 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Alsa::getDeviceInfo(uint32_t
 				break;
 			}
 			if (nDevices == _device) {
+				// for input
 				sprintf(name, "hw:%d,%d", card, subdevice);
+				isInput = true;
 				goto foundDevice;
 			}
-			nDevices++;
+			if (nDevices+1 == _device) {
+				// for output
+				sprintf(name, "hw:%d,%d", card, subdevice);
+				isInput = false;
+				goto foundDevice;
+			}
+			nDevices+=2;
 		}
 	nextcard:
 		snd_ctl_close(chandle);
@@ -398,9 +328,9 @@ foundDevice:
 			// TODO : return audio::orchestra::error_warning;
 			return info;
 		}
-		return m_devices[ _device ];
+		return m_devices[_device];
 	}
-	bool ret = audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(name, info, card, subdevice, _device);
+	bool ret = audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(name, info, card, subdevice, _device, isInput);
 	if (ret == false) {
 		// TODO : ...
 		return info;
@@ -418,13 +348,13 @@ void audio::orchestra::api::Alsa::saveDeviceInfo() {
 }
 
 bool audio::orchestra::api::Alsa::probeDeviceOpen(uint32_t _device,
-                                           audio::orchestra::mode _mode,
-                                           uint32_t _channels,
-                                           uint32_t _firstChannel,
-                                           uint32_t _sampleRate,
-                                           audio::format _format,
-                                           uint32_t *_bufferSize,
-                                           const audio::orchestra::StreamOptions& _options) {
+                                                  audio::orchestra::mode _mode,
+                                                  uint32_t _channels,
+                                                  uint32_t _firstChannel,
+                                                  uint32_t _sampleRate,
+                                                  audio::format _format,
+                                                  uint32_t *_bufferSize,
+                                                  const audio::orchestra::StreamOptions& _options) {
 	// I'm not using the "plug" interface ... too much inconsistent behavior.
 	unsigned nDevices = 0;
 	int32_t result, subdevice, card;

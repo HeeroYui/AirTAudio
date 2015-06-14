@@ -23,8 +23,6 @@ namespace audio {
 						return audio::orchestra::type_ds;
 					}
 					uint32_t getDeviceCount();
-					uint32_t getDefaultOutputDevice();
-					uint32_t getDefaultInputDevice();
 					audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device);
 					enum audio::orchestra::error closeStream();
 					enum audio::orchestra::error startStream();

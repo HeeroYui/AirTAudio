@@ -27,7 +27,8 @@ namespace audio {
 					                             audio::orchestra::DeviceInfo& _info,
 					                             int32_t _cardId=-1, // Alsa card ID
 					                             int32_t _subdevice=-1, // alsa subdevice ID
-					                             int32_t _localDeviceId=-1); // local ID of device fined
+					                             int32_t _localDeviceId=-1,// local ID of device find
+					                             bool _input=false);
 				public:
 					bool getNamedDeviceInfo(const std::string& _deviceName, audio::orchestra::DeviceInfo& _info) {
 						return getNamedDeviceInfoLocal(_deviceName, _info);
@@ -48,7 +49,6 @@ namespace audio {
 					void callbackEventOneCycleMMAPWrite();
 				private:
 					static void alsaCallbackEvent(void* _userData);
-					static void alsaCallbackEventMMap(void* _userData);
 				private:
 					std11::shared_ptr<AlsaPrivate> m_private;
 					std::vector<audio::orchestra::DeviceInfo> m_devices;

@@ -9,6 +9,7 @@
 #if defined(ORCHESTRA_BUILD_DS)
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
+#include <etk/thread/tools.h>
 
 #undef __class__
 #define __class__ "api::Ds"
@@ -58,15 +59,13 @@ static inline DWORD dsPointerBetween(DWORD _pointer, DWORD _laterPointer, DWORD 
 
 class DsDevice {
 	public:
-		LPGUID id[2];
-		bool validId[2];
-		bool found;
+		LPGUID id;
+		bool input;
 		std::string name;
-		
 		DsDevice() :
-		  found(false) {
-			validId[0] = false;
-			validId[1] = false;
+		  id(0),
+		  input(false) {
+			
 		}
 };
 
@@ -105,12 +104,6 @@ namespace audio {
 	}
 }
 
-// Declarations for utility functions, callbacks, and structures
-// specific to the DirectSound implementation.
-static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
-                                         LPCTSTR _description,
-                                         LPCTSTR _module,
-                                         LPVOID _lpContext);
 
 static const char* getErrorString(int32_t _code);
 
@@ -139,220 +132,248 @@ audio::orchestra::api::Ds::~Ds() {
 	}
 }
 
-// The DirectSound default output is always the first device.
-uint32_t audio::orchestra::api::Ds::getDefaultOutputDevice() {
-	return 0;
+
+#include "tchar.h"
+static std::string convertTChar(LPCTSTR _name) {
+#if defined(UNICODE) || defined(_UNICODE)
+	int32_t length = WideCharToMultiByte(CP_UTF8, 0, _name, -1, nullptr, 0, nullptr, nullptr);
+	std::string s(length-1, '\0');
+	WideCharToMultiByte(CP_UTF8, 0, _name, -1, &s[0], length, nullptr, nullptr);
+#else
+	std::string s(_name);
+#endif
+	return s;
 }
 
-// The DirectSound default input is always the first input device,
-// which is the first capture device enumerated.
-uint32_t audio::orchestra::api::Ds::getDefaultInputDevice() {
-	return 0;
+static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
+                                         LPCTSTR _description,
+                                         LPCTSTR _module,
+                                         LPVOID _lpContext) {
+	struct DsProbeData& probeInfo = *(struct DsProbeData*) _lpContext;
+	std::vector<DsDevice>& dsDevices = *probeInfo.dsDevices;
+	HRESULT hr;
+	bool validDevice = false;
+	if (probeInfo.isInput == true) {
+		DSCCAPS caps;
+		LPDIRECTSOUNDCAPTURE object;
+		hr = DirectSoundCaptureCreate(_lpguid, &object,	 nullptr);
+		if (hr != DS_OK) {
+			return TRUE;
+		}
+		caps.dwSize = sizeof(caps);
+		hr = object->GetCaps(&caps);
+		if (hr == DS_OK) {
+			if (caps.dwChannels > 0 && caps.dwFormats > 0) {
+				validDevice = true;
+			}
+		}
+		object->Release();
+	} else {
+		DSCAPS caps;
+		LPDIRECTSOUND object;
+		hr = DirectSoundCreate(_lpguid, &object,	 nullptr);
+		if (hr != DS_OK) {
+			return TRUE;
+		}
+		caps.dwSize = sizeof(caps);
+		hr = object->GetCaps(&caps);
+		if (hr == DS_OK) {
+			if (    caps.dwFlags & DSCAPS_PRIMARYMONO
+			     || caps.dwFlags & DSCAPS_PRIMARYSTEREO) {
+				validDevice = true;
+			}
+		}
+		object->Release();
+	}
+	if (validDevice == false) {
+		return TRUE;
+	}
+	// If good device, then save its name and guid.
+	std::string name = convertTChar(_description);
+	//if (name == "Primary Sound Driver" || name == "Primary Sound Capture Driver")
+	if (_lpguid == nullptr) {
+		name = "Default Device";
+	}
+	DsDevice device;
+	device.name = name;
+	device.input = probeInfo.isInput;
+	device.id = _lpguid;
+	dsDevices.push_back(device);
+	return TRUE;
 }
 
 uint32_t audio::orchestra::api::Ds::getDeviceCount() {
-	// Set query flag for previously found devices to false, so that we
-	// can check for any devices that have disappeared.
-	for (size_t iii=0; iii<m_private->dsDevices.size(); ++iii) {
-		m_private->dsDevices[iii].found = false;
-	}
 	// Query DirectSound devices.
 	struct DsProbeData probeInfo;
 	probeInfo.isInput = false;
 	probeInfo.dsDevices = &m_private->dsDevices;
 	HRESULT result = DirectSoundEnumerate((LPDSENUMCALLBACK) deviceQueryCallback, &probeInfo);
 	if (FAILED(result)) {
-		ATA_ERROR("error (" << getErrorString(result) << ") enumerating output devices!");
+		ATA_ERROR(getErrorString(result) << ": enumerating output devices!");
 		return 0;
 	}
 	// Query DirectSoundCapture devices.
 	probeInfo.isInput = true;
 	result = DirectSoundCaptureEnumerate((LPDSENUMCALLBACK) deviceQueryCallback, &probeInfo);
 	if (FAILED(result)) {
-		ATA_ERROR("error (" << getErrorString(result) << ") enumerating input devices!");
+		ATA_ERROR(getErrorString(result) << ": enumerating input devices!");
 		return 0;
-	}
-	// Clean out any devices that may have disappeared.
-	std::vector< int32_t > indices;
-	for (uint32_t i=0; i<m_private->dsDevices.size(); i++) {
-		if (m_private->dsDevices[i].found == false) {
-			indices.push_back(i);
-		}
-	}
-	uint32_t nErased = 0;
-	for (uint32_t i=0; i<indices.size(); i++) {
-		m_private->dsDevices.erase(m_private->dsDevices.begin()-nErased++);
 	}
 	return m_private->dsDevices.size();
 }
 
 audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _device) {
 	audio::orchestra::DeviceInfo info;
-	info.probed = false;
-	if (m_private->dsDevices.size() == 0) {
-		// Force a query of all devices
-		getDeviceCount();
-		if (m_private->dsDevices.size() == 0) {
-			ATA_ERROR("no devices found!");
-			return info;
-		}
-	}
 	if (_device >= m_private->dsDevices.size()) {
 		ATA_ERROR("device ID is invalid!");
 		return info;
 	}
 	HRESULT result;
-	if (m_private->dsDevices[ _device ].validId[0] == false) {
-		goto probeInput;
-	}
-	LPDIRECTSOUND output;
-	DSCAPS outCaps;
-	result = DirectSoundCreate(m_private->dsDevices[ _device ].id[0], &output, nullptr);
-	if (FAILED(result)) {
-		ATA_ERROR("error (" << getErrorString(result) << ") opening output device (" << m_private->dsDevices[ _device ].name << ")!");
-		goto probeInput;
-	}
-	outCaps.dwSize = sizeof(outCaps);
-	result = output->GetCaps(&outCaps);
-	if (FAILED(result)) {
-		output->Release();
-		ATA_ERROR("error (" << getErrorString(result) << ") getting capabilities!");
-		goto probeInput;
-	}
-	// Get output channel information.
-	info.outputChannels = (outCaps.dwFlags & DSCAPS_PRIMARYSTEREO) ? 2 : 1;
-	// Get sample rate information.
-	info.sampleRates.clear();
-	for (auto &it : audio::orchestra::genericSampleRate()) {
-		if (    it >= outCaps.dwMinSecondarySampleRate
-		     && it <= outCaps.dwMaxSecondarySampleRate) {
-			info.sampleRates.push_back(it);
+	if (m_private->dsDevices[_device].input == false) {
+		LPDIRECTSOUND output;
+		DSCAPS outCaps;
+		result = DirectSoundCreate(m_private->dsDevices[_device].id, &output, nullptr);
+		if (FAILED(result)) {
+			ATA_ERROR(getErrorString(result) << ": opening output device (" << m_private->dsDevices[_device].name << ")!");
+			return info;
 		}
-	}
-	// Get format information.
-	if (outCaps.dwFlags & DSCAPS_PRIMARY16BIT) {
-		info.nativeFormats.push_back(audio::format_int16);
-	}
-	if (outCaps.dwFlags & DSCAPS_PRIMARY8BIT) {
-		info.nativeFormats.push_back(audio::format_int8);
-	}
-	output->Release();
-	if (getDefaultOutputDevice() == _device) {
-		info.isDefaultOutput = true;
-	}
-	if (m_private->dsDevices[ _device ].validId[1] == false) {
-		info.name = m_private->dsDevices[ _device ].name;
-		info.probed = true;
-		return info;
-	}
-probeInput:
-	LPDIRECTSOUNDCAPTURE input;
-	result = DirectSoundCaptureCreate(m_private->dsDevices[ _device ].id[1], &input, nullptr);
-	if (FAILED(result)) {
-		ATA_ERROR("error (" << getErrorString(result) << ") opening input device (" << m_private->dsDevices[ _device ].name << ")!");
-		return info;
-	}
-	DSCCAPS inCaps;
-	inCaps.dwSize = sizeof(inCaps);
-	result = input->GetCaps(&inCaps);
-	if (FAILED(result)) {
-		input->Release();
-		ATA_ERROR("error (" << getErrorString(result) << ") getting object capabilities (" << m_private->dsDevices[ _device ].name << ")!");
-		return info;
-	}
-	// Get input channel information.
-	info.inputChannels = inCaps.dwChannels;
-	// Get sample rate and format information.
-	std::vector<uint32_t> rates;
-	if (inCaps.dwChannels >= 2) {
-		if (    (inCaps.dwFormats & WAVE_FORMAT_1S16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_2S16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_4S16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_96S16) ) {
-			info.nativeFormats.push_back(audio::format_int16);
+		outCaps.dwSize = sizeof(outCaps);
+		result = output->GetCaps(&outCaps);
+		if (FAILED(result)) {
+			output->Release();
+			ATA_ERROR(getErrorString(result) << ": getting capabilities!");
+			return info;
 		}
-		if (    (inCaps.dwFormats & WAVE_FORMAT_1S08)
-		     || (inCaps.dwFormats & WAVE_FORMAT_2S08)
-		     || (inCaps.dwFormats & WAVE_FORMAT_4S08)
-		     || (inCaps.dwFormats & WAVE_FORMAT_96S08) ) {
-			info.nativeFormats.push_back(audio::format_int8);
+		// Get output channel information.
+		if (outCaps.dwFlags & DSCAPS_PRIMARYSTEREO) {
+			info.channels.push_back(audio::channel_unknow);
+			info.channels.push_back(audio::channel_unknow);
+		} else {
+			info.channels.push_back(audio::channel_unknow);
 		}
-		if (    (inCaps.dwFormats & WAVE_FORMAT_1S16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_1S08) ){
-			rates.push_back(11025);
-		}
-		if (    (inCaps.dwFormats & WAVE_FORMAT_2S16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_2S08) ){
-			rates.push_back(22050);
-		}
-		if (    (inCaps.dwFormats & WAVE_FORMAT_4S16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_4S08) ){
-			rates.push_back(44100);
-		}
-		if (    (inCaps.dwFormats & WAVE_FORMAT_96S16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_96S08) ){
-			rates.push_back(96000);
-		}
-	} else if (inCaps.dwChannels == 1) {
-		if (    (inCaps.dwFormats & WAVE_FORMAT_1M16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_2M16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_4M16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_96M16) ) {
-			info.nativeFormats.push_back(audio::format_int16);
-		}
-		if (    (inCaps.dwFormats & WAVE_FORMAT_1M08)
-		     || (inCaps.dwFormats & WAVE_FORMAT_2M08)
-		     || (inCaps.dwFormats & WAVE_FORMAT_4M08)
-		     || (inCaps.dwFormats & WAVE_FORMAT_96M08) ) {
-			info.nativeFormats.push_back(audio::format_int8);
-		}
-		if (    (inCaps.dwFormats & WAVE_FORMAT_1M16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_1M08) ){
-			rates.push_back(11025);
-		}
-		if (    (inCaps.dwFormats & WAVE_FORMAT_2M16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_2M08) ){
-			rates.push_back(22050);
-		}
-		if (    (inCaps.dwFormats & WAVE_FORMAT_4M16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_4M08) ){
-			rates.push_back(44100);
-		}
-		if (    (inCaps.dwFormats & WAVE_FORMAT_96M16)
-		     || (inCaps.dwFormats & WAVE_FORMAT_96M08) ){
-			rates.push_back(96000);
-		}
-	} else {
-		// technically, this would be an error
-		info.inputChannels = 0;
-	}
-	input->Release();
-	if (info.inputChannels == 0) {
-		return info;
-	}
-	// Copy the supported rates to the info structure but avoid duplication.
-	bool found;
-	for (uint32_t i=0; i<rates.size(); i++) {
-		found = false;
-		for (uint32_t j=0; j<info.sampleRates.size(); j++) {
-			if (rates[i] == info.sampleRates[j]) {
-				found = true;
-				break;
+		// Get sample rate information.
+		for (auto &it : audio::orchestra::genericSampleRate()) {
+			if (    it >= outCaps.dwMinSecondarySampleRate
+			     && it <= outCaps.dwMaxSecondarySampleRate) {
+				info.sampleRates.push_back(it);
 			}
 		}
-		if (found == false) info.sampleRates.push_back(rates[i]);
+		// Get format information.
+		if (outCaps.dwFlags & DSCAPS_PRIMARY16BIT) {
+			info.nativeFormats.push_back(audio::format_int16);
+		}
+		if (outCaps.dwFlags & DSCAPS_PRIMARY8BIT) {
+			info.nativeFormats.push_back(audio::format_int8);
+		}
+		output->Release();
+		info.name = m_private->dsDevices[_device].name;
+		return info;
+	} else {
+		LPDIRECTSOUNDCAPTURE input;
+		result = DirectSoundCaptureCreate(m_private->dsDevices[_device].id, &input, nullptr);
+		if (FAILED(result)) {
+			ATA_ERROR(getErrorString(result) << ": opening input device (" << m_private->dsDevices[_device].name << ")!");
+			return info;
+		}
+		DSCCAPS inCaps;
+		inCaps.dwSize = sizeof(inCaps);
+		result = input->GetCaps(&inCaps);
+		if (FAILED(result)) {
+			input->Release();
+			ATA_ERROR(getErrorString(result) << ": getting object capabilities (" << m_private->dsDevices[_device].name << ")!");
+			return info;
+		}
+		// Get input channel information.
+		for (int32_t iii=0; iii<inCaps.dwChannels; ++iii) {
+			info.channels.push_back(audio::channel_unknow);
+		}
+		// Get sample rate and format information.
+		std::vector<uint32_t> rates;
+		if (inCaps.dwChannels >= 2) {
+			if (    (inCaps.dwFormats & WAVE_FORMAT_1S16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_2S16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_4S16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_96S16) ) {
+				info.nativeFormats.push_back(audio::format_int16);
+			}
+			if (    (inCaps.dwFormats & WAVE_FORMAT_1S08)
+			     || (inCaps.dwFormats & WAVE_FORMAT_2S08)
+			     || (inCaps.dwFormats & WAVE_FORMAT_4S08)
+			     || (inCaps.dwFormats & WAVE_FORMAT_96S08) ) {
+				info.nativeFormats.push_back(audio::format_int8);
+			}
+			if (    (inCaps.dwFormats & WAVE_FORMAT_1S16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_1S08) ){
+				rates.push_back(11025);
+			}
+			if (    (inCaps.dwFormats & WAVE_FORMAT_2S16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_2S08) ){
+				rates.push_back(22050);
+			}
+			if (    (inCaps.dwFormats & WAVE_FORMAT_4S16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_4S08) ){
+				rates.push_back(44100);
+			}
+			if (    (inCaps.dwFormats & WAVE_FORMAT_96S16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_96S08) ){
+				rates.push_back(96000);
+			}
+		} else if (inCaps.dwChannels == 1) {
+			if (    (inCaps.dwFormats & WAVE_FORMAT_1M16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_2M16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_4M16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_96M16) ) {
+				info.nativeFormats.push_back(audio::format_int16);
+			}
+			if (    (inCaps.dwFormats & WAVE_FORMAT_1M08)
+			     || (inCaps.dwFormats & WAVE_FORMAT_2M08)
+			     || (inCaps.dwFormats & WAVE_FORMAT_4M08)
+			     || (inCaps.dwFormats & WAVE_FORMAT_96M08) ) {
+				info.nativeFormats.push_back(audio::format_int8);
+			}
+			if (    (inCaps.dwFormats & WAVE_FORMAT_1M16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_1M08) ){
+				rates.push_back(11025);
+			}
+			if (    (inCaps.dwFormats & WAVE_FORMAT_2M16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_2M08) ){
+				rates.push_back(22050);
+			}
+			if (    (inCaps.dwFormats & WAVE_FORMAT_4M16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_4M08) ){
+				rates.push_back(44100);
+			}
+			if (    (inCaps.dwFormats & WAVE_FORMAT_96M16)
+			     || (inCaps.dwFormats & WAVE_FORMAT_96M08) ){
+				rates.push_back(96000);
+			}
+		} else {
+			// technically, this would be an error
+			info.channels.clear();
+		}
+		input->Release();
+		if (info.channels.size() == 0) {
+			return info;
+		}
+		// Copy the supported rates to the info structure but avoid duplication.
+		bool found;
+		for (uint32_t i=0; i<rates.size(); i++) {
+			found = false;
+			for (uint32_t j=0; j<info.sampleRates.size(); j++) {
+				if (rates[i] == info.sampleRates[j]) {
+					found = true;
+					break;
+				}
+			}
+			if (found == false) {
+				info.sampleRates.push_back(rates[i]);
+			}
+		}
+		std::sort(info.sampleRates.begin(), info.sampleRates.end());
+		// Copy name and return.
+		info.name = m_private->dsDevices[_device].name;
+		return info;
 	}
-	std::sort(info.sampleRates.begin(), info.sampleRates.end());
-	// If device opens for both playback and capture, we determine the channels.
-	if (info.outputChannels > 0 && info.inputChannels > 0) {
-		info.duplexChannels = (info.outputChannels > info.inputChannels) ? info.inputChannels : info.outputChannels;
-	}
-	if (_device == 0) {
-		info.isDefaultInput = true;
-	}
-	// Copy name and return.
-	info.name = m_private->dsDevices[ _device ].name;
-	info.probed = true;
 	return info;
 }
 
@@ -378,17 +399,6 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		// This should not happen because a check is made before this function is called.
 		ATA_ERROR("device ID is invalid!");
 		return false;
-	}
-	if (_mode == audio::orchestra::mode_output) {
-		if (m_private->dsDevices[ _device ].validId[0] == false) {
-			ATA_ERROR("device (" << _device << ") does not support output!");
-			return false;
-		}
-	} else { // _mode == audio::orchestra::mode_input
-		if (m_private->dsDevices[ _device ].validId[1] == false) {
-			ATA_ERROR("device (" << _device << ") does not support input!");
-			return false;
-		}
 	}
 	// According to a note in PortAudio, using GetDesktopWindow()
 	// instead of GetForegroundWindow() is supposed to avoid problems
@@ -433,9 +443,9 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 	HRESULT result;
 	if (_mode == audio::orchestra::mode_output) {
 		LPDIRECTSOUND output;
-		result = DirectSoundCreate(m_private->dsDevices[ _device ].id[0], &output, nullptr);
+		result = DirectSoundCreate(m_private->dsDevices[_device].id, &output, nullptr);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") opening output device (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": opening output device (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		DSCAPS outCaps;
@@ -443,12 +453,12 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		result = output->GetCaps(&outCaps);
 		if (FAILED(result)) {
 			output->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") getting capabilities (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": getting capabilities (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		// Check channel information.
 		if (_channels + _firstChannel == 2 && !(outCaps.dwFlags & DSCAPS_PRIMARYSTEREO)) {
-			ATA_ERROR("the output device (" << m_private->dsDevices[ _device ].name << ") does not support stereo playback.");
+			ATA_ERROR("the output device (" << m_private->dsDevices[_device].name << ") does not support stereo playback.");
 			return false;
 		}
 		// Check format information.	Use 16-bit format unless not
@@ -477,7 +487,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		result = output->SetCooperativeLevel(hWnd, DSSCL_PRIORITY);
 		if (FAILED(result)) {
 			output->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") setting cooperative level (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": setting cooperative level (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		// Even though we will write to the secondary buffer, we need to
@@ -493,14 +503,14 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		result = output->CreateSoundBuffer(&bufferDescription, &buffer, nullptr);
 		if (FAILED(result)) {
 			output->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") accessing primary buffer (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": accessing primary buffer (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		// Set the primary DS buffer sound format.
 		result = buffer->SetFormat(&waveFormat);
 		if (FAILED(result)) {
 			output->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") setting primary buffer format (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": setting primary buffer format (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		// Setup the secondary DS buffer description.
@@ -523,7 +533,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 			result = output->CreateSoundBuffer(&bufferDescription, &buffer, nullptr);
 			if (FAILED(result)) {
 				output->Release();
-				ATA_ERROR("error (" << getErrorString(result) << ") creating secondary buffer (" << m_private->dsDevices[ _device ].name << ")!");
+				ATA_ERROR(getErrorString(result) << ": creating secondary buffer (" << m_private->dsDevices[_device].name << ")!");
 				return false;
 			}
 		}
@@ -534,7 +544,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			output->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") getting buffer settings (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": getting buffer settings (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		dsBufferSize = dsbcaps.dwBufferBytes;
@@ -545,7 +555,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			output->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") locking buffer (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": locking buffer (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		// Zero the DS buffer
@@ -555,7 +565,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			output->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") unlocking buffer (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": unlocking buffer (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		ohandle = (void *) output;
@@ -563,9 +573,9 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 	}
 	if (_mode == audio::orchestra::mode_input) {
 		LPDIRECTSOUNDCAPTURE input;
-		result = DirectSoundCaptureCreate(m_private->dsDevices[ _device ].id[1], &input, nullptr);
+		result = DirectSoundCaptureCreate(m_private->dsDevices[_device].id, &input, nullptr);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") opening input device (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": opening input device (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		DSCCAPS inCaps;
@@ -573,7 +583,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		result = input->GetCaps(&inCaps);
 		if (FAILED(result)) {
 			input->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") getting input capabilities (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": getting input capabilities (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		// Check channel information.
@@ -626,7 +636,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		result = input->CreateCaptureBuffer(&bufferDescription, &buffer, nullptr);
 		if (FAILED(result)) {
 			input->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") creating input buffer (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": creating input buffer (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		// Get the buffer size ... might be different from what we specified.
@@ -636,7 +646,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			input->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") getting buffer settings (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": getting buffer settings (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		dsBufferSize = dscbcaps.dwBufferBytes;
@@ -651,7 +661,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			input->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") locking input buffer (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": locking input buffer (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		// Zero the buffer
@@ -661,7 +671,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 		if (FAILED(result)) {
 			input->Release();
 			buffer->Release();
-			ATA_ERROR("error (" << getErrorString(result) << ") unlocking input buffer (" << m_private->dsDevices[ _device ].name << ")!");
+			ATA_ERROR(getErrorString(result) << ": unlocking input buffer (" << m_private->dsDevices[_device].name << ")!");
 			return false;
 		}
 		ohandle = (void *) input;
@@ -749,7 +759,7 @@ bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
 			goto error;
 		}
 		// Boost DS thread priority
-		SetThreadPriority((HANDLE)m_private->thread, THREAD_PRIORITY_HIGHEST);
+		etk::thread::setPriority(*m_private->thread, -6);
 	}
 	return true;
 error:
@@ -788,8 +798,10 @@ enum audio::orchestra::error audio::orchestra::api::Ds::closeStream() {
 	}
 	// Stop the callback thread.
 	m_private->threadRunning = false;
-	WaitForSingleObject((HANDLE) m_private->thread, INFINITE);
-	CloseHandle((HANDLE) m_private->thread);
+	if (m_private->thread != nullptr) {
+		m_private->thread->join();
+		m_private->thread = nullptr;
+	}
 	if (m_private->buffer[0]) { // the object pointer can be nullptr and valid
 		LPDIRECTSOUND object = (LPDIRECTSOUND) m_private->id[0];
 		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
@@ -846,7 +858,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::startStream() {
 		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
 		result = buffer->Play(0, 0, DSBPLAY_LOOPING);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") starting output buffer!");
+			ATA_ERROR(getErrorString(result) << ": starting output buffer!");
 			goto unlock;
 		}
 	}
@@ -855,7 +867,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::startStream() {
 		LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
 		result = buffer->Start(DSCBSTART_LOOPING);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") starting input buffer!");
+			ATA_ERROR(getErrorString(result) << ": starting input buffer!");
 			goto unlock;
 		}
 	}
@@ -892,14 +904,14 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
 		result = buffer->Stop();
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") stopping output buffer!");
+			ATA_ERROR(getErrorString(result) << ": stopping output buffer!");
 			goto unlock;
 		}
 		// Lock the buffer and clear it so that if we start to play again,
 		// we won't have old data playing.
 		result = buffer->Lock(0, m_private->dsBufferSize[0], &audioPtr, &dataLen, nullptr, nullptr, 0);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") locking output buffer!");
+			ATA_ERROR(getErrorString(result) << ": locking output buffer!");
 			goto unlock;
 		}
 		// Zero the DS buffer
@@ -907,7 +919,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 		// Unlock the DS buffer
 		result = buffer->Unlock(audioPtr, dataLen, nullptr, 0);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") unlocking output buffer!");
+			ATA_ERROR(getErrorString(result) << ": unlocking output buffer!");
 			goto unlock;
 		}
 		// If we start playing again, we must begin at beginning of buffer.
@@ -921,14 +933,14 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 		m_state = audio::orchestra::state_stopped;
 		result = buffer->Stop();
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") stopping input buffer!");
+			ATA_ERROR(getErrorString(result) << ": stopping input buffer!");
 			goto unlock;
 		}
 		// Lock the buffer and clear it so that if we start to play again,
 		// we won't have old data playing.
 		result = buffer->Lock(0, m_private->dsBufferSize[1], &audioPtr, &dataLen, nullptr, nullptr, 0);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") locking input buffer!");
+			ATA_ERROR(getErrorString(result) << ": locking input buffer!");
 			goto unlock;
 		}
 		// Zero the DS buffer
@@ -936,7 +948,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 		// Unlock the DS buffer
 		result = buffer->Unlock(audioPtr, dataLen, nullptr, 0);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") unlocking input buffer!");
+			ATA_ERROR(getErrorString(result) << ": unlocking input buffer!");
 			goto unlock;
 		}
 		// If we start recording again, we must begin at beginning of buffer.
@@ -963,6 +975,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::abortStream() {
 }
 
 void audio::orchestra::api::Ds::callbackEvent() {
+	etk::thread::setName("DS IO-" + m_name);
 	if (m_state == audio::orchestra::state_stopped || m_state == audio::orchestra::state_stopping) {
 		Sleep(50); // sleep 50 milliseconds
 		return;
@@ -985,23 +998,23 @@ void audio::orchestra::api::Ds::callbackEvent() {
 	// draining stream.
 	if (m_private->drainCounter == 0) {
 		audio::Time streamTime = getStreamTime();
-		audio::orchestra::status status = audio::orchestra::status_ok;
+		std::vector<audio::orchestra::status> status;
 		if (    m_mode != audio::orchestra::mode_input
 		     && m_private->xrun[0] == true) {
-			status = audio::orchestra::status_underflow;
+			status.push_back(audio::orchestra::status_underflow);
 			m_private->xrun[0] = false;
 		}
 		if (    m_mode != audio::orchestra::mode_output
 		     && m_private->xrun[1] == true) {
-			status = audio::orchestra::status_overflow;
+			status.push_back(audio::orchestra::status_overflow);
 			m_private->xrun[1] = false;
 		}
-		int32_t cbReturnValue = info->callback(&m_userBuffer[1][0],
-		                                       streamTime,
-		                                       &m_userBuffer[0][0],
-		                                       streamTime,
-		                                       m_bufferSize,
-		                                       status);
+		int32_t cbReturnValue = m_callback(&m_userBuffer[1][0],
+		                                   streamTime,
+		                                   &m_userBuffer[0][0],
+		                                   streamTime,
+		                                   m_bufferSize,
+		                                   status);
 		if (cbReturnValue == 2) {
 			m_state = audio::orchestra::state_stopping;
 			m_private->drainCounter = 2;
@@ -1042,23 +1055,23 @@ void audio::orchestra::api::Ds::callbackEvent() {
 			DWORD startSafeWritePointer, startSafeReadPointer;
 			result = dsWriteBuffer->GetCurrentPosition(nullptr, &startSafeWritePointer);
 			if (FAILED(result)) {
-				ATA_ERROR("error (" << getErrorString(result) << ") getting current write position!");
+				ATA_ERROR(getErrorString(result) << ": getting current write position!");
 				return;
 			}
 			result = dsCaptureBuffer->GetCurrentPosition(nullptr, &startSafeReadPointer);
 			if (FAILED(result)) {
-				ATA_ERROR("error (" << getErrorString(result) << ") getting current read position!");
+				ATA_ERROR(getErrorString(result) << ": getting current read position!");
 				return;
 			}
 			while (true) {
 				result = dsWriteBuffer->GetCurrentPosition(nullptr, &safeWritePointer);
 				if (FAILED(result)) {
-					ATA_ERROR("error (" << getErrorString(result) << ") getting current write position!");
+					ATA_ERROR(getErrorString(result) << ": getting current write position!");
 					return;
 				}
 				result = dsCaptureBuffer->GetCurrentPosition(nullptr, &safeReadPointer);
 				if (FAILED(result)) {
-					ATA_ERROR("error (" << getErrorString(result) << ") getting current read position!");
+					ATA_ERROR(getErrorString(result) << ": getting current read position!");
 					return;
 				}
 				if (    safeWritePointer != startSafeWritePointer
@@ -1078,7 +1091,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 			LPDIRECTSOUNDBUFFER dsWriteBuffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
 			result = dsWriteBuffer->GetCurrentPosition(&currentWritePointer, &safeWritePointer);
 			if (FAILED(result)) {
-				ATA_ERROR("error (" << getErrorString(result) << ") getting current write position!");
+				ATA_ERROR(getErrorString(result) << ": getting current write position!");
 				return;
 			}
 			m_private->bufferPointer[0] = safeWritePointer + m_private->dsPointerLeadTime[0];
@@ -1123,7 +1136,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 			// Find out where the read and "safe write" pointers are.
 			result = dsBuffer->GetCurrentPosition(&currentWritePointer, &safeWritePointer);
 			if (FAILED(result)) {
-				ATA_ERROR("error (" << getErrorString(result) << ") getting current write position!");
+				ATA_ERROR(getErrorString(result) << ": getting current write position!");
 				return;
 			}
 			// We will copy our output buffer into the region between
@@ -1172,7 +1185,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 		                        &bufferSize2,
 		                        0);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") locking buffer during playback!");
+			ATA_ERROR(getErrorString(result) << ": locking buffer during playback!");
 			return;
 		}
 		// Copy our buffer into the DS buffer
@@ -1183,7 +1196,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 		// Update our buffer offset and unlock sound buffer
 		dsBuffer->Unlock(buffer1, bufferSize1, buffer2, bufferSize2);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") unlocking buffer during playback!");
+			ATA_ERROR(getErrorString(result) << ": unlocking buffer during playback!");
 			return;
 		}
 		nextWritePointer = (nextWritePointer + bufferSize1 + bufferSize2) % dsBufferSize;
@@ -1211,7 +1224,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 		// Find out where the write and "safe read" pointers are.
 		result = dsBuffer->GetCurrentPosition(&currentReadPointer, &safeReadPointer);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") getting current read position!");
+			ATA_ERROR(getErrorString(result) << ": getting current read position!");
 			return;
 		}
 		if (safeReadPointer < (DWORD)nextReadPointer) {
@@ -1271,7 +1284,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 				// Wake up and find out where we are now.
 				result = dsBuffer->GetCurrentPosition(&currentReadPointer, &safeReadPointer);
 				if (FAILED(result)) {
-					ATA_ERROR("error (" << getErrorString(result) << ") getting current read position!");
+					ATA_ERROR(getErrorString(result) << ": getting current read position!");
 					return;
 				}
 				if (safeReadPointer < (DWORD)nextReadPointer) {
@@ -1289,7 +1302,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 		                        &bufferSize2,
 		                        0);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") locking capture buffer!");
+			ATA_ERROR(getErrorString(result) << ": locking capture buffer!");
 			return;
 		}
 		if (m_duplexPrerollBytes <= 0) {
@@ -1309,7 +1322,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 		nextReadPointer = (nextReadPointer + bufferSize1 + bufferSize2) % dsBufferSize;
 		dsBuffer->Unlock(buffer1, bufferSize1, buffer2, bufferSize2);
 		if (FAILED(result)) {
-			ATA_ERROR("error (" << getErrorString(result) << ") unlocking capture buffer!");
+			ATA_ERROR(getErrorString(result) << ": unlocking capture buffer!");
 			return;
 		}
 		m_private->bufferPointer[1] = nextReadPointer;
@@ -1330,98 +1343,10 @@ unlock:
 }
 
 void audio::orchestra::api::Ds::dsCallbackEvent(void *_userData) {
-	etk::thread::setName("DS IO-" + m_name);
 	audio::orchestra::api::Ds* myClass = reinterpret_cast<audio::orchestra::api::Ds*>(_userData);
 	while (myClass->m_private->threadRunning == true) {
 		myClass->callbackEvent();
 	}
-}
-
-#include "tchar.h"
-static std::string convertTChar(LPCTSTR _name) {
-#if defined(UNICODE) || defined(_UNICODE)
-	int32_t length = WideCharToMultiByte(CP_UTF8, 0, _name, -1, nullptr, 0, nullptr, nullptr);
-	std::string s(length-1, '\0');
-	WideCharToMultiByte(CP_UTF8, 0, _name, -1, &s[0], length, nullptr, nullptr);
-#else
-	std::string s(_name);
-#endif
-	return s;
-}
-
-static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
-                                         LPCTSTR _description,
-                                         LPCTSTR _module,
-                                         LPVOID _lpContext) {
-	struct DsProbeData& probeInfo = *(struct DsProbeData*) _lpContext;
-	std::vector<DsDevice>& dsDevices = *probeInfo.dsDevices;
-	HRESULT hr;
-	bool validDevice = false;
-	if (probeInfo.isInput == true) {
-		DSCCAPS caps;
-		LPDIRECTSOUNDCAPTURE object;
-		hr = DirectSoundCaptureCreate(_lpguid, &object,	 nullptr);
-		if (hr != DS_OK) {
-			return TRUE;
-		}
-		caps.dwSize = sizeof(caps);
-		hr = object->GetCaps(&caps);
-		if (hr == DS_OK) {
-			if (caps.dwChannels > 0 && caps.dwFormats > 0) {
-				validDevice = true;
-			}
-		}
-		object->Release();
-	} else {
-		DSCAPS caps;
-		LPDIRECTSOUND object;
-		hr = DirectSoundCreate(_lpguid, &object,	 nullptr);
-		if (hr != DS_OK) {
-			return TRUE;
-		}
-		caps.dwSize = sizeof(caps);
-		hr = object->GetCaps(&caps);
-		if (hr == DS_OK) {
-			if (    caps.dwFlags & DSCAPS_PRIMARYMONO
-			     || caps.dwFlags & DSCAPS_PRIMARYSTEREO) {
-				validDevice = true;
-			}
-		}
-		object->Release();
-	}
-	// If good device, then save its name and guid.
-	std::string name = convertTChar(_description);
-	//if (name == "Primary Sound Driver" || name == "Primary Sound Capture Driver")
-	if (_lpguid == nullptr) {
-		name = "Default Device";
-	}
-	if (validDevice) {
-		for (size_t i=0; i<dsDevices.size(); i++) {
-			if (dsDevices[i].name == name) {
-				dsDevices[i].found = true;
-				if (probeInfo.isInput) {
-					dsDevices[i].id[1] = _lpguid;
-					dsDevices[i].validId[1] = true;
-				} else {
-					dsDevices[i].id[0] = _lpguid;
-					dsDevices[i].validId[0] = true;
-				}
-				return TRUE;
-			}
-		}
-		DsDevice device;
-		device.name = name;
-		device.found = true;
-		if (probeInfo.isInput) {
-			device.id[1] = _lpguid;
-			device.validId[1] = true;
-		} else {
-			device.id[0] = _lpguid;
-			device.validId[0] = true;
-		}
-		dsDevices.push_back(device);
-	}
-	return TRUE;
 }
 
 static const char* getErrorString(int32_t code) {
