@@ -8,7 +8,7 @@ def get_desc():
 
 
 def create(target):
-	myModule = module.Module(__file__, 'audio_orchestra', 'LIBRARY')
+	myModule = module.Module(__file__, 'audio-orchestra', 'LIBRARY')
 	
 	myModule.add_src_file([
 		'audio/orchestra/debug.cpp',

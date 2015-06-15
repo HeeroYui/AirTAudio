@@ -13,7 +13,7 @@ def create(target):
 	myModule.add_src_file([
 		'orchestra-list.cpp'
 		])
-	myModule.add_module_depend(['audio_orchestra', 'test-debug'])
+	myModule.add_module_depend(['audio-orchestra', 'test-debug'])
 	return myModule
 
 
