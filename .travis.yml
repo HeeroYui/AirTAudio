@@ -28,7 +28,7 @@ install:
 
 script: 
   - lutin -C -P -c$BUILDER -mdebug -p audio-orchestra
-  - ./out/Linux_x86_64/debug/staging/$BUILDER/audio-orchestra/usr/bin/audio-orchestra -l6
+#  - ./out/Linux_x86_64/debug/staging/$BUILDER/audio-orchestra/usr/bin/audio-orchestra -l6
 
 notifications:
   email:
