@@ -4,6 +4,9 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
+
+#if defined(ORCHESTRA_BUILD_PULSE)
+
 #include <stdio.h>
 #include <string.h>
 #include <pulse/pulseaudio.h>
@@ -353,3 +356,5 @@ std::vector<audio::orchestra::DeviceInfo> audio::orchestra::api::pulse::getDevic
 	}
 	return out;
 }
+
+#endif
