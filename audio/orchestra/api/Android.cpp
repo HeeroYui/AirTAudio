@@ -7,7 +7,7 @@
 
 #ifdef ORCHESTRA_BUILD_JAVA
 
-#include <ewol/context/Context.h>
+//#include <ewol/context/Context.h>
 #include <unistd.h>
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
@@ -16,8 +16,10 @@
 #undef __class__
 #define __class__ "api::Android"
 
+int32_t ttttttt();
+
 audio::orchestra::Api* audio::orchestra::api::Android::create() {
-	ATA_INFO("Create Android device ... ");
+	ATA_INFO("Create Android device ... : " << ttttttt());
 	return new audio::orchestra::api::Android();
 }
 
@@ -26,6 +28,7 @@ audio::orchestra::api::Android::Android() {
 	ATA_INFO("new Android");
 	// On android, we set a static device ...
 	ATA_INFO("get context");
+	#if 0
 	ewol::Context& tmpContext = ewol::getContext();
 	ATA_INFO("done p=" << (int64_t)&tmpContext);
 	int32_t deviceCount = tmpContext.audioGetDeviceCount();
@@ -60,6 +63,7 @@ audio::orchestra::api::Android::Android() {
 		tmp.nativeFormats = audio::getListFormatFromString(listProperty[4]);
 		m_devices.push_back(tmp);
 	}
+	#endif
 	ATA_INFO("Create Android interface (end)");
 }
 
@@ -93,22 +97,27 @@ enum audio::orchestra::error audio::orchestra::api::Android::startStream() {
 
 enum audio::orchestra::error audio::orchestra::api::Android::stopStream() {
 	ATA_INFO("Stop stream");
+	#if 0
 	ewol::Context& tmpContext = ewol::getContext();
 	tmpContext.audioCloseDevice(0);
+	#endif
 	// Can not close the stream now...
 	return audio::orchestra::error_none;
 }
 
 enum audio::orchestra::error audio::orchestra::api::Android::abortStream() {
 	ATA_INFO("Abort Stream");
+	#if 0
 	ewol::Context& tmpContext = ewol::getContext();
 	tmpContext.audioCloseDevice(0);
+	#endif
 	// Can not close the stream now...
 	return audio::orchestra::error_none;
 }
 
 void audio::orchestra::api::Android::callBackEvent(void* _data,
-                                            int32_t _frameRate) {
+                                                   int32_t _frameRate) {
+	#if 0
 	int32_t doStopStream = 0;
 	audio::Time streamTime = getStreamTime();
 	std::vector<enum audio::orchestra::status> status;
@@ -133,28 +142,33 @@ void audio::orchestra::api::Android::callBackEvent(void* _data,
 		return;
 	}
 	audio::orchestra::Api::tickStreamTime();
+	#endif
 }
 
 void audio::orchestra::api::Android::androidCallBackEvent(void* _data,
-                                                   int32_t _frameRate,
-                                                   void* _userData) {
+                                                          int32_t _frameRate,
+                                                          void* _userData) {
+	#if 0
 	if (_userData == nullptr) {
 		ATA_INFO("callback event ... nullptr pointer");
 		return;
 	}
 	audio::orchestra::api::Android* myClass = static_cast<audio::orchestra::api::Android*>(_userData);
 	myClass->callBackEvent(_data, _frameRate/2);
+	#endif
 }
 
 bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
-                                              audio::orchestra::mode _mode,
-                                              uint32_t _channels,
-                                              uint32_t _firstChannel,
-                                              uint32_t _sampleRate,
-                                              audio::format _format,
-                                              uint32_t *_bufferSize,
-                                              const audio::orchestra::StreamOptions& _options) {
+                                                     audio::orchestra::mode _mode,
+                                                     uint32_t _channels,
+                                                     uint32_t _firstChannel,
+                                                     uint32_t _sampleRate,
+                                                     audio::format _format,
+                                                     uint32_t *_bufferSize,
+                                                     const audio::orchestra::StreamOptions& _options) {
+	bool ret = false;
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);
+	#if 0
 	if (_mode != audio::orchestra::mode_output) {
 		ATA_ERROR("Can not start a device input or duplex for Android ...");
 		return false;
@@ -162,7 +176,6 @@ bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
 	m_userFormat = _format;
 	m_nUserChannels[modeToIdTable(_mode)] = _channels;
 	ewol::Context& tmpContext = ewol::getContext();
-	bool ret = false;
 	if (_format == SINT8) {
 		ret = tmpContext.audioOpenDevice(_device, _sampleRate, _channels, 0, androidCallBackEvent, this);
 	} else {
@@ -203,6 +216,7 @@ bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
 	if (ret == false) {
 		ATA_ERROR("Can not open device.");
 	}
+	#endif
 	return ret;
 }
 

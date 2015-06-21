@@ -17,7 +17,7 @@ namespace audio {
 }
 #define ATA_BASE(info,data) TK_LOG_BASE(audio::orchestra::getLogId(),info,data)
 
-#define ATA_PRINT(data)      ATA_BASE(-1, data)
+#define ATA_PRINT(data)         ATA_BASE(-1, data)
 #define ATA_CRITICAL(data)      ATA_BASE(1, data)
 #define ATA_ERROR(data)         ATA_BASE(2, data)
 #define ATA_WARNING(data)       ATA_BASE(3, data)

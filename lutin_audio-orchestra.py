@@ -63,10 +63,20 @@ def create(target):
 		# IOsX core
 		myModule.add_optionnal_module_depend('CoreAudio', ["c++", "-DORCHESTRA_BUILD_IOS_CORE"])
 	elif target.name=="Android":
+		myModule.add_src_file('android/org/musicdsp/orchestra/Constants.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/ManagerCallback.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/Orchestra.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/InterfaceInput.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/InterfaceOutput.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/Manager.java')
+		# create inter language interface
+		myModule.add_src_file('org.musicdsp.orchestra.Constants.javah')
+		myModule.add_path(tools.get_current_path(__file__) + '/android/', type='java')
+		myModule.add_module_depend(['SDK', 'jvm-basics'])
+		myModule.add_export_flag('c++', ['-DORCHESTRA_BUILD_JAVA'])
+		
 		myModule.add_src_file('audio/orchestra/api/Android.cpp')
-		# specidic java interface for android:
-		myModule.add_optionnal_module_depend('ewolAndroidAudio', ["c++", "-DORCHESTRA_BUILD_JAVA"])
-		#myModule.add_module_depend(['ewol'])
+		myModule.add_src_file('audio/orchestra/api/AndroidNativeInterface.cpp')
 	else:
 		debug.warning("unknow target for audio_orchestra : " + target.name);
 	

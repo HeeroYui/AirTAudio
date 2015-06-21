@@ -2,7 +2,6 @@
  * @author Edouard DUPIN 
  * @copyright 2011, Edouard DUPIN, all right reserved
  * @license APACHE v2.0 (see license file)
- * @fork from RTAudio
  */
 
 #if !defined(__AUDIO_ORCHESTRA_API_ANDROID_H__) && defined(ORCHESTRA_BUILD_JAVA)
