@@ -24,6 +24,7 @@ import org.musicdsp.orchestra.InterfaceInput;
 public class Manager implements ManagerCallback, Constants {
 	private Orchestra orchestraHandle;
 	private int uid = 0;
+	private InterfaceOutput test;
 	private Vector<InterfaceOutput> outputList;
 	private Vector<InterfaceInput> inputList;
 	
@@ -57,7 +58,9 @@ public class Manager implements ManagerCallback, Constants {
 		InterfaceOutput iface = new InterfaceOutput(uid, orchestraHandle, idDevice, freq, nbChannel, format);
 		uid++;
 		if (iface != null) {
-			outputList.add(iface);
+			//outputList.add(iface);
+			test = iface;
+			return true;
 		}
 		return false;
 		/*
@@ -97,5 +100,31 @@ public class Manager implements ManagerCallback, Constants {
 		*/
 		return false;
 	}
+	
+	public boolean start(int idDevice) {
+		if (idDevice == 0) {
+			if (test != null) {
+				test.start();
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	public boolean stop(int idDevice) {
+		if (idDevice == 0) {
+			if (test != null) {
+				// request audio stop
+				test.AutoStop();
+				try {
+					test.join();
+				} catch(InterruptedException e) { }
+				test = null;
+				return true;
+			}
+		}
+		return false;
+	}
+	
 }
 

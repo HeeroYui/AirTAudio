@@ -52,6 +52,7 @@ public class InterfaceOutput extends Thread implements Constants {
 		while (!m_stopAudioThreads) {
 			// Fill buffer with PCM data from C++
 			// TODO : Set if back ... ORCHESTRA.audioPlayback(streamBuffer, BUFFER_SIZE, nbChannels);
+			Log.i("audioEWOL", "new data ... ");
 			int xxx = BUFFER_SIZE;
 			/*
 			while (xxx>0) {

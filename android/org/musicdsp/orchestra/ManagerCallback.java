@@ -13,4 +13,6 @@ public interface ManagerCallback {
 	public String getDeviceProperty(int idDevice);
 	public boolean openDevice(int idDevice, int sampleRate, int nbChannel, int format);
 	public boolean closeDevice(int idDevice);
+	public boolean start(int idDevice);
+	public boolean stop(int idDevice);
 }

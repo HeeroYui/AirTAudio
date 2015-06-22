@@ -27,6 +27,8 @@ class AndroidOrchestraContext {
 		jmethodID m_javaMethodOrchestraActivityAudioGetDeviceProperty;
 		jmethodID m_javaMethodOrchestraActivityAudioOpenDevice;
 		jmethodID m_javaMethodOrchestraActivityAudioCloseDevice;
+		jmethodID m_javaMethodOrchestraActivityAudioStart;
+		jmethodID m_javaMethodOrchestraActivityAudioStop;
 		jclass m_javaDefaultClassString; //!< default string class
 	private:
 		bool safeInitMethodID(jmethodID& _mid, jclass& _cls, const char* _name, const char* _sign) {
@@ -80,6 +82,8 @@ class AndroidOrchestraContext {
 		  m_javaMethodOrchestraActivityAudioGetDeviceProperty(0),
 		  m_javaMethodOrchestraActivityAudioOpenDevice(0),
 		  m_javaMethodOrchestraActivityAudioCloseDevice(0),
+		  m_javaMethodOrchestraActivityAudioStart(0),
+		  m_javaMethodOrchestraActivityAudioStop(0),
 		  m_javaDefaultClassString(0) {
 			ATA_DEBUG("*******************************************");
 			ATA_DEBUG("** set JVM Pointer (orchestra)           **");
@@ -144,6 +148,24 @@ class AndroidOrchestraContext {
 			if (ret == false) {
 				jvm_basics::checkExceptionJavaVM(_env);
 				ATA_ERROR("system can not start without function : closeDevice");
+				functionCallbackIsMissing = true;
+			}
+			ret = safeInitMethodID(m_javaMethodOrchestraActivityAudioStart,
+			                       m_javaClassOrchestraCallback,
+			                       "start",
+			                       "(I)Z");
+			if (ret == false) {
+				jvm_basics::checkExceptionJavaVM(_env);
+				ATA_ERROR("system can not start without function : start");
+				functionCallbackIsMissing = true;
+			}
+			ret = safeInitMethodID(m_javaMethodOrchestraActivityAudioStop,
+			                       m_javaClassOrchestraCallback,
+			                       "stop",
+			                       "(I)Z");
+			if (ret == false) {
+				jvm_basics::checkExceptionJavaVM(_env);
+				ATA_ERROR("system can not start without function : stop");
 				functionCallbackIsMissing = true;
 			}
 			
@@ -275,15 +297,15 @@ class AndroidOrchestraContext {
 	public:
 		enum audio::orchestra::error closeStream(int32_t _id) {
 			ATA_DEBUG("C->java : audio close device");
-				int status;
-				if(!java_attach_current_thread(&status)) {
-					return audio::orchestra::error_fail;
-				}
-				//Call java ...
-				jboolean ret = m_JavaVirtualMachinePointer->CallBooleanMethod(m_javaObjectOrchestraCallback, m_javaMethodOrchestraActivityAudioCloseDevice, _id);
-				// manage execption : 
-				jvm_basics::checkExceptionJavaVM(m_JavaVirtualMachinePointer);
-				java_detach_current_thread(status);
+			int status;
+			if(!java_attach_current_thread(&status)) {
+				return audio::orchestra::error_fail;
+			}
+			//Call java ...
+			jboolean ret = m_JavaVirtualMachinePointer->CallBooleanMethod(m_javaObjectOrchestraCallback, m_javaMethodOrchestraActivityAudioCloseDevice, _id);
+			// manage execption : 
+			jvm_basics::checkExceptionJavaVM(m_JavaVirtualMachinePointer);
+			java_detach_current_thread(status);
 			if (bool(ret) == false) {
 				return audio::orchestra::error_fail;
 			}
@@ -291,10 +313,37 @@ class AndroidOrchestraContext {
 		}
 		
 		enum audio::orchestra::error startStream(int32_t _id) {
-			return audio::orchestra::error_fail;
+			ATA_DEBUG("C->java : audio start device");
+			int status;
+			if(!java_attach_current_thread(&status)) {
+				return audio::orchestra::error_fail;
+			}
+			//Call java ...
+			jboolean ret = m_JavaVirtualMachinePointer->CallBooleanMethod(m_javaObjectOrchestraCallback, m_javaMethodOrchestraActivityAudioStart, _id);
+			// manage execption : 
+			jvm_basics::checkExceptionJavaVM(m_JavaVirtualMachinePointer);
+			java_detach_current_thread(status);
+			if (bool(ret) == false) {
+				return audio::orchestra::error_fail;
+			}
+			return audio::orchestra::error_none;
 		}
 		enum audio::orchestra::error stopStream(int32_t _id) {
-			return audio::orchestra::error_fail;
+			
+			ATA_DEBUG("C->java : audio close device");
+			int status;
+			if(!java_attach_current_thread(&status)) {
+				return audio::orchestra::error_fail;
+			}
+			//Call java ...
+			jboolean ret = m_JavaVirtualMachinePointer->CallBooleanMethod(m_javaObjectOrchestraCallback, m_javaMethodOrchestraActivityAudioStop, _id);
+			// manage execption : 
+			jvm_basics::checkExceptionJavaVM(m_JavaVirtualMachinePointer);
+			java_detach_current_thread(status);
+			if (bool(ret) == false) {
+				return audio::orchestra::error_fail;
+			}
+			return audio::orchestra::error_none;
 		}
 		enum audio::orchestra::error abortStream(int32_t _id) {
 			return audio::orchestra::error_fail;

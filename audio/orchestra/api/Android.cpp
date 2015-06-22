@@ -52,7 +52,7 @@ enum audio::orchestra::error audio::orchestra::api::Android::startStream() {
 	// TODO : Check return ...
 	audio::orchestra::Api::startStream();
 	// Can not close the stream now...
-	return audio::orchestra::error_none;
+	return audio::orchestra::api::android::startStream(0);
 }
 
 enum audio::orchestra::error audio::orchestra::api::Android::stopStream() {
@@ -62,7 +62,7 @@ enum audio::orchestra::error audio::orchestra::api::Android::stopStream() {
 	tmpContext.audioCloseDevice(0);
 	#endif
 	// Can not close the stream now...
-	return audio::orchestra::error_none;
+	return audio::orchestra::api::android::stopStream(0);
 }
 
 enum audio::orchestra::error audio::orchestra::api::Android::abortStream() {
