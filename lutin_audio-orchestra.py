@@ -72,16 +72,45 @@ def create(target):
 		# create inter language interface
 		myModule.add_src_file('org.musicdsp.orchestra.Constants.javah')
 		myModule.add_path(tools.get_current_path(__file__) + '/android/', type='java')
-		myModule.add_module_depend(['SDK', 'jvm-basics'])
+		myModule.add_module_depend(['SDK', 'jvm-basics', 'ejson'])
 		myModule.add_export_flag('c++', ['-DORCHESTRA_BUILD_JAVA'])
 		
 		myModule.add_src_file('audio/orchestra/api/Android.cpp')
 		myModule.add_src_file('audio/orchestra/api/AndroidNativeInterface.cpp')
+		# add tre creator of the basic java class ...
+		target.add_action("PACKAGE", 11, "audio-orchestra-out-wrapper", tool_generate_add_java_section_in_class)
 	else:
 		debug.warning("unknow target for audio_orchestra : " + target.name);
 	
 	myModule.add_export_path(tools.get_current_path(__file__))
 	
 	return myModule
+
+
+
+##################################################################
+##
+## Android specific section
+##
+##################################################################
+def tool_generate_add_java_section_in_class(target, module, package_name):
+	module.pkg_add("GENERATE_SECTION__IMPORT", [
+		"import org.musicdsp.orchestra.Manager;"
+		])
+	module.pkg_add("GENERATE_SECTION__DECLARE", [
+		"private Manager MANAGER;"
+		])
+	module.pkg_add("GENERATE_SECTION__CONSTRUCTOR", [
+		"// load audio maneger if it does not work, it is not critical ...",
+		"try {",
+		"	MANAGER = new Manager();",
+		"} catch (RuntimeException e) {",
+		"	Log.e(\"" + package_name + "\", \"Can not load Audio interface (maybe not really needed) :\" + e);",
+		"}"
+		])
+	
+	
+
+
 
 

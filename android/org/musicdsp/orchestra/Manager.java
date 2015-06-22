@@ -9,10 +9,13 @@
 package org.musicdsp.orchestra;
 
 import android.util.Log;
+import java.util.Vector;
 
 //import org.musicdsp.orchestra.Constants;
 //import org.musicdsp.orchestra.ManagerCallback;
 import org.musicdsp.orchestra.Orchestra;
+import org.musicdsp.orchestra.InterfaceOutput;
+import org.musicdsp.orchestra.InterfaceInput;
 
 /**
  * @brief Class : 
@@ -20,10 +23,14 @@ import org.musicdsp.orchestra.Orchestra;
  */
 public class Manager implements ManagerCallback, Constants {
 	private Orchestra orchestraHandle;
+	private int uid = 0;
+	private Vector<InterfaceOutput> outputList;
+	private Vector<InterfaceInput> inputList;
 	
 	public Manager() {
 		// set the java evironement in the C sources :
 		orchestraHandle = new Orchestra(this);
+		outputList = new Vector<InterfaceOutput>();
 	}
 	
 	public int getDeviceCount() {
@@ -33,13 +40,26 @@ public class Manager implements ManagerCallback, Constants {
 	
 	public String getDeviceProperty(int idDevice) {
 		if (idDevice == 0) {
-			return "speaker:out:8000,16000,24000,32000,48000,96000:2:int16";
+			return   "{\n"
+			       + "	name:'speaker',\n"
+			       + "	type:'output',\n"
+			       + "	sample-rate:[8000,16000,24000,32000,48000,96000],\n"
+			       + "	channels:['front-left','front-right'],\n"
+			       + "	format:['int16'],\n"
+			       + "	default:true\n"
+			       + "}";
 		} else {
-			return "::::";
+			return "{}";
 		}
 	}
 	
 	public boolean openDevice(int idDevice, int freq, int nbChannel, int format) {
+		InterfaceOutput iface = new InterfaceOutput(uid, orchestraHandle, idDevice, freq, nbChannel, format);
+		uid++;
+		if (iface != null) {
+			outputList.add(iface);
+		}
+		return false;
 		/*
 		if (idDevice == 0) {
 			mAudioStarted = true;
@@ -54,7 +74,6 @@ public class Manager implements ManagerCallback, Constants {
 			return false;
 		}
 		*/
-		return false;
 	}
 	
 	public boolean closeDevice(int idDevice) {

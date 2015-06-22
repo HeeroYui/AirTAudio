@@ -8,11 +8,18 @@
 
 package org.musicdsp.orchestra;
 
+import java.lang.UnsatisfiedLinkError;
+import java.lang.RuntimeException;
 import android.util.Log;
 
 public class Orchestra {
 	public <T extends ManagerCallback> Orchestra(T managerInstance) {
-		NNsetJavaManager(managerInstance);
+		try {
+			NNsetJavaManager(managerInstance);
+		} catch (java.lang.UnsatisfiedLinkError e) {
+			Log.e("Orchestra", "JNI binding not present ...");
+			throw new RuntimeException("Orchestra binding not present ...");
+		}
 		Log.d("Orchestra", "new ...");
 	}
 	

@@ -11,60 +11,20 @@
 #include <unistd.h>
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
+#include <audio/orchestra/api/AndroidNativeInterface.h>
 #include <limits.h>
 
 #undef __class__
 #define __class__ "api::Android"
 
-int32_t ttttttt();
-
 audio::orchestra::Api* audio::orchestra::api::Android::create() {
-	ATA_INFO("Create Android device ... : " << ttttttt());
+	ATA_INFO("Create Android device ... ");
 	return new audio::orchestra::api::Android();
 }
 
 
 audio::orchestra::api::Android::Android() {
-	ATA_INFO("new Android");
-	// On android, we set a static device ...
-	ATA_INFO("get context");
-	#if 0
-	ewol::Context& tmpContext = ewol::getContext();
-	ATA_INFO("done p=" << (int64_t)&tmpContext);
-	int32_t deviceCount = tmpContext.audioGetDeviceCount();
-	ATA_ERROR("Get count devices : " << deviceCount);
-	for (int32_t iii=0; iii<deviceCount; ++iii) {
-		std::string property = tmpContext.audioGetDeviceProperty(iii);
-		ATA_ERROR("Get devices property : " << property);
-		std::vector<std::string> listProperty = etk::split(property, ':');
-		audio::orchestra::DeviceInfo tmp;
-		tmp.name = listProperty[0];
-		std::vector<std::string> listFreq = etk::split(listProperty[2], ',');
-		for(size_t fff=0; fff<listFreq.size(); ++fff) {
-			tmp.sampleRates.push_back(etk::string_to_int32_t(listFreq[fff]));
-		}
-		tmp.outputChannels = 0;
-		tmp.inputChannels = 0;
-		tmp.duplexChannels = 0;
-		if (listProperty[1] == "out") {
-			tmp.isDefaultOutput = true;
-			tmp.isDefaultInput = false;
-			tmp.outputChannels = etk::string_to_int32_t(listProperty[3]);
-		} else if (listProperty[1] == "in") {
-			tmp.isDefaultOutput = false;
-			tmp.isDefaultInput = true;
-			tmp.inputChannels = etk::string_to_int32_t(listProperty[3]);
-		} else {
-			/* duplex */
-			tmp.isDefaultOutput = true;
-			tmp.isDefaultInput = true;
-			tmp.duplexChannels = etk::string_to_int32_t(listProperty[3]);
-		}
-		tmp.nativeFormats = audio::getListFormatFromString(listProperty[4]);
-		m_devices.push_back(tmp);
-	}
-	#endif
-	ATA_INFO("Create Android interface (end)");
+	ATA_INFO("Create Android interface");
 }
 
 audio::orchestra::api::Android::~Android() {
@@ -73,16 +33,16 @@ audio::orchestra::api::Android::~Android() {
 
 uint32_t audio::orchestra::api::Android::getDeviceCount() {
 	//ATA_INFO("Get device count:"<< m_devices.size());
-	return m_devices.size();
+	return audio::orchestra::api::android::getDeviceCount();
 }
 
 audio::orchestra::DeviceInfo audio::orchestra::api::Android::getDeviceInfo(uint32_t _device) {
 	//ATA_INFO("Get device info ...");
-	return m_devices[_device];
+	return audio::orchestra::api::android::getDeviceInfo(_device);
 }
 
 enum audio::orchestra::error audio::orchestra::api::Android::closeStream() {
-	ATA_INFO("Clese Stream");
+	ATA_INFO("Close Stream");
 	// Can not close the stream now...
 	return audio::orchestra::error_none;
 }
@@ -168,6 +128,7 @@ bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
                                                      const audio::orchestra::StreamOptions& _options) {
 	bool ret = false;
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);
+	ret = audio::orchestra::api::android::open(_device, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options);
 	#if 0
 	if (_mode != audio::orchestra::mode_output) {
 		ATA_ERROR("Can not start a device input or duplex for Android ...");
