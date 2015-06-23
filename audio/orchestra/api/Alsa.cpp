@@ -30,8 +30,8 @@ extern "C" {
 #undef __class__
 #define __class__ "api::Alsa"
 
-audio::orchestra::Api* audio::orchestra::api::Alsa::create() {
-	return new audio::orchestra::api::Alsa();
+std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Alsa::create() {
+	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Alsa());
 }
 
 namespace audio {
@@ -1563,8 +1563,8 @@ unlock:
 }
 
 
-bool audio::orchestra::api::Alsa::isMasterOf(audio::orchestra::Api* _api) {
-	audio::orchestra::api::Alsa* slave = dynamic_cast<audio::orchestra::api::Alsa*>(_api);
+bool audio::orchestra::api::Alsa::isMasterOf(std11::shared_ptr<audio::orchestra::Api> _api) {
+	std11::shared_ptr<audio::orchestra::api::Alsa> slave = dynamic_pointer_cast<audio::orchestra::api::Alsa>(_api);
 	if (slave == nullptr) {
 		ATA_ERROR("NULL ptr API (not ALSA ...)");
 		return false;

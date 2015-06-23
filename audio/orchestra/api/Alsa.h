@@ -14,7 +14,7 @@ namespace audio {
 			class AlsaPrivate;
 			class Alsa: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* create();
+					static std::shared_ptr<audio::orchestra::Api> create();
 				public:
 					Alsa();
 					virtual ~Alsa();
@@ -72,7 +72,7 @@ namespace audio {
 					                                 const audio::orchestra::StreamOptions& _options);
 					virtual audio::Time getStreamTime();
 				public:
-					bool isMasterOf(audio::orchestra::Api* _api);
+					bool isMasterOf(std11::shared_ptr<audio::orchestra::Api> _api);
 			};
 		}
 	}

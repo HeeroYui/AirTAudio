@@ -21,8 +21,8 @@
 #undef __class__
 #define __class__ "api::Pulse"
 
-audio::orchestra::Api* audio::orchestra::api::Pulse::create() {
-	return new audio::orchestra::api::Pulse();
+std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Pulse::create() {
+	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Pulse());
 }
 
 

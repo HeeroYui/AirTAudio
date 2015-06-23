@@ -57,51 +57,25 @@ public class Manager implements ManagerCallback, Constants {
 	public boolean openDevice(int idDevice, int freq, int nbChannel, int format) {
 		InterfaceOutput iface = new InterfaceOutput(uid, orchestraHandle, idDevice, freq, nbChannel, format);
 		uid++;
+		Log.e("Manager", "Open device : " + idDevice);
 		if (iface != null) {
 			//outputList.add(iface);
 			test = iface;
 			return true;
 		}
 		return false;
-		/*
-		if (idDevice == 0) {
-			mAudioStarted = true;
-			mAudioThread = new Thread(mStreams);
-			if (mAudioThread != null) {
-				mAudioThread.start();
-				return true;
-			}
-			return false;
-		} else {
-			Log.e("Manager", "can not open : error unknow device ...");
-			return false;
-		}
-		*/
 	}
 	
 	public boolean closeDevice(int idDevice) {
-		/*
+		Log.e("Manager", "Close device : " + idDevice);
 		if (idDevice == 0) {
-			if (mAudioThread != null) {
-				// request audio stop
-				mStreams.AutoStop();
-				// wait the thread ended ...
-				try {
-					mAudioThread.join();
-				} catch(InterruptedException e) { }
-				mAudioThread = null;
-			}
-			mAudioStarted = false;
-			return true;
-		} else {
-			Log.e("Manager", "can not close : error unknow device ...");
-			return false;
+			test = null;
 		}
-		*/
 		return false;
 	}
 	
 	public boolean start(int idDevice) {
+		Log.e("Manager", "start device : " + idDevice);
 		if (idDevice == 0) {
 			if (test != null) {
 				test.start();
@@ -112,6 +86,7 @@ public class Manager implements ManagerCallback, Constants {
 	}
 	
 	public boolean stop(int idDevice) {
+		Log.e("Manager", "stop device : " + idDevice);
 		if (idDevice == 0) {
 			if (test != null) {
 				// request audio stop

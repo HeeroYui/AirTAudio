@@ -26,8 +26,7 @@ std::vector<std::string> audio::orchestra::Interface::getListApi() {
 
 
 void audio::orchestra::Interface::openApi(const std::string& _api) {
-	delete m_api;
-	m_api = nullptr;
+	m_api.reset();
 	for (size_t iii=0; iii<m_apiAvaillable.size(); ++iii) {
 		ATA_INFO("try open " << m_apiAvaillable[iii].first);
 		if (_api == m_apiAvaillable[iii].first) {
@@ -78,8 +77,8 @@ audio::orchestra::Interface::Interface() :
 #endif
 }
 
-void audio::orchestra::Interface::addInterface(const std::string& _api, Api* (*_callbackCreate)()) {
-	m_apiAvaillable.push_back(std::pair<std::string, Api* (*)()>(_api, _callbackCreate));
+void audio::orchestra::Interface::addInterface(const std::string& _api, std::shared_ptr<Api> (*_callbackCreate)()) {
+	m_apiAvaillable.push_back(std::pair<std::string, std::shared_ptr<Api> (*)()>(_api, _callbackCreate));
 }
 
 enum audio::orchestra::error audio::orchestra::Interface::clear() {
@@ -88,8 +87,7 @@ enum audio::orchestra::error audio::orchestra::Interface::clear() {
 		ATA_WARNING("Interface NOT started!");
 		return audio::orchestra::error_none;
 	}
-	delete m_api;
-	m_api = nullptr;
+	m_api.reset();
 	return audio::orchestra::error_none;
 }
 
@@ -140,8 +138,7 @@ enum audio::orchestra::error audio::orchestra::Interface::instanciate(const std:
 
 audio::orchestra::Interface::~Interface() {
 	ATA_INFO("Remove interface");
-	delete m_api;
-	m_api = nullptr;
+	m_api.reset();
 }
 
 enum audio::orchestra::error audio::orchestra::Interface::openStream(audio::orchestra::StreamParameters* _outputParameters,

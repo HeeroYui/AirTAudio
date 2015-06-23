@@ -12,10 +12,12 @@
 #include <audio/orchestra/error.h>
 #include <audio/orchestra/StreamOptions.h>
 #include <audio/format.h>
+#include <etk/memory.h>
 
 namespace audio {
 	namespace orchestra {
 		namespace api {
+			class Android;
 			namespace android {
 				uint32_t getDeviceCount();
 				audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device);
@@ -26,7 +28,8 @@ namespace audio {
 				             uint32_t _sampleRate,
 				             audio::format _format,
 				             uint32_t *_bufferSize,
-				             const audio::orchestra::StreamOptions& _options);
+				             const audio::orchestra::StreamOptions& _options,
+				             std11::shared_ptr<audio::orchestra::api::Android> _instance);
 				enum audio::orchestra::error closeStream(int32_t _id);
 				enum audio::orchestra::error startStream(int32_t _id);
 				enum audio::orchestra::error stopStream(int32_t _id);

@@ -7,12 +7,14 @@
 #if !defined(__AUDIO_ORCHESTRA_API_ANDROID_H__) && defined(ORCHESTRA_BUILD_JAVA)
 #define __AUDIO_ORCHESTRA_API_ANDROID_H__
 
+#include <audio/orchestra/Interface.h>
+
 namespace audio {
 	namespace orchestra {
 		namespace api {
 			class Android: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* create();
+					static std::shared_ptr<audio::orchestra::Api> create();
 				public:
 					Android();
 					virtual ~Android();
@@ -31,6 +33,12 @@ namespace audio {
 					// will most likely produce highly undesireable results!
 					void callbackEvent();
 				private:
+					int32_t m_uid;
+				public:
+					int32_t getUId() {
+						return m_uid;
+					}
+				private:
 					std::vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool probeDeviceOpen(uint32_t _device,
@@ -41,12 +49,8 @@ namespace audio {
 					                     audio::format _format,
 					                     uint32_t *_bufferSize,
 					                     const audio::orchestra::StreamOptions& _options);
-				private:
-					void callBackEvent(void* _data,
-					                   int32_t _frameRate);
-					static void androidCallBackEvent(void* _data,
-					                                 int32_t _frameRate,
-					                                 void* _userData);
+				public:
+					void playback(int16_t* _dst, int32_t _nbChunk);
 			};
 		}
 	}

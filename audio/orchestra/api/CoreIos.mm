@@ -18,9 +18,9 @@
 #undef __class__
 #define __class__ "api::CoreIos"
 
-audio::orchestra::Api* audio::orchestra::api::CoreIos::create() {
+std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::CoreIos::create() {
 	ATA_INFO("Create CoreIos device ... ");
-	return new audio::orchestra::api::CoreIos();
+	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::CoreIos());
 }
 
 #define kOutputBus 0

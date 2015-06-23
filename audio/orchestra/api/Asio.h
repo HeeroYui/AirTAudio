@@ -14,7 +14,7 @@ namespace audio {
 			class AsioPrivate:
 			class Asio: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* create();
+					static std::shared_ptr<audio::orchestra::Api> create();
 				public:
 					Asio();
 					virtual ~Asio();

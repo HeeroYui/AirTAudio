@@ -27,7 +27,12 @@ public class Orchestra {
 		NNsetJavaManagerRemove();
 	}
 	
+	public void playback(int flowId, short[] bufferData, int nbChunk) {
+		NNPlayback(flowId, bufferData, nbChunk);
+	}
+	
 	private native <T extends ManagerCallback> void NNsetJavaManager(T managerInstance);
 	private native void NNsetJavaManagerRemove();
+	private native void NNPlayback(int flowId, short[] bufferData, int nbChunk);
 }
 

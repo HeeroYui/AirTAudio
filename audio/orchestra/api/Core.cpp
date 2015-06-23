@@ -19,8 +19,8 @@
 #include <etk/thread.h>
 #include <etk/thread/tools.h>
 
-audio::orchestra::Api* audio::orchestra::api::Core::create() {
-	return new audio::orchestra::api::Core();
+std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Core::create() {
+	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Core());
 }
 
 #undef __class__

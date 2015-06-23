@@ -21,8 +21,8 @@
 #undef __class__
 #define __class__ "api::Oss"
 
-audio::orchestra::Api* audio::orchestra::api::Oss::create() {
-	return new audio::orchestra::api::Oss();
+std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Oss::create() {
+	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Oss());
 }
 
 static void *ossCallbackHandler(void* _userData);

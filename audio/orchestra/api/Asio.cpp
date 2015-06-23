@@ -11,8 +11,8 @@
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
 
-audio::orchestra::Api* audio::orchestra::api::Asio::create() {
-	return new audio::orchestra::api::Asio();
+std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Asio::create() {
+	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Asio());
 }
 
 

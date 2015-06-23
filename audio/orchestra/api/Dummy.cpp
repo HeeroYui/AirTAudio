@@ -12,8 +12,8 @@
 #undef __class__
 #define __class__ "api::Dummy"
 
-audio::orchestra::Api* audio::orchestra::api::Dummy::create() {
-	return new audio::orchestra::api::Dummy();
+std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Dummy::create() {
+	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Dummy());
 }
 
 

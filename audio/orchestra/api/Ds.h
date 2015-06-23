@@ -15,7 +15,7 @@ namespace audio {
 			class DsPrivate;
 			class Ds: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* create();
+					static std::shared_ptr<audio::orchestra::Api> create();
 				public:
 					Ds();
 					virtual ~Ds();

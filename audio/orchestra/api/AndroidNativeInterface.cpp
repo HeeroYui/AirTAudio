@@ -10,6 +10,7 @@
 #include <audio/orchestra/debug.h>
 #include <audio/orchestra/error.h>
 #include <audio/orchestra/api/AndroidNativeInterface.h>
+#include <audio/orchestra/api/Android.h>
 /* include auto generated file */
 #include <org_musicdsp_orchestra_Constants.h>
 #include <jvm-basics/jvm-basics.h>
@@ -268,6 +269,7 @@ class AndroidOrchestraContext {
 			return info;
 		}
 	private:
+		std::vector<std11::weak_ptr<audio::orchestra::api::Android> > m_instanceList; // list of connected handle ...
 		//AndroidAudioCallback m_audioCallBack;
 		//void* m_audioCallBackUserData;
 	public:
@@ -278,7 +280,8 @@ class AndroidOrchestraContext {
 		             uint32_t _sampleRate,
 		             audio::format _format,
 		             uint32_t *_bufferSize,
-		             const audio::orchestra::StreamOptions& _options) {
+		             const audio::orchestra::StreamOptions& _options,
+		             std11::shared_ptr<audio::orchestra::api::Android> _instance) {
 			ATA_DEBUG("C->java : audio open device");
 			int status;
 			if(!java_attach_current_thread(&status)) {
@@ -290,6 +293,7 @@ class AndroidOrchestraContext {
 			jvm_basics::checkExceptionJavaVM(m_JavaVirtualMachinePointer);
 			java_detach_current_thread(status);
 			if (bool(ret) == true) {
+				m_instanceList.push_back(_instance);
 				return 0;
 			}
 			return -1;
@@ -348,6 +352,21 @@ class AndroidOrchestraContext {
 		enum audio::orchestra::error abortStream(int32_t _id) {
 			return audio::orchestra::error_fail;
 		}
+		
+		void playback(int32_t _id, int16_t* _dst, int32_t _nbChunk) {
+			auto it = m_instanceList.begin();
+			while (it != m_instanceList.end()) {
+				auto elem = it->lock();
+				if (elem == nullptr) {
+					it = m_instanceList.erase(it);
+					continue;
+				}
+				if (elem->getUId() == _id) {
+					elem->playback(_dst, _nbChunk);
+				}
+				++it;
+			}
+		}
 };
 
 static std::shared_ptr<AndroidOrchestraContext> s_localContext;
@@ -375,11 +394,12 @@ int32_t audio::orchestra::api::android::open(uint32_t _device,
                                              uint32_t _sampleRate,
                                              audio::format _format,
                                              uint32_t *_bufferSize,
-                                             const audio::orchestra::StreamOptions& _options) {
+                                             const audio::orchestra::StreamOptions& _options,
+                                             std11::shared_ptr<audio::orchestra::api::Android> _instance) {
 	if (s_localContext == nullptr) {
 		return -1;
 	}
-	return s_localContext->open(_device, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options);
+	return s_localContext->open(_device, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options, _instance);
 }
 
 enum audio::orchestra::error audio::orchestra::api::android::closeStream(int32_t _id) {
@@ -442,6 +462,29 @@ extern "C" {
 		if (s_nbContextRequested == 0) {
 			s_localContext.reset();
 		}
+	}
+	void Java_org_musicdsp_orchestra_Orchestra_NNPlayback(JNIEnv* _env,
+	                                                      void* _reserved,
+	                                                      jint _id,
+	                                                      jshortArray _location,
+	                                                      jint _nbChunk) {
+		std::unique_lock<std::mutex> lock(jvm_basics::getMutexJavaVM());
+		if (s_localContext == nullptr) {
+			ATA_ERROR("Call audio with no more Low level interface");
+			return;
+		}
+		// get the short* pointer from the Java array
+		jboolean isCopy;
+		jshort* dst = _env->GetShortArrayElements(_location, &isCopy);
+		if (dst != nullptr) {
+			//ATA_INFO("Need audioData " << int32_t(_nbChunk));
+			s_localContext->playback(int32_t(_id), static_cast<short*>(dst), int32_t(_nbChunk));
+		}
+		// TODO : Understand why it did not work corectly ...
+		//if (isCopy == JNI_TRUE) {
+		// release the short* pointer
+		_env->ReleaseShortArrayElements(_location, dst, 0);
+		//}
 	}
 }
 

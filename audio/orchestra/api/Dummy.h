@@ -16,7 +16,7 @@ namespace audio {
 		namespace api {
 			class Dummy: public audio::orchestra::Api {
 				public:
-					static audio::orchestra::Api* create();
+					static std::shared_ptr<audio::orchestra::Api> create();
 				public:
 					Dummy();
 					const std::string& getCurrentApi() {

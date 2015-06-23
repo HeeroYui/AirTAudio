@@ -38,13 +38,12 @@ namespace audio {
 		 */
 		class Interface {
 			protected:
-				std::vector<std::pair<std::string, Api* (*)()> > m_apiAvaillable;
+				std::vector<std::pair<std::string, std::shared_ptr<Api> (*)()> > m_apiAvaillable;
 			protected:
-				audio::orchestra::Api *m_api;
+				std::shared_ptr<audio::orchestra::Api> m_api;
 			public:
 				void setName(const std::string& _name) {
 					if (m_api == nullptr) {
-						
 						return;
 					}
 					m_api->setName(_name);
@@ -59,7 +58,7 @@ namespace audio {
 				 * @param[in] _api Type of the interface.
 				 * @param[in] _callbackCreate API creation callback.
 				 */
-				void addInterface(const std::string& _api, Api* (*_callbackCreate)());
+				void addInterface(const std::string& _api, std::shared_ptr<Api> (*_callbackCreate)());
 				/**
 				 * @brief The class constructor.
 				 * @note the creating of the basic instance is done by Instanciate

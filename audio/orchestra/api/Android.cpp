@@ -17,13 +17,14 @@
 #undef __class__
 #define __class__ "api::Android"
 
-audio::orchestra::Api* audio::orchestra::api::Android::create() {
+std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Android::create() {
 	ATA_INFO("Create Android device ... ");
-	return new audio::orchestra::api::Android();
+	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Android());
 }
 
 
-audio::orchestra::api::Android::Android() {
+audio::orchestra::api::Android::Android() :
+	m_uid(-1) {
 	ATA_INFO("Create Android interface");
 }
 
@@ -52,7 +53,7 @@ enum audio::orchestra::error audio::orchestra::api::Android::startStream() {
 	// TODO : Check return ...
 	audio::orchestra::Api::startStream();
 	// Can not close the stream now...
-	return audio::orchestra::api::android::startStream(0);
+	return audio::orchestra::api::android::startStream(m_uid);
 }
 
 enum audio::orchestra::error audio::orchestra::api::Android::stopStream() {
@@ -62,7 +63,7 @@ enum audio::orchestra::error audio::orchestra::api::Android::stopStream() {
 	tmpContext.audioCloseDevice(0);
 	#endif
 	// Can not close the stream now...
-	return audio::orchestra::api::android::stopStream(0);
+	return audio::orchestra::api::android::stopStream(m_uid);
 }
 
 enum audio::orchestra::error audio::orchestra::api::Android::abortStream() {
@@ -75,47 +76,24 @@ enum audio::orchestra::error audio::orchestra::api::Android::abortStream() {
 	return audio::orchestra::error_none;
 }
 
-void audio::orchestra::api::Android::callBackEvent(void* _data,
-                                                   int32_t _frameRate) {
-	#if 0
+
+void audio::orchestra::api::Android::playback(int16_t* _dst, int32_t _nbChunk) {
 	int32_t doStopStream = 0;
 	audio::Time streamTime = getStreamTime();
 	std::vector<enum audio::orchestra::status> status;
-	if (m_doConvertBuffer[audio::orchestra::mode_output] == true) {
-		doStopStream = m_callback(nullptr,
-		                          audio::Time(),
-		                          m_userBuffer[audio::orchestra::mode_output],
-		                          streamTime,
-		                          _frameRate,
-		                          status);
-		convertBuffer((char*)_data, (char*)m_userBuffer[audio::orchestra::mode_output], m_convertInfo[audio::orchestra::mode_output]);
-	} else {
-		doStopStream = m_callback(_data,
-		                          streamTime,
-		                          nullptr,
-		                          audio::Time(),
-		                          _frameRate,
-		                          status);
-	}
+	ATA_INFO("Need playback data " << int32_t(_nbChunk));
+	doStopStream = m_callback(nullptr,
+	                          audio::Time(),
+	                          &m_userBuffer[audio::orchestra::mode_output][0],
+	                          streamTime,
+	                          uint32_t(_nbChunk),
+	                          status);
+	convertBuffer((char*)_dst, (char*)&m_userBuffer[audio::orchestra::mode_output][0], m_convertInfo[audio::orchestra::mode_output]);
 	if (doStopStream == 2) {
 		abortStream();
 		return;
 	}
 	audio::orchestra::Api::tickStreamTime();
-	#endif
-}
-
-void audio::orchestra::api::Android::androidCallBackEvent(void* _data,
-                                                          int32_t _frameRate,
-                                                          void* _userData) {
-	#if 0
-	if (_userData == nullptr) {
-		ATA_INFO("callback event ... nullptr pointer");
-		return;
-	}
-	audio::orchestra::api::Android* myClass = static_cast<audio::orchestra::api::Android*>(_userData);
-	myClass->callBackEvent(_data, _frameRate/2);
-	#endif
 }
 
 bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
@@ -128,26 +106,26 @@ bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
                                                      const audio::orchestra::StreamOptions& _options) {
 	bool ret = false;
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);
-	ret = audio::orchestra::api::android::open(_device, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options);
-	#if 0
+	
 	if (_mode != audio::orchestra::mode_output) {
 		ATA_ERROR("Can not start a device input or duplex for Android ...");
 		return false;
 	}
 	m_userFormat = _format;
 	m_nUserChannels[modeToIdTable(_mode)] = _channels;
-	ewol::Context& tmpContext = ewol::getContext();
-	if (_format == SINT8) {
-		ret = tmpContext.audioOpenDevice(_device, _sampleRate, _channels, 0, androidCallBackEvent, this);
+	
+	m_uid = audio::orchestra::api::android::open(_device, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options, std11::static_pointer_cast<audio::orchestra::api::Android>(shared_from_this()));
+	if (m_uid < 0) {
+		ret = false;
 	} else {
-		ret = tmpContext.audioOpenDevice(_device, _sampleRate, _channels, 1, androidCallBackEvent, this);
+		ret = true;
 	}
 	m_bufferSize = 256;
 	m_sampleRate = _sampleRate;
 	m_doByteSwap[modeToIdTable(_mode)] = false; // for endienness ...
 	
 	// TODO : For now, we write it in hard ==> to bu update later ...
-	m_deviceFormat[modeToIdTable(_mode)] = SINT16;
+	m_deviceFormat[modeToIdTable(_mode)] = audio::format_int16;
 	m_nDeviceChannels[modeToIdTable(_mode)] = 2;
 	m_deviceInterleaved[modeToIdTable(_mode)] =	true;
 	
@@ -165,8 +143,8 @@ bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
 	if (m_doConvertBuffer[modeToIdTable(_mode)] == true) {
 		// Allocate necessary internal buffers.
 		uint64_t bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * m_bufferSize * audio::getFormatBytes(m_userFormat);
-		m_userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
-		if (m_userBuffer[modeToIdTable(_mode)] == nullptr) {
+		m_userBuffer[modeToIdTable(_mode)].resize(bufferBytes);
+		if (m_userBuffer[modeToIdTable(_mode)].size() == 0) {
 			ATA_ERROR("audio::orchestra::api::Android::probeDeviceOpen: error allocating user buffer memory.");
 		}
 		setConvertInfo(_mode, _firstChannel);
@@ -177,7 +155,6 @@ bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
 	if (ret == false) {
 		ATA_ERROR("Can not open device.");
 	}
-	#endif
 	return ret;
 }
 
