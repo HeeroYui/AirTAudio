@@ -26,7 +26,8 @@ class AndroidOrchestraContext {
 		jobject m_javaObjectOrchestraCallback;
 		jmethodID m_javaMethodOrchestraActivityAudioGetDeviceCount;
 		jmethodID m_javaMethodOrchestraActivityAudioGetDeviceProperty;
-		jmethodID m_javaMethodOrchestraActivityAudioOpenDevice;
+		jmethodID m_javaMethodOrchestraActivityAudioOpenDeviceInput;
+		jmethodID m_javaMethodOrchestraActivityAudioOpenDeviceOutput;
 		jmethodID m_javaMethodOrchestraActivityAudioCloseDevice;
 		jmethodID m_javaMethodOrchestraActivityAudioStart;
 		jmethodID m_javaMethodOrchestraActivityAudioStop;
@@ -81,7 +82,8 @@ class AndroidOrchestraContext {
 		  
 		  m_javaMethodOrchestraActivityAudioGetDeviceCount(0),
 		  m_javaMethodOrchestraActivityAudioGetDeviceProperty(0),
-		  m_javaMethodOrchestraActivityAudioOpenDevice(0),
+		  m_javaMethodOrchestraActivityAudioOpenDeviceInput(0),
+		  m_javaMethodOrchestraActivityAudioOpenDeviceOutput(0),
 		  m_javaMethodOrchestraActivityAudioCloseDevice(0),
 		  m_javaMethodOrchestraActivityAudioStart(0),
 		  m_javaMethodOrchestraActivityAudioStop(0),
@@ -133,13 +135,22 @@ class AndroidOrchestraContext {
 				ATA_ERROR("system can not start without function : getDeviceProperty");
 				functionCallbackIsMissing = true;
 			}
-			ret = safeInitMethodID(m_javaMethodOrchestraActivityAudioOpenDevice,
+			ret = safeInitMethodID(m_javaMethodOrchestraActivityAudioOpenDeviceInput,
 			                       m_javaClassOrchestraCallback,
-			                       "openDevice",
-			                       "(IIII)Z");
+			                       "openDeviceInput",
+			                       "(IIII)I");
 			if (ret == false) {
 				jvm_basics::checkExceptionJavaVM(_env);
-				ATA_ERROR("system can not start without function : openDevice");
+				ATA_ERROR("system can not start without function : openDeviceInput");
+				functionCallbackIsMissing = true;
+			}
+			ret = safeInitMethodID(m_javaMethodOrchestraActivityAudioOpenDeviceOutput,
+			                       m_javaClassOrchestraCallback,
+			                       "openDeviceOutput",
+			                       "(IIII)I");
+			if (ret == false) {
+				jvm_basics::checkExceptionJavaVM(_env);
+				ATA_ERROR("system can not start without function : openDeviceOutput");
 				functionCallbackIsMissing = true;
 			}
 			ret = safeInitMethodID(m_javaMethodOrchestraActivityAudioCloseDevice,
@@ -260,11 +271,6 @@ class AndroidOrchestraContext {
 				}
 			}
 			info.isDefault = doc.getBooleanValue("default", false);
-			/*
-			       + "	sample-rate:[8000,16000,24000,32000,48000,96000],\n"
-			       + "	channels=[front-left,front-right],\n"
-			       + "	format:[int16]\n"
-			*/
 			//return retString;
 			return info;
 		}
@@ -288,13 +294,18 @@ class AndroidOrchestraContext {
 				return -1;
 			}
 			//Call java ...
-			jboolean ret = m_JavaVirtualMachinePointer->CallBooleanMethod(m_javaObjectOrchestraCallback, m_javaMethodOrchestraActivityAudioOpenDevice, _idDevice, _sampleRate, _channels, /*_format*/ 1);
+			jint ret = false;
+			if (_mode == audio::orchestra::mode_output) {
+				ret = m_JavaVirtualMachinePointer->CallIntMethod(m_javaObjectOrchestraCallback, m_javaMethodOrchestraActivityAudioOpenDeviceOutput, _idDevice, _sampleRate, _channels, /*_format*/ 1);
+			} else {
+				ret = m_JavaVirtualMachinePointer->CallIntMethod(m_javaObjectOrchestraCallback, m_javaMethodOrchestraActivityAudioOpenDeviceInput, _idDevice, _sampleRate, _channels, /*_format*/ 1);
+			}
 			// manage execption : 
 			jvm_basics::checkExceptionJavaVM(m_JavaVirtualMachinePointer);
 			java_detach_current_thread(status);
-			if (bool(ret) == true) {
+			if (int32_t(ret) >= 0) {
 				m_instanceList.push_back(_instance);
-				return 0;
+				return int32_t(ret);
 			}
 			return -1;
 		}

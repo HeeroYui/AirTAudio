@@ -8,11 +8,85 @@
 
 package org.musicdsp.orchestra;
 
+import android.media.AudioTrack;
+// Replace by :
+import android.media.AudioRecord;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioRecord;
 import android.util.Log;
 
-public class InterfaceInput {
-	public InterfaceInput() {
-		Log.d("InterfaceInput", "new: Input");
+
+
+public class InterfaceInput extends Thread implements Constants {
+	private int uid = -1;
+	private Orchestra ORCHESTRA;
+	public static final int SAMPLE_FREQ_44100  = 44100;
+	private boolean m_stopAudioThreads = false;
+	private AudioTrack m_musicTrack = null;
+	
+	public InterfaceInput(int id, Orchestra instance, int idDevice, int freq, int nbChannel, int format) {
+		Log.d("InterfaceInput", "new: output");
+		uid = id;
+		ORCHESTRA = instance;
+		m_stopAudioThreads = false;
+	}
+	public int getUId() {
+		return uid;
+	}
+	
+	
+	public void run() {
+		Log.e("InterfaceInput", "RUN (start)");
+		int sampleFreq = SAMPLE_FREQ_44100; //AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC);
+		int channelConfig = AudioFormat.CHANNEL_CONFIGURATION_STEREO;
+		int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
+		int nbChannels = 2;
+		// we keep the minimum buffer size, otherwite the delay is too big ...
+		int bufferSize = AudioTrack.getMinBufferSize(sampleFreq, channelConfig, audioFormat);
+		// Create a streaming AudioTrack for music playback
+		short[] streamBuffer = new short[bufferSize];
+		m_musicTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
+		                              SAMPLE_FREQ_44100,
+		                              AudioFormat.CHANNEL_CONFIGURATION_STEREO,
+		                              AudioFormat.ENCODING_PCM_16BIT,
+		                              bufferSize,
+		                              AudioTrack.MODE_STREAM);
+		m_musicTrack.play();
+		m_stopAudioThreads = false;
+		//m_musicTrack.setPositionNotificationPeriod(2048);
+		
+		
+		// TODO : ....
+		while (!m_stopAudioThreads) {
+			// Fill buffer with PCM data from C++
+			ORCHESTRA.playback(uid, streamBuffer, BUFFER_SIZE);
+			// Stream PCM data into the music AudioTrack
+			m_musicTrack.write(streamBuffer, 0, BUFFER_SIZE);
+		}
+		
+		m_musicTrack.flush();
+		m_musicTrack.stop();
+		m_musicTrack = null;
+		streamBuffer = null;
+		Log.e("InterfaceInput", "RUN (stop)");
+	}
+	public void Pause() {
+		if(m_musicTrack == null) {
+			return;
+		}
+		m_musicTrack.pause();
+	}
+	public void Resume() {
+		if(m_musicTrack == null) {
+			return;
+		}
+		m_musicTrack.play();
+	}
+	public void AutoStop() {
+		if(m_musicTrack == null) {
+			return;
+		}
+		m_stopAudioThreads=true;
 	}
 }
-

@@ -14,7 +14,6 @@ import android.media.AudioRecord;
 import android.util.Log;
 
 
-
 public class InterfaceOutput extends Thread implements Constants {
 	private int uid = -1;
 	private Orchestra ORCHESTRA;
@@ -28,9 +27,12 @@ public class InterfaceOutput extends Thread implements Constants {
 		ORCHESTRA = instance;
 		m_stopAudioThreads = false;
 	}
+	public int getUId() {
+		return uid;
+	}
 	
 	public void run() {
-		Log.e("audioEWOL", "RUN (start)");
+		Log.e("InterfaceOutput", "RUN (start)");
 		int sampleFreq = SAMPLE_FREQ_44100; //AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC);
 		int channelConfig = AudioFormat.CHANNEL_CONFIGURATION_STEREO;
 		int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
@@ -51,7 +53,7 @@ public class InterfaceOutput extends Thread implements Constants {
 		
 		while (!m_stopAudioThreads) {
 			// Fill buffer with PCM data from C++
-			ORCHESTRA.playback(uid, streamBuffer, BUFFER_SIZE);
+			ORCHESTRA.playback(uid, streamBuffer, BUFFER_SIZE/nbChannels);
 			// Stream PCM data into the music AudioTrack
 			m_musicTrack.write(streamBuffer, 0, BUFFER_SIZE);
 		}
@@ -60,7 +62,7 @@ public class InterfaceOutput extends Thread implements Constants {
 		m_musicTrack.stop();
 		m_musicTrack = null;
 		streamBuffer = null;
-		Log.e("audioEWOL", "RUN (stop)");
+		Log.e("InterfaceOutput", "RUN (stop)");
 	}
 	public void Pause() {
 		if(m_musicTrack == null) {

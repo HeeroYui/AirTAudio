@@ -58,37 +58,44 @@ enum audio::orchestra::error audio::orchestra::api::Android::startStream() {
 
 enum audio::orchestra::error audio::orchestra::api::Android::stopStream() {
 	ATA_INFO("Stop stream");
-	#if 0
-	ewol::Context& tmpContext = ewol::getContext();
-	tmpContext.audioCloseDevice(0);
-	#endif
 	// Can not close the stream now...
 	return audio::orchestra::api::android::stopStream(m_uid);
 }
 
 enum audio::orchestra::error audio::orchestra::api::Android::abortStream() {
 	ATA_INFO("Abort Stream");
-	#if 0
-	ewol::Context& tmpContext = ewol::getContext();
-	tmpContext.audioCloseDevice(0);
-	#endif
 	// Can not close the stream now...
 	return audio::orchestra::error_none;
 }
 
 
 void audio::orchestra::api::Android::playback(int16_t* _dst, int32_t _nbChunk) {
+	// clear output buffer:
+	if (_dst != nullptr) {
+		memset(_dst, 0, _nbChunk*audio::getFormatBytes(m_deviceFormat[modeToIdTable(m_mode)])*m_nDeviceChannels[modeToIdTable(m_mode)]);
+	}
 	int32_t doStopStream = 0;
 	audio::Time streamTime = getStreamTime();
 	std::vector<enum audio::orchestra::status> status;
-	ATA_INFO("Need playback data " << int32_t(_nbChunk));
-	doStopStream = m_callback(nullptr,
-	                          audio::Time(),
-	                          &m_userBuffer[audio::orchestra::mode_output][0],
-	                          streamTime,
-	                          uint32_t(_nbChunk),
-	                          status);
-	convertBuffer((char*)_dst, (char*)&m_userBuffer[audio::orchestra::mode_output][0], m_convertInfo[audio::orchestra::mode_output]);
+	if (m_doConvertBuffer[modeToIdTable(m_mode)] == true) {
+		ATA_VERBOSE("Need playback data " << int32_t(_nbChunk) << " userbuffer size = " << m_userBuffer[audio::orchestra::mode_output].size() << "pointer=" << int64_t(&m_userBuffer[audio::orchestra::mode_output][0]));
+		doStopStream = m_callback(nullptr,
+		                          audio::Time(),
+		                          &m_userBuffer[m_mode][0],
+		                          streamTime,
+		                          uint32_t(_nbChunk),
+		                          status);
+		convertBuffer((char*)_dst, (char*)&m_userBuffer[audio::orchestra::mode_output][0], m_convertInfo[audio::orchestra::mode_output]);
+	} else {
+		ATA_VERBOSE("Need playback data " << int32_t(_nbChunk) << " pointer=" << int64_t(_dst));
+		doStopStream = m_callback(nullptr,
+		                          audio::Time(),
+		                          _dst,
+		                          streamTime,
+		                          uint32_t(_nbChunk),
+		                          status);
+		
+	}
 	if (doStopStream == 2) {
 		abortStream();
 		return;
@@ -111,10 +118,11 @@ bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
 		ATA_ERROR("Can not start a device input or duplex for Android ...");
 		return false;
 	}
+	m_mode = _mode;
 	m_userFormat = _format;
-	m_nUserChannels[modeToIdTable(_mode)] = _channels;
+	m_nUserChannels[modeToIdTable(m_mode)] = _channels;
 	
-	m_uid = audio::orchestra::api::android::open(_device, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options, std11::static_pointer_cast<audio::orchestra::api::Android>(shared_from_this()));
+	m_uid = audio::orchestra::api::android::open(_device, m_mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options, std11::static_pointer_cast<audio::orchestra::api::Android>(shared_from_this()));
 	if (m_uid < 0) {
 		ret = false;
 	} else {
@@ -122,36 +130,36 @@ bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
 	}
 	m_bufferSize = 256;
 	m_sampleRate = _sampleRate;
-	m_doByteSwap[modeToIdTable(_mode)] = false; // for endienness ...
+	m_doByteSwap[modeToIdTable(m_mode)] = false; // for endienness ...
 	
 	// TODO : For now, we write it in hard ==> to bu update later ...
-	m_deviceFormat[modeToIdTable(_mode)] = audio::format_int16;
-	m_nDeviceChannels[modeToIdTable(_mode)] = 2;
-	m_deviceInterleaved[modeToIdTable(_mode)] =	true;
+	m_deviceFormat[modeToIdTable(m_mode)] = audio::format_int16;
+	m_nDeviceChannels[modeToIdTable(m_mode)] = 2;
+	m_deviceInterleaved[modeToIdTable(m_mode)] = true;
 	
-	m_doConvertBuffer[modeToIdTable(_mode)] = false;
-	if (m_userFormat != m_deviceFormat[modeToIdTable(_mode)]) {
-		m_doConvertBuffer[modeToIdTable(_mode)] = true;
+	m_doConvertBuffer[modeToIdTable(m_mode)] = false;
+	if (m_userFormat != m_deviceFormat[modeToIdTable(m_mode)]) {
+		m_doConvertBuffer[modeToIdTable(m_mode)] = true;
 	}
-	if (m_nUserChannels[modeToIdTable(_mode)] < m_nDeviceChannels[modeToIdTable(_mode)]) {
-		m_doConvertBuffer[modeToIdTable(_mode)] = true;
+	if (m_nUserChannels[modeToIdTable(m_mode)] < m_nDeviceChannels[modeToIdTable(m_mode)]) {
+		m_doConvertBuffer[modeToIdTable(m_mode)] = true;
 	}
-	if (    m_deviceInterleaved[modeToIdTable(_mode)] == false
-	     && m_nUserChannels[modeToIdTable(_mode)] > 1) {
-		m_doConvertBuffer[modeToIdTable(_mode)] = true;
+	if (    m_deviceInterleaved[modeToIdTable(m_mode)] == false
+	     && m_nUserChannels[modeToIdTable(m_mode)] > 1) {
+		m_doConvertBuffer[modeToIdTable(m_mode)] = true;
 	}
-	if (m_doConvertBuffer[modeToIdTable(_mode)] == true) {
+	if (m_doConvertBuffer[modeToIdTable(m_mode)] == true) {
 		// Allocate necessary internal buffers.
-		uint64_t bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * m_bufferSize * audio::getFormatBytes(m_userFormat);
-		m_userBuffer[modeToIdTable(_mode)].resize(bufferBytes);
-		if (m_userBuffer[modeToIdTable(_mode)].size() == 0) {
+		uint64_t bufferBytes = m_nUserChannels[modeToIdTable(m_mode)] * m_bufferSize * audio::getFormatBytes(m_userFormat);
+		m_userBuffer[modeToIdTable(m_mode)].resize(bufferBytes);
+		if (m_userBuffer[modeToIdTable(m_mode)].size() == 0) {
 			ATA_ERROR("audio::orchestra::api::Android::probeDeviceOpen: error allocating user buffer memory.");
 		}
-		setConvertInfo(_mode, _firstChannel);
+		setConvertInfo(m_mode, _firstChannel);
 	}
-	ATA_INFO("device format : " << m_deviceFormat[modeToIdTable(_mode)] << " user format : " << m_userFormat);
-	ATA_INFO("device channels : " << m_nDeviceChannels[modeToIdTable(_mode)] << " user channels : " << m_nUserChannels[modeToIdTable(_mode)]);
-	ATA_INFO("do convert buffer : " << m_doConvertBuffer[modeToIdTable(_mode)]);
+	ATA_INFO("device format : " << m_deviceFormat[modeToIdTable(m_mode)] << " user format : " << m_userFormat);
+	ATA_INFO("device channels : " << m_nDeviceChannels[modeToIdTable(m_mode)] << " user channels : " << m_nUserChannels[modeToIdTable(m_mode)]);
+	ATA_INFO("do convert buffer : " << m_doConvertBuffer[modeToIdTable(m_mode)]);
 	if (ret == false) {
 		ATA_ERROR("Can not open device.");
 	}
