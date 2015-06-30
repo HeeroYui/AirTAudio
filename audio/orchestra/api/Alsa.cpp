@@ -1564,7 +1564,7 @@ unlock:
 
 
 bool audio::orchestra::api::Alsa::isMasterOf(std11::shared_ptr<audio::orchestra::Api> _api) {
-	std11::shared_ptr<audio::orchestra::api::Alsa> slave = dynamic_pointer_cast<audio::orchestra::api::Alsa>(_api);
+	std11::shared_ptr<audio::orchestra::api::Alsa> slave = std::dynamic_pointer_cast<audio::orchestra::api::Alsa>(_api);
 	if (slave == nullptr) {
 		ATA_ERROR("NULL ptr API (not ALSA ...)");
 		return false;

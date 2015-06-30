@@ -12,8 +12,8 @@ import java.lang.UnsatisfiedLinkError;
 import java.lang.RuntimeException;
 import android.util.Log;
 
-public class Orchestra {
-	public <T extends ManagerCallback> Orchestra(T managerInstance) {
+public class OrchestraNative {
+	public <T extends OrchestraManagerCallback> OrchestraNative(T managerInstance) {
 		try {
 			NNsetJavaManager(managerInstance);
 		} catch (java.lang.UnsatisfiedLinkError e) {
@@ -31,8 +31,13 @@ public class Orchestra {
 		NNPlayback(flowId, bufferData, nbChunk);
 	}
 	
-	private native <T extends ManagerCallback> void NNsetJavaManager(T managerInstance);
+	public void record(int flowId, short[] bufferData, int nbChunk) {
+		NNRecord(flowId, bufferData, nbChunk);
+	}
+	
+	private native <T extends OrchestraManagerCallback> void NNsetJavaManager(T managerInstance);
 	private native void NNsetJavaManagerRemove();
 	private native void NNPlayback(int flowId, short[] bufferData, int nbChunk);
+	private native void NNRecord(int flowId, short[] bufferData, int nbChunk);
 }
 

@@ -13,25 +13,25 @@ import java.util.Vector;
 
 //import org.musicdsp.orchestra.Constants;
 //import org.musicdsp.orchestra.ManagerCallback;
-import org.musicdsp.orchestra.Orchestra;
-import org.musicdsp.orchestra.InterfaceOutput;
-import org.musicdsp.orchestra.InterfaceInput;
+//import org.musicdsp.orchestra.Orchestra;
+//import org.musicdsp.orchestra.InterfaceOutput;
+//import org.musicdsp.orchestra.InterfaceInput;
 
 /**
  * @brief Class : 
  *
  */
-public class Manager implements ManagerCallback, Constants {
-	private Orchestra orchestraHandle;
+public class OrchestraManager implements OrchestraManagerCallback, OrchestraConstants {
+	private OrchestraNative orchestraHandle;
 	private int uid = 0;
-	private Vector<InterfaceOutput> outputList;
-	private Vector<InterfaceInput> inputList;
+	private Vector<OrchestraInterfaceOutput> outputList;
+	private Vector<OrchestraInterfaceInput> inputList;
 	
-	public Manager() {
+	public OrchestraManager() {
 		// set the java evironement in the C sources :
-		orchestraHandle = new Orchestra(this);
-		outputList = new Vector<InterfaceOutput>();
-		inputList = new Vector<InterfaceInput>();
+		orchestraHandle = new OrchestraNative(this);
+		outputList = new Vector<OrchestraInterfaceOutput>();
+		inputList = new Vector<OrchestraInterfaceInput>();
 	}
 	
 	public int getDeviceCount() {
@@ -55,7 +55,7 @@ public class Manager implements ManagerCallback, Constants {
 	}
 	
 	public int openDeviceOutput(int idDevice, int freq, int nbChannel, int format) {
-		InterfaceOutput iface = new InterfaceOutput(uid, orchestraHandle, idDevice, freq, nbChannel, format);
+		OrchestraInterfaceOutput iface = new OrchestraInterfaceOutput(uid, orchestraHandle, idDevice, freq, nbChannel, format);
 		uid++;
 		Log.e("Manager", "Open device Output: " + idDevice + " with UID=" + (uid-1));
 		if (iface != null) {
@@ -67,7 +67,7 @@ public class Manager implements ManagerCallback, Constants {
 	}
 	
 	public int openDeviceInput(int idDevice, int freq, int nbChannel, int format) {
-		InterfaceInput iface = new InterfaceInput(uid, orchestraHandle, idDevice, freq, nbChannel, format);
+		OrchestraInterfaceInput iface = new OrchestraInterfaceInput(uid, orchestraHandle, idDevice, freq, nbChannel, format);
 		uid++;
 		Log.e("Manager", "Open device Input: " + idDevice + " with UID=" + (uid-1));
 		if (iface != null) {
@@ -166,7 +166,7 @@ public class Manager implements ManagerCallback, Constants {
 				}
 				if (inputList.get(iii).getUId() == uniqueID) {
 					// find it ...
-					inputList.get(iii).AutoStop();
+					inputList.get(iii).autoStop();
 					try {
 						inputList.get(iii).join();
 					} catch(InterruptedException e) { }
@@ -182,7 +182,7 @@ public class Manager implements ManagerCallback, Constants {
 				}
 				if (outputList.get(iii).getUId() == uniqueID) {
 					// find it ...
-					outputList.get(iii).AutoStop();
+					outputList.get(iii).autoStop();
 					try {
 						outputList.get(iii).join();
 					} catch(InterruptedException e) { }
@@ -195,18 +195,59 @@ public class Manager implements ManagerCallback, Constants {
 	}
 	public void onCreate() {
 		Log.w("Manager", "onCreate ...");
+		// nothing to do ...
 	}
 	public void onStart() {
 		Log.w("Manager", "onStart ...");
+		// nothing to do ...
 	}
 	public void onRestart() {
 		Log.w("Manager", "onRestart ...");
+		// nothing to do ...
 	}
 	public void onResume() {
 		Log.w("Manager", "onResume ...");
+		// find the Element with his ID:
+		if (inputList != null) {
+			for (int iii=0; iii<inputList.size(); iii++) {
+				if (inputList.get(iii) == null) {
+					Log.e("Manager", "Null input element: " + iii);
+					continue;
+				}
+				inputList.get(iii).activityResume();
+			}
+		}
+		if (outputList != null) {
+			for (int iii=0; iii<outputList.size(); iii++) {
+				if (outputList.get(iii) == null) {
+					Log.e("Manager", "Null input element: " + iii);
+					continue;
+				}
+				outputList.get(iii).activityResume();
+			}
+		}
 	}
 	public void onPause() {
 		Log.w("Manager", "onPause ...");
+		// find the Element with his ID:
+		if (inputList != null) {
+			for (int iii=0; iii<inputList.size(); iii++) {
+				if (inputList.get(iii) == null) {
+					Log.e("Manager", "Null input element: " + iii);
+					continue;
+				}
+				inputList.get(iii).activityPause();
+			}
+		}
+		if (outputList != null) {
+			for (int iii=0; iii<outputList.size(); iii++) {
+				if (outputList.get(iii) == null) {
+					Log.e("Manager", "Null input element: " + iii);
+					continue;
+				}
+				outputList.get(iii).activityPause();
+			}
+		}
 	}
 	public void onStop() {
 		Log.w("Manager", "onStop ...");

@@ -97,10 +97,10 @@ class AndroidOrchestraContext {
 				ATA_ERROR("C->java: NULLPTR jvm interface");
 				return;
 			}
-			ATA_DEBUG("C->java: try load org/musicdsp/orchestra/Orchestra class");
-			m_javaClassOrchestra = m_JavaVirtualMachinePointer->FindClass("org/musicdsp/orchestra/Orchestra" );
+			ATA_DEBUG("C->java: try load org/musicdsp/orchestra/OrchestraNative class");
+			m_javaClassOrchestra = m_JavaVirtualMachinePointer->FindClass("org/musicdsp/orchestra/OrchestraNative" );
 			if (m_javaClassOrchestra == 0) {
-				ATA_ERROR("C->java : Can't find org/musicdsp/orchestra/Orchestra class");
+				ATA_ERROR("C->java : Can't find org/musicdsp/orchestra/OrchestraNative class");
 				// remove access on the virtual machine : 
 				m_JavaVirtualMachinePointer = nullptr;
 				return;
@@ -108,7 +108,7 @@ class AndroidOrchestraContext {
 			/* The object field extends Activity and implement OrchestraCallback */
 			m_javaClassOrchestraCallback = m_JavaVirtualMachinePointer->GetObjectClass(_objCallback);
 			if(m_javaClassOrchestraCallback == nullptr) {
-				ATA_ERROR("C->java : Can't find org/musicdsp/orchestra/ManagerCallback class");
+				ATA_ERROR("C->java : Can't find org/musicdsp/orchestra/OrchestraManagerCallback class");
 				// remove access on the virtual machine : 
 				m_JavaVirtualMachinePointer = nullptr;
 				return;
@@ -378,6 +378,20 @@ class AndroidOrchestraContext {
 				++it;
 			}
 		}
+		void record(int32_t _id, int16_t* _dst, int32_t _nbChunk) {
+			auto it = m_instanceList.begin();
+			while (it != m_instanceList.end()) {
+				auto elem = it->lock();
+				if (elem == nullptr) {
+					it = m_instanceList.erase(it);
+					continue;
+				}
+				if (elem->getUId() == _id) {
+					elem->record(_dst, _nbChunk);
+				}
+				++it;
+			}
+		}
 };
 
 static std::shared_ptr<AndroidOrchestraContext> s_localContext;
@@ -442,9 +456,9 @@ enum audio::orchestra::error audio::orchestra::api::android::abortStream(int32_t
 }
 
 extern "C" {
-	void Java_org_musicdsp_orchestra_Orchestra_NNsetJavaManager(JNIEnv* _env,
-	                                                            jclass _classBase,
-	                                                            jobject _objCallback) {
+	void Java_org_musicdsp_orchestra_OrchestraNative_NNsetJavaManager(JNIEnv* _env,
+	                                                                  jclass _classBase,
+	                                                                  jobject _objCallback) {
 		std::unique_lock<std::mutex> lock(jvm_basics::getMutexJavaVM());
 		ATA_INFO("*******************************************");
 		ATA_INFO("** Creating Orchestra context            **");
@@ -460,7 +474,7 @@ extern "C" {
 		s_nbContextRequested++;
 	}
 	
-	void Java_org_musicdsp_orchestra_Orchestra_NNsetJavaManagerRemove(JNIEnv* _env, jclass _cls) {
+	void Java_org_musicdsp_orchestra_OrchestraNative_NNsetJavaManagerRemove(JNIEnv* _env, jclass _cls) {
 		std::unique_lock<std::mutex> lock(jvm_basics::getMutexJavaVM());
 		ATA_INFO("*******************************************");
 		ATA_INFO("** remove Orchestra Pointer              **");
@@ -474,11 +488,11 @@ extern "C" {
 			s_localContext.reset();
 		}
 	}
-	void Java_org_musicdsp_orchestra_Orchestra_NNPlayback(JNIEnv* _env,
-	                                                      void* _reserved,
-	                                                      jint _id,
-	                                                      jshortArray _location,
-	                                                      jint _nbChunk) {
+	void Java_org_musicdsp_orchestra_OrchestraNative_NNPlayback(JNIEnv* _env,
+	                                                            void* _reserved,
+	                                                            jint _id,
+	                                                            jshortArray _location,
+	                                                            jint _nbChunk) {
 		std::unique_lock<std::mutex> lock(jvm_basics::getMutexJavaVM());
 		if (s_localContext == nullptr) {
 			ATA_ERROR("Call audio with no more Low level interface");
@@ -490,6 +504,29 @@ extern "C" {
 		if (dst != nullptr) {
 			//ATA_INFO("Need audioData " << int32_t(_nbChunk));
 			s_localContext->playback(int32_t(_id), static_cast<short*>(dst), int32_t(_nbChunk));
+		}
+		// TODO : Understand why it did not work corectly ...
+		//if (isCopy == JNI_TRUE) {
+		// release the short* pointer
+		_env->ReleaseShortArrayElements(_location, dst, 0);
+		//}
+	}
+	void Java_org_musicdsp_orchestra_OrchestraNative_NNRecord(JNIEnv* _env,
+	                                                          void* _reserved,
+	                                                          jint _id,
+	                                                          jshortArray _location,
+	                                                          jint _nbChunk) {
+		std::unique_lock<std::mutex> lock(jvm_basics::getMutexJavaVM());
+		if (s_localContext == nullptr) {
+			ATA_ERROR("Call audio with no more Low level interface");
+			return;
+		}
+		// get the short* pointer from the Java array
+		jboolean isCopy;
+		jshort* dst = _env->GetShortArrayElements(_location, &isCopy);
+		if (dst != nullptr) {
+			//ATA_INFO("Need audioData " << int32_t(_nbChunk));
+			s_localContext->record(int32_t(_id), static_cast<short*>(dst), int32_t(_nbChunk));
 		}
 		// TODO : Understand why it did not work corectly ...
 		//if (isCopy == JNI_TRUE) {

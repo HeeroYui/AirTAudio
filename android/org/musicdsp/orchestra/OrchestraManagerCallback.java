@@ -8,7 +8,7 @@
 
 package org.musicdsp.orchestra;
 
-public interface ManagerCallback {
+public interface OrchestraManagerCallback {
 	public int getDeviceCount();
 	public String getDeviceProperty(int idDevice);
 	public int openDeviceInput(int idDevice, int sampleRate, int nbChannel, int format);

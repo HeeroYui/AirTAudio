@@ -63,14 +63,14 @@ def create(target):
 		# IOsX core
 		myModule.add_optionnal_module_depend('CoreAudio', ["c++", "-DORCHESTRA_BUILD_IOS_CORE"])
 	elif target.name=="Android":
-		myModule.add_src_file('android/org/musicdsp/orchestra/Constants.java')
-		myModule.add_src_file('android/org/musicdsp/orchestra/ManagerCallback.java')
-		myModule.add_src_file('android/org/musicdsp/orchestra/Orchestra.java')
-		myModule.add_src_file('android/org/musicdsp/orchestra/InterfaceInput.java')
-		myModule.add_src_file('android/org/musicdsp/orchestra/InterfaceOutput.java')
-		myModule.add_src_file('android/org/musicdsp/orchestra/Manager.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraConstants.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraManagerCallback.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraNative.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraInterfaceInput.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraInterfaceOutput.java')
+		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraManager.java')
 		# create inter language interface
-		myModule.add_src_file('org.musicdsp.orchestra.Constants.javah')
+		myModule.add_src_file('org.musicdsp.orchestra.OrchestraConstants.javah')
 		myModule.add_path(tools.get_current_path(__file__) + '/android/', type='java')
 		myModule.add_module_depend(['SDK', 'jvm-basics', 'ejson'])
 		myModule.add_export_flag('c++', ['-DORCHESTRA_BUILD_JAVA'])
@@ -95,15 +95,15 @@ def create(target):
 ##################################################################
 def tool_generate_add_java_section_in_class(target, module, package_name):
 	module.pkg_add("GENERATE_SECTION__IMPORT", [
-		"import org.musicdsp.orchestra.Manager;"
+		"import org.musicdsp.orchestra.OrchestraManager;"
 		])
 	module.pkg_add("GENERATE_SECTION__DECLARE", [
-		"private Manager m_audioManagerHandle;"
+		"private OrchestraManager m_audioManagerHandle;"
 		])
 	module.pkg_add("GENERATE_SECTION__CONSTRUCTOR", [
 		"// load audio maneger if it does not work, it is not critical ...",
 		"try {",
-		"	m_audioManagerHandle = new Manager();",
+		"	m_audioManagerHandle = new OrchestraManager();",
 		"} catch (RuntimeException e) {",
 		"	Log.e(\"" + package_name + "\", \"Can not load Audio interface (maybe not really needed) :\" + e);",
 		"}"

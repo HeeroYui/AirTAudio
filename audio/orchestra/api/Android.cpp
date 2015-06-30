@@ -103,6 +103,36 @@ void audio::orchestra::api::Android::playback(int16_t* _dst, int32_t _nbChunk) {
 	audio::orchestra::Api::tickStreamTime();
 }
 
+void audio::orchestra::api::Android::record(int16_t* _dst, int32_t _nbChunk) {
+	int32_t doStopStream = 0;
+	audio::Time streamTime = getStreamTime();
+	std::vector<enum audio::orchestra::status> status;
+	if (m_doConvertBuffer[modeToIdTable(m_mode)] == true) {
+		ATA_VERBOSE("Need playback data " << int32_t(_nbChunk) << " userbuffer size = " << m_userBuffer[audio::orchestra::mode_output].size() << "pointer=" << int64_t(&m_userBuffer[audio::orchestra::mode_output][0]));
+		convertBuffer((char*)&m_userBuffer[audio::orchestra::mode_input][0], (char*)_dst, m_convertInfo[audio::orchestra::mode_input]);
+		doStopStream = m_callback(&m_userBuffer[m_mode][0],
+		                          streamTime,
+		                          nullptr,
+		                          audio::Time(),
+		                          uint32_t(_nbChunk),
+		                          status);
+	} else {
+		ATA_VERBOSE("Need playback data " << int32_t(_nbChunk) << " pointer=" << int64_t(_dst));
+		doStopStream = m_callback(_dst,
+		                          streamTime,
+		                          nullptr,
+		                          audio::Time(),
+		                          uint32_t(_nbChunk),
+		                          status);
+		
+	}
+	if (doStopStream == 2) {
+		abortStream();
+		return;
+	}
+	audio::orchestra::Api::tickStreamTime();
+}
+
 bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
                                                      audio::orchestra::mode _mode,
                                                      uint32_t _channels,

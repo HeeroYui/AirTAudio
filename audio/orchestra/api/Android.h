@@ -51,6 +51,7 @@ namespace audio {
 					                     const audio::orchestra::StreamOptions& _options);
 				public:
 					void playback(int16_t* _dst, int32_t _nbChunk);
+					void record(int16_t* _dst, int32_t _nbChunk);
 			};
 		}
 	}

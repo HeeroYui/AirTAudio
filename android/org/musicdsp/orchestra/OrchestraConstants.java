@@ -8,6 +8,6 @@
 
 package org.musicdsp.orchestra;
 
-public interface Constants {
+public interface OrchestraConstants {
 	public static final int BUFFER_SIZE = 512;
 }
