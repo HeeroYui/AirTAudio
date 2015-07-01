@@ -13,9 +13,9 @@ import java.lang.RuntimeException;
 import android.util.Log;
 
 public class OrchestraNative {
-	public <T extends OrchestraManagerCallback> OrchestraNative(T managerInstance) {
+	public <T extends OrchestraManagerCallback> OrchestraNative(T _managerInstance) {
 		try {
-			NNsetJavaManager(managerInstance);
+			NNsetJavaManager(_managerInstance);
 		} catch (java.lang.UnsatisfiedLinkError e) {
 			Log.e("Orchestra", "JNI binding not present ...");
 			throw new RuntimeException("Orchestra binding not present ...");
@@ -27,17 +27,17 @@ public class OrchestraNative {
 		NNsetJavaManagerRemove();
 	}
 	
-	public void playback(int flowId, short[] bufferData, int nbChunk) {
-		NNPlayback(flowId, bufferData, nbChunk);
+	public void playback(int _flowId, short[] _bufferData, int _nbChunk) {
+		NNPlayback(_flowId, _bufferData, _nbChunk);
 	}
 	
-	public void record(int flowId, short[] bufferData, int nbChunk) {
-		NNRecord(flowId, bufferData, nbChunk);
+	public void record(int _flowId, short[] _bufferData, int _nbChunk) {
+		NNRecord(_flowId, _bufferData, _nbChunk);
 	}
 	
-	private native <T extends OrchestraManagerCallback> void NNsetJavaManager(T managerInstance);
+	private native <T extends OrchestraManagerCallback> void NNsetJavaManager(T _managerInstance);
 	private native void NNsetJavaManagerRemove();
-	private native void NNPlayback(int flowId, short[] bufferData, int nbChunk);
-	private native void NNRecord(int flowId, short[] bufferData, int nbChunk);
+	private native void NNPlayback(int _flowId, short[] _bufferData, int _nbChunk);
+	private native void NNRecord(int _flowId, short[] _bufferData, int _nbChunk);
 }
 

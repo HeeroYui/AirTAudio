@@ -20,12 +20,20 @@ public class OrchestraInterfaceOutput extends Thread implements OrchestraConstan
 	private boolean m_stop = false;
 	private boolean m_suspend = false;
 	private AudioTrack m_audio = null;
+	private int m_sampleRate = 48000;
+	private int m_nbChannel = 2;
+	private int m_format = 1;
+	private int m_bufferSize = BUFFER_SIZE;
 	
-	public OrchestraInterfaceOutput(int id, OrchestraNative instance, int idDevice, int freq, int nbChannel, int format) {
+	public OrchestraInterfaceOutput(int _id, OrchestraNative _instance, int _idDevice, int _sampleRate, int _nbChannel, int _format) {
 		Log.d("InterfaceOutput", "new: output");
-		m_uid = id;
-		m_orchestraNativeHandle = instance;
-		m_stop = false;
+		m_uid = _id;
+		m_orchestraNativeHandle = _instance;
+		m_stop = true;
+		m_sampleRate = _sampleRate;
+		m_nbChannel = _nbChannel;
+		m_format = _format;
+		m_bufferSize = BUFFER_SIZE * m_nbChannel;
 	}
 	public int getUId() {
 		return m_uid;
@@ -33,28 +41,34 @@ public class OrchestraInterfaceOutput extends Thread implements OrchestraConstan
 	
 	public void run() {
 		Log.e("InterfaceOutput", "RUN (start)");
-		int sampleFreq = 48000; //AudioTrack.getNativeOutputSampleRate(AudioManager.STREAM_MUSIC);
 		int channelConfig = AudioFormat.CHANNEL_CONFIGURATION_STEREO;
 		int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
-		int nbChannels = 2;
 		// we keep the minimum buffer size, otherwite the delay is too big ...
-		int bufferSize = AudioTrack.getMinBufferSize(sampleFreq, channelConfig, audioFormat);
+		//int bufferSize = AudioTrack.getMinBufferSize(m_sampleRate, channelConfig, audioFormat);
+		int config = 0;
+		if (m_nbChannel == 1) {
+			config = AudioFormat.CHANNEL_OUT_MONO;
+		} else if (m_nbChannel == 4) {
+			config = AudioFormat.CHANNEL_OUT_QUAD;
+		} else {
+			config = AudioFormat.CHANNEL_OUT_STEREO;
+		}
 		// Create a streaming AudioTrack for music playback
-		short[] streamBuffer = new short[bufferSize];
+		short[] streamBuffer = new short[m_bufferSize];
 		m_audio = new AudioTrack(AudioManager.STREAM_MUSIC,
-		                         sampleFreq,
-		                         AudioFormat.CHANNEL_CONFIGURATION_STEREO,
-		                         AudioFormat.ENCODING_PCM_16BIT,
-		                         bufferSize,
+		                         m_sampleRate,
+		                         config,
+		                         audioFormat,
+		                         m_bufferSize,
 		                         AudioTrack.MODE_STREAM);
 		m_audio.play();
 		//m_audio.setPositionNotificationPeriod(2048);
 		
 		while (m_stop == false) {
 			// Fill buffer with PCM data from C++
-			m_orchestraNativeHandle.playback(m_uid, streamBuffer, BUFFER_SIZE/nbChannels);
+			m_orchestraNativeHandle.playback(m_uid, streamBuffer, m_bufferSize/m_nbChannel);
 			// Stream PCM data into the music AudioTrack
-			m_audio.write(streamBuffer, 0, BUFFER_SIZE);
+			m_audio.write(streamBuffer, 0, m_bufferSize);
 		}
 		
 		m_audio.flush();
@@ -63,22 +77,32 @@ public class OrchestraInterfaceOutput extends Thread implements OrchestraConstan
 		streamBuffer = null;
 		Log.e("InterfaceOutput", "RUN (stop)");
 	}
+	public void autoStart() {
+		m_stop=false;
+		this.start();
+	}
 	public void autoStop() {
 		if(m_audio == null) {
 			return;
 		}
 		m_stop=true;
+		try {
+			super.join();
+		} catch(InterruptedException e) { }
 	}
 	public void activityResume() {
-		if(m_audio == null) {
-			return;
+		if (m_audio != null) {
+			Log.i("InterfaceOutput", "Resume audio stream : " + m_uid);
+			m_audio.play();
 		}
-		m_audio.play();
 	}
 	public void activityPause() {
 		if(m_audio == null) {
 			return;
 		}
-		m_audio.pause();
+		if (m_audio != null) {
+			Log.i("InterfaceOutput", "Pause audio stream : " + m_uid);
+			m_audio.pause();
+		}
 	}
 }

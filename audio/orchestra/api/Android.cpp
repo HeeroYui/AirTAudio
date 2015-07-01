@@ -143,11 +143,6 @@ bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
                                                      const audio::orchestra::StreamOptions& _options) {
 	bool ret = false;
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);
-	
-	if (_mode != audio::orchestra::mode_output) {
-		ATA_ERROR("Can not start a device input or duplex for Android ...");
-		return false;
-	}
 	m_mode = _mode;
 	m_userFormat = _format;
 	m_nUserChannels[modeToIdTable(m_mode)] = _channels;

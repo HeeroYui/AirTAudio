@@ -10,10 +10,10 @@ package org.musicdsp.orchestra;
 
 public interface OrchestraManagerCallback {
 	public int getDeviceCount();
-	public String getDeviceProperty(int idDevice);
-	public int openDeviceInput(int idDevice, int sampleRate, int nbChannel, int format);
-	public int openDeviceOutput(int idDevice, int sampleRate, int nbChannel, int format);
-	public boolean closeDevice(int uniqueID);
-	public boolean start(int uniqueID);
-	public boolean stop(int uniqueID);
+	public String getDeviceProperty(int _idDevice);
+	public int openDeviceInput(int _idDevice, int _sampleRate, int _nbChannel, int _format);
+	public int openDeviceOutput(int _idDevice, int _sampleRate, int _nbChannel, int _format);
+	public boolean closeDevice(int _uniqueID);
+	public boolean start(int _uniqueID);
+	public boolean stop(int _uniqueID);
 }

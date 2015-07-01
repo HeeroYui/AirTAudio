@@ -22,28 +22,37 @@ import java.util.Vector;
  *
  */
 public class OrchestraManager implements OrchestraManagerCallback, OrchestraConstants {
-	private OrchestraNative orchestraHandle;
-	private int uid = 0;
-	private Vector<OrchestraInterfaceOutput> outputList;
-	private Vector<OrchestraInterfaceInput> inputList;
+	private OrchestraNative m_orchestraHandle;
+	private int m_uid = 0;
+	private Vector<OrchestraInterfaceOutput> m_outputList;
+	private Vector<OrchestraInterfaceInput> m_inputList;
 	
 	public OrchestraManager() {
 		// set the java evironement in the C sources :
-		orchestraHandle = new OrchestraNative(this);
-		outputList = new Vector<OrchestraInterfaceOutput>();
-		inputList = new Vector<OrchestraInterfaceInput>();
+		m_orchestraHandle = new OrchestraNative(this);
+		m_outputList = new Vector<OrchestraInterfaceOutput>();
+		m_inputList = new Vector<OrchestraInterfaceInput>();
 	}
 	
 	public int getDeviceCount() {
 		Log.e("Manager", "Get device List");
-		return 1;
+		return 2;
 	}
 	
-	public String getDeviceProperty(int idDevice) {
-		if (idDevice == 0) {
+	public String getDeviceProperty(int _idDevice) {
+		if (_idDevice == 0) {
 			return   "{\n"
 			       + "	name:'speaker',\n"
 			       + "	type:'output',\n"
+			       + "	sample-rate:[8000,16000,24000,32000,48000,96000],\n"
+			       + "	channels:['front-left','front-right'],\n"
+			       + "	format:['int16'],\n"
+			       + "	default:true\n"
+			       + "}";
+		} else if (_idDevice == 1) {
+			return   "{\n"
+			       + "	name:'microphone',\n"
+			       + "	type:'input',\n"
 			       + "	sample-rate:[8000,16000,24000,32000,48000,96000],\n"
 			       + "	channels:['front-left','front-right'],\n"
 			       + "	format:['int16'],\n"
@@ -54,143 +63,137 @@ public class OrchestraManager implements OrchestraManagerCallback, OrchestraCons
 		}
 	}
 	
-	public int openDeviceOutput(int idDevice, int freq, int nbChannel, int format) {
-		OrchestraInterfaceOutput iface = new OrchestraInterfaceOutput(uid, orchestraHandle, idDevice, freq, nbChannel, format);
-		uid++;
-		Log.e("Manager", "Open device Output: " + idDevice + " with UID=" + (uid-1));
+	public int openDeviceOutput(int _idDevice, int _freq, int _nbChannel, int _format) {
+		OrchestraInterfaceOutput iface = new OrchestraInterfaceOutput(m_uid, m_orchestraHandle, _idDevice, _freq, _nbChannel, _format);
+		m_uid++;
+		Log.e("Manager", "Open device Output: " + _idDevice + " with m_uid=" + (m_uid-1));
 		if (iface != null) {
-			outputList.add(iface);
-			Log.e("Manager", "Added element count=" + outputList.size());
-			return uid-1;
+			m_outputList.add(iface);
+			Log.e("Manager", "Added element count=" + m_outputList.size());
+			return m_uid-1;
 		}
 		return -1;
 	}
 	
-	public int openDeviceInput(int idDevice, int freq, int nbChannel, int format) {
-		OrchestraInterfaceInput iface = new OrchestraInterfaceInput(uid, orchestraHandle, idDevice, freq, nbChannel, format);
-		uid++;
-		Log.e("Manager", "Open device Input: " + idDevice + " with UID=" + (uid-1));
+	public int openDeviceInput(int _idDevice, int _freq, int _nbChannel, int _format) {
+		OrchestraInterfaceInput iface = new OrchestraInterfaceInput(m_uid, m_orchestraHandle, _idDevice, _freq, _nbChannel, _format);
+		m_uid++;
+		Log.e("Manager", "Open device Input: " + _idDevice + " with m_uid=" + (m_uid-1));
 		if (iface != null) {
-			inputList.add(iface);
-			return uid-1;
+			m_inputList.add(iface);
+			return m_uid-1;
 		}
 		return -1;
 	}
 	
-	public boolean closeDevice(int uniqueID) {
-		Log.e("Manager", "Close device : " + uniqueID);
-		if (uniqueID<0) {
-			Log.e("Manager", "Can not Close device with UID: " + uniqueID);
+	public boolean closeDevice(int _uniqueID) {
+		Log.e("Manager", "Close device : " + _uniqueID);
+		if (_uniqueID<0) {
+			Log.e("Manager", "Can not Close device with m_uid: " + _uniqueID);
 			return false;
 		}
 		// find the Element with his ID:
-		if (inputList != null) {
-			for (int iii=0; iii<inputList.size(); iii++) {
-				if (inputList.get(iii) == null) {
+		if (m_inputList != null) {
+			for (int iii=0; iii<m_inputList.size(); iii++) {
+				if (m_inputList.get(iii) == null) {
 					Log.e("Manager", "Null input element: " + iii);
 					continue;
 				}
-				if (inputList.get(iii).getUId() == uniqueID) {
+				if (m_inputList.get(iii).getUId() == _uniqueID) {
 					// find it ...
-					inputList.remove(iii);
+					m_inputList.remove(iii);
 					return true;
 				}
 			}
 		}
-		if (outputList != null) {
-			for (int iii=0; iii<outputList.size(); iii++) {
-				if (outputList.get(iii) == null) {
+		if (m_outputList != null) {
+			for (int iii=0; iii<m_outputList.size(); iii++) {
+				if (m_outputList.get(iii) == null) {
 					Log.e("Manager", "Null input element: " + iii);
 					continue;
 				}
-				if (outputList.get(iii).getUId() == uniqueID) {
+				if (m_outputList.get(iii).getUId() == _uniqueID) {
 					// find it ...
-					outputList.remove(iii);
+					m_outputList.remove(iii);
 					return true;
 				}
 			}
 		}
-		Log.e("Manager", "Can not start device with UID: " + uniqueID + " Element does not exist ...");
+		Log.e("Manager", "Can not start device with m_uid: " + _uniqueID + " Element does not exist ...");
 		return false;
 	}
 	
-	public boolean start(int uniqueID) {
-		Log.e("Manager", "start device : " + uniqueID);
-		if (uniqueID<0) {
-			Log.e("Manager", "Can not start device with UID: " + uniqueID);
+	public boolean start(int _uniqueID) {
+		Log.e("Manager", "start device : " + _uniqueID);
+		if (_uniqueID<0) {
+			Log.e("Manager", "Can not start device with m_uid: " + _uniqueID);
 			return false;
 		}
 		// find the Element with his ID:
-		if (inputList != null) {
-			for (int iii=0; iii<inputList.size(); iii++) {
-				if (inputList.get(iii) == null) {
+		if (m_inputList != null) {
+			for (int iii=0; iii<m_inputList.size(); iii++) {
+				if (m_inputList.get(iii) == null) {
 					Log.e("Manager", "Null input element: " + iii);
 					continue;
 				}
-				if (inputList.get(iii).getUId() == uniqueID) {
+				if (m_inputList.get(iii).getUId() == _uniqueID) {
 					// find it ...
-					inputList.get(iii).start();
+					m_inputList.get(iii).autoStart();
 					return true;
 				}
 			}
 		}
-		if (outputList != null) {
-			for (int iii=0; iii<outputList.size(); iii++) {
-				if (outputList.get(iii) == null) {
+		if (m_outputList != null) {
+			for (int iii=0; iii<m_outputList.size(); iii++) {
+				if (m_outputList.get(iii) == null) {
 					Log.e("Manager", "Null input element: " + iii);
 					continue;
 				}
-				if (outputList.get(iii).getUId() == uniqueID) {
+				if (m_outputList.get(iii).getUId() == _uniqueID) {
 					// find it ...
-					outputList.get(iii).start();
+					m_outputList.get(iii).autoStart();
 					return true;
 				}
 			}
 		}
-		Log.e("Manager", "Can not start device with UID: " + uniqueID + " Element does not exist ...");
+		Log.e("Manager", "Can not start device with UID: " + _uniqueID + " Element does not exist ...");
 		return false;
 	}
 	
-	public boolean stop(int uniqueID) {
-		Log.e("Manager", "stop device : " + uniqueID);
-		if (uniqueID<0) {
-			Log.e("Manager", "Can not stop device with UID: " + uniqueID);
+	public boolean stop(int _uniqueID) {
+		Log.e("Manager", "stop device : " + _uniqueID);
+		if (_uniqueID<0) {
+			Log.e("Manager", "Can not stop device with UID: " + _uniqueID);
 			return false;
 		}
 		// find the Element with his ID:
-		if (inputList != null) {
-			for (int iii=0; iii<inputList.size(); iii++) {
-				if (inputList.get(iii) == null) {
+		if (m_inputList != null) {
+			for (int iii=0; iii<m_inputList.size(); iii++) {
+				if (m_inputList.get(iii) == null) {
 					Log.e("Manager", "Null input element: " + iii);
 					continue;
 				}
-				if (inputList.get(iii).getUId() == uniqueID) {
+				if (m_inputList.get(iii).getUId() == _uniqueID) {
 					// find it ...
-					inputList.get(iii).autoStop();
-					try {
-						inputList.get(iii).join();
-					} catch(InterruptedException e) { }
+					m_inputList.get(iii).autoStop();
 					return true;
 				}
 			}
 		}
-		if (outputList != null) {
-			for (int iii=0; iii<outputList.size(); iii++) {
-				if (outputList.get(iii) == null) {
+		if (m_outputList != null) {
+			for (int iii=0; iii<m_outputList.size(); iii++) {
+				if (m_outputList.get(iii) == null) {
 					Log.e("Manager", "Null input element: " + iii);
 					continue;
 				}
-				if (outputList.get(iii).getUId() == uniqueID) {
+				if (m_outputList.get(iii).getUId() == _uniqueID) {
 					// find it ...
-					outputList.get(iii).autoStop();
-					try {
-						outputList.get(iii).join();
-					} catch(InterruptedException e) { }
+					m_outputList.get(iii).autoStop();
 					return true;
 				}
 			}
 		}
-		Log.e("Manager", "Can not stop device with UID: " + uniqueID + " Element does not exist ...");
+		Log.e("Manager", "Can not stop device with UID: " + _uniqueID + " Element does not exist ...");
 		return false;
 	}
 	public void onCreate() {
@@ -208,44 +211,44 @@ public class OrchestraManager implements OrchestraManagerCallback, OrchestraCons
 	public void onResume() {
 		Log.w("Manager", "onResume ...");
 		// find the Element with his ID:
-		if (inputList != null) {
-			for (int iii=0; iii<inputList.size(); iii++) {
-				if (inputList.get(iii) == null) {
+		if (m_inputList != null) {
+			for (int iii=0; iii<m_inputList.size(); iii++) {
+				if (m_inputList.get(iii) == null) {
 					Log.e("Manager", "Null input element: " + iii);
 					continue;
 				}
-				inputList.get(iii).activityResume();
+				m_inputList.get(iii).activityResume();
 			}
 		}
-		if (outputList != null) {
-			for (int iii=0; iii<outputList.size(); iii++) {
-				if (outputList.get(iii) == null) {
+		if (m_outputList != null) {
+			for (int iii=0; iii<m_outputList.size(); iii++) {
+				if (m_outputList.get(iii) == null) {
 					Log.e("Manager", "Null input element: " + iii);
 					continue;
 				}
-				outputList.get(iii).activityResume();
+				m_outputList.get(iii).activityResume();
 			}
 		}
 	}
 	public void onPause() {
 		Log.w("Manager", "onPause ...");
 		// find the Element with his ID:
-		if (inputList != null) {
-			for (int iii=0; iii<inputList.size(); iii++) {
-				if (inputList.get(iii) == null) {
+		if (m_inputList != null) {
+			for (int iii=0; iii<m_inputList.size(); iii++) {
+				if (m_inputList.get(iii) == null) {
 					Log.e("Manager", "Null input element: " + iii);
 					continue;
 				}
-				inputList.get(iii).activityPause();
+				m_inputList.get(iii).activityPause();
 			}
 		}
-		if (outputList != null) {
-			for (int iii=0; iii<outputList.size(); iii++) {
-				if (outputList.get(iii) == null) {
+		if (m_outputList != null) {
+			for (int iii=0; iii<m_outputList.size(); iii++) {
+				if (m_outputList.get(iii) == null) {
 					Log.e("Manager", "Null input element: " + iii);
 					continue;
 				}
-				outputList.get(iii).activityPause();
+				m_outputList.get(iii).activityPause();
 			}
 		}
 	}

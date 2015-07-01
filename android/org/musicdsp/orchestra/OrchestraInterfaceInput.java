@@ -16,18 +16,28 @@ import android.util.Log;
 
 
 
-public class OrchestraInterfaceInput extends Thread implements OrchestraConstants {
+public class OrchestraInterfaceInput implements Runnable, OrchestraConstants {
+	private Thread m_thread = null;
 	private int m_uid = -1;
 	private OrchestraNative m_orchestraNativeHandle;
-	public static final int SAMPLE_FREQ_44100 = 44100;
 	private boolean m_stop = false;
+	private boolean m_suspend = false;
 	private AudioRecord m_audio = null;
+	private int m_sampleRate = 48000;
+	private int m_nbChannel = 2;
+	private int m_format = 1;
+	private int m_bufferSize = BUFFER_SIZE;
 	
-	public OrchestraInterfaceInput(int id, OrchestraNative instance, int idDevice, int freq, int nbChannel, int format) {
-		Log.d("InterfaceInput", "new: output");
-		m_uid = id;
-		m_orchestraNativeHandle = instance;
+	public OrchestraInterfaceInput(int _id, OrchestraNative _instance, int _idDevice, int _sampleRate, int _nbChannel, int _format) {
+		Log.d("InterfaceInput", "new: Input");
+		m_uid = _id;
+		m_orchestraNativeHandle = _instance;
 		m_stop = false;
+		m_suspend = false;
+		m_sampleRate = _sampleRate;
+		m_nbChannel = _nbChannel;
+		m_format = _format;
+		m_bufferSize = BUFFER_SIZE * m_nbChannel;
 	}
 	public int getUId() {
 		return m_uid;
@@ -35,49 +45,75 @@ public class OrchestraInterfaceInput extends Thread implements OrchestraConstant
 	
 	public void run() {
 		Log.e("InterfaceInput", "RUN (start)");
-		int sampleFreq = 48000;
 		int channelConfig = AudioFormat.CHANNEL_CONFIGURATION_STEREO;
 		int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
-		int nbChannels = 2;
 		// we keep the minimum buffer size, otherwite the delay is too big ...
-		int bufferSize = AudioRecord.getMinBufferSize(sampleFreq, channelConfig, audioFormat);
+		// TODO : int bufferSize = AudioRecord.getMinBufferSize(m_sampleRate, channelConfig, audioFormat);
+		int config = 0;
+		if (m_nbChannel == 1) {
+			config = AudioFormat.CHANNEL_IN_MONO;
+		} else {
+			config = AudioFormat.CHANNEL_IN_STEREO;
+		}
 		// Create a streaming AudioTrack for music playback
-		short[] streamBuffer = new short[bufferSize];
+		short[] streamBuffer = new short[m_bufferSize];
 		m_audio = new AudioRecord(MediaRecorder.AudioSource.MIC,
-		                          sampleFreq,
-		                          AudioFormat.CHANNEL_CONFIGURATION_STEREO,
-		                          AudioFormat.ENCODING_PCM_16BIT,
-		                          bufferSize);
+		                          m_sampleRate,
+		                          config,
+		                          audioFormat,
+		                          m_bufferSize);
 		m_audio.startRecording();
-		m_stop = false;
 		
-		while (m_stop == false) {
+		while (    m_stop == false
+		        && m_suspend == false) {
 			// Stream PCM data into the local buffer
-			m_audio.read(streamBuffer, 0, BUFFER_SIZE);
+			m_audio.read(streamBuffer, 0, m_bufferSize);
 			// Send it to C++
-			m_orchestraNativeHandle.record(m_uid, streamBuffer, BUFFER_SIZE/nbChannels);
+			m_orchestraNativeHandle.record(m_uid, streamBuffer, m_bufferSize/m_nbChannel);
 		}
 		m_audio.stop();
 		m_audio = null;
 		streamBuffer = null;
 		Log.e("InterfaceInput", "RUN (stop)");
 	}
+	
+	public void autoStart() {
+		m_stop=false;
+		if (m_suspend == false) {
+			Log.e("InterfaceInput", "Create thread");
+			m_thread = new Thread(this);
+			Log.e("InterfaceInput", "start thread");
+			m_thread.start();
+			Log.e("InterfaceInput", "start thread (done)");
+		}
+	}
+	
 	public void autoStop() {
 		if(m_audio == null) {
 			return;
 		}
 		m_stop=true;
+		m_thread = null;
+		/*
+		try {
+			super.join();
+		} catch(InterruptedException e) { }
+		*/
 	}
 	public void activityResume() {
-		if(m_audio == null) {
-			return;
+		m_suspend = false;
+		if (m_stop == false) {
+			Log.i("InterfaceInput", "Resume audio stream : " + m_uid);
+			m_thread = new Thread(this);
+			m_thread.start();
 		}
-		
 	}
 	public void activityPause() {
 		if(m_audio == null) {
 			return;
 		}
-		
+		m_suspend = true;
+		Log.i("InterfaceInput", "Pause audio stream : " + m_uid);
+		m_thread = null;
 	}
 }
