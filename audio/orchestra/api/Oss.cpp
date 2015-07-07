@@ -85,6 +85,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Oss::getDeviceInfo(uint32_t 
 	int32_t mixerfd = open("/dev/mixer", O_RDWR, 0);
 	if (mixerfd == -1) {
 		ATA_ERROR("error opening '/dev/mixer'.");
+		info.clear();
 		return info;
 	}
 	oss_sysinfo sysinfo;
@@ -92,17 +93,20 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Oss::getDeviceInfo(uint32_t 
 	if (result == -1) {
 		close(mixerfd);
 		ATA_ERROR("error getting sysinfo, OSS version >= 4.0 is required.");
+		info.clear();
 		return info;
 	}
 	unsigned nDevices = sysinfo.numaudios;
 	if (nDevices == 0) {
 		close(mixerfd);
 		ATA_ERROR("no devices found!");
+		info.clear();
 		return info;
 	}
 	if (_device >= nDevices) {
 		close(mixerfd);
 		ATA_ERROR("device ID is invalid!");
+		info.clear();
 		return info;
 	}
 	oss_audioinfo ainfo;
@@ -112,6 +116,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Oss::getDeviceInfo(uint32_t 
 	if (result == -1) {
 		ATA_ERROR("error getting device (" << ainfo.name << ") info.");
 		error(audio::orchestra::error_warning);
+		info.clear();
 		return info;
 	}
 	// Probe channels
@@ -151,6 +156,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Oss::getDeviceInfo(uint32_t 
 	// Check that we have at least one supported format
 	if (info.nativeFormats == 0) {
 		ATA_ERROR("device (" << ainfo.name << ") data format not supported by RtAudio.");
+		info.clear();
 		return info;
 	}
 	// Probe the supported sample rates.
@@ -179,17 +185,18 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Oss::getDeviceInfo(uint32_t 
 		info.probed = true;
 		info.name = ainfo.name;
 	}
+	info.isCorrect = true;
 	return info;
 }
 
-bool audio::orchestra::api::Oss::probeDeviceOpen(uint32_t _device,
-                                          StreamMode _mode,
-                                          uint32_t _channels,
-                                          uint32_t _firstChannel,
-                                          uint32_t _sampleRate,
-                                          rtaudio::format _format,
-                                          uint32_t* _bufferSize,
-                                          const audio::orchestra::StreamOptions& _options) {
+bool audio::orchestra::api::Oss::open(uint32_t _device,
+                                      StreamMode _mode,
+                                      uint32_t _channels,
+                                      uint32_t _firstChannel,
+                                      uint32_t _sampleRate,
+                                      audio::format _format,
+                                      uint32_t* _bufferSize,
+                                      const audio::orchestra::StreamOptions& _options) {
 	int32_t mixerfd = open("/dev/mixer", O_RDWR, 0);
 	if (mixerfd == -1) {
 		ATA_ERROR("error opening '/dev/mixer'.");

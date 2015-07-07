@@ -277,14 +277,14 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::abortStream() {
 	return audio::orchestra::error_none;
 }
 
-bool audio::orchestra::api::Pulse::probeDeviceOpen(uint32_t _device,
-                                            audio::orchestra::mode _mode,
-                                            uint32_t _channels,
-                                            uint32_t _firstChannel,
-                                            uint32_t _sampleRate,
-                                            audio::format _format,
-                                            uint32_t *_bufferSize,
-                                            const audio::orchestra::StreamOptions& _options) {
+bool audio::orchestra::api::Pulse::open(uint32_t _device,
+                                        audio::orchestra::mode _mode,
+                                        uint32_t _channels,
+                                        uint32_t _firstChannel,
+                                        uint32_t _sampleRate,
+                                        audio::format _format,
+                                        uint32_t *_bufferSize,
+                                        const audio::orchestra::StreamOptions& _options) {
 	uint64_t bufferBytes = 0;
 	pa_sample_spec ss;
 	if (_device != 0) {

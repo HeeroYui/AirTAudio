@@ -40,14 +40,14 @@ namespace audio {
 					bool m_coInitialized;
 					bool m_buffersRolling;
 					long m_duplexPrerollBytes;
-					bool probeDeviceOpen(uint32_t _device,
-					                     enum audio::orchestra::mode _mode,
-					                     uint32_t _channels,
-					                     uint32_t _firstChannel,
-					                     uint32_t _sampleRate,
-					                     enum audio::format _format,
-					                     uint32_t *_bufferSize,
-					                     const audio::orchestra::StreamOptions& _options);
+					bool open(uint32_t _device,
+					          enum audio::orchestra::mode _mode,
+					          uint32_t _channels,
+					          uint32_t _firstChannel,
+					          uint32_t _sampleRate,
+					          enum audio::format _format,
+					          uint32_t *_bufferSize,
+					          const audio::orchestra::StreamOptions& _options);
 			};
 		}
 	}

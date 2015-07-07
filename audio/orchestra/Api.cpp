@@ -115,23 +115,23 @@ enum audio::orchestra::error audio::orchestra::Api::openStream(audio::orchestra:
 	bool result;
 	if (oChannels > 0) {
 		if (_oParams->deviceId == -1) {
-			result = probeDeviceOpenName(_oParams->deviceName,
-			                             audio::orchestra::mode_output,
-			                             oChannels,
-			                             _oParams->firstChannel,
-			                             _sampleRate,
-			                             _format,
-			                             _bufferFrames,
-			                             _options);
+			result = openName(_oParams->deviceName,
+			                  audio::orchestra::mode_output,
+			                  oChannels,
+			                  _oParams->firstChannel,
+			                  _sampleRate,
+			                  _format,
+			                  _bufferFrames,
+			                  _options);
 		} else {
-			result = probeDeviceOpen(_oParams->deviceId,
-			                         audio::orchestra::mode_output,
-			                         oChannels,
-			                         _oParams->firstChannel,
-			                         _sampleRate,
-			                         _format,
-			                         _bufferFrames,
-			                         _options);
+			result = open(_oParams->deviceId,
+			              audio::orchestra::mode_output,
+			              oChannels,
+			              _oParams->firstChannel,
+			              _sampleRate,
+			              _format,
+			              _bufferFrames,
+			              _options);
 		}
 		if (result == false) {
 			ATA_ERROR("system ERROR");
@@ -140,23 +140,23 @@ enum audio::orchestra::error audio::orchestra::Api::openStream(audio::orchestra:
 	}
 	if (iChannels > 0) {
 		if (_iParams->deviceId == -1) {
-			result = probeDeviceOpenName(_iParams->deviceName,
-			                             audio::orchestra::mode_input,
-			                             iChannels,
-			                             _iParams->firstChannel,
-			                             _sampleRate,
-			                             _format,
-			                             _bufferFrames,
-			                             _options);
+			result = openName(_iParams->deviceName,
+			                  audio::orchestra::mode_input,
+			                  iChannels,
+			                  _iParams->firstChannel,
+			                  _sampleRate,
+			                  _format,
+			                  _bufferFrames,
+			                  _options);
 		} else {
-			result = probeDeviceOpen(_iParams->deviceId,
-			                         audio::orchestra::mode_input,
-			                         iChannels,
-			                         _iParams->firstChannel,
-			                         _sampleRate,
-			                         _format,
-			                         _bufferFrames,
-			                         _options);
+			result = open(_iParams->deviceId,
+			              audio::orchestra::mode_input,
+			              iChannels,
+			              _iParams->firstChannel,
+			              _sampleRate,
+			              _format,
+			              _bufferFrames,
+			              _options);
 		}
 		if (result == false) {
 			if (oChannels > 0) {
@@ -188,14 +188,14 @@ enum audio::orchestra::error audio::orchestra::Api::closeStream() {
 	return audio::orchestra::error_none;
 }
 
-bool audio::orchestra::Api::probeDeviceOpen(uint32_t /*device*/,
-                                     audio::orchestra::mode /*mode*/,
-                                     uint32_t /*channels*/,
-                                     uint32_t /*firstChannel*/,
-                                     uint32_t /*sampleRate*/,
-                                     audio::format /*format*/,
-                                     uint32_t * /*bufferSize*/,
-                                     const audio::orchestra::StreamOptions& /*options*/) {
+bool audio::orchestra::Api::open(uint32_t /*device*/,
+                                 audio::orchestra::mode /*mode*/,
+                                 uint32_t /*channels*/,
+                                 uint32_t /*firstChannel*/,
+                                 uint32_t /*sampleRate*/,
+                                 audio::format /*format*/,
+                                 uint32_t * /*bufferSize*/,
+                                 const audio::orchestra::StreamOptions& /*options*/) {
 	// MUST be implemented in subclasses!
 	return false;
 }

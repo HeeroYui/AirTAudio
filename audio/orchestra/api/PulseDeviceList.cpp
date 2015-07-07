@@ -213,6 +213,7 @@ static void callbackGetSinkList(pa_context* _contex, const pa_sink_info* _info, 
 		return;
 	}
 	audio::orchestra::DeviceInfo info;
+	info.isCorrect = true;
 	info.input = false;
 	info.name = _info->name;
 	info.desc = _info->description;
@@ -231,6 +232,7 @@ static void callbackGetSourceList(pa_context* _contex, const pa_source_info* _in
 		return;
 	}
 	audio::orchestra::DeviceInfo info;
+	info.isCorrect = true;
 	info.input = true;
 	info.name = _info->name;
 	info.desc = _info->description;

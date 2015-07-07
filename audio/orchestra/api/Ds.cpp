@@ -156,7 +156,7 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
 	if (probeInfo.isInput == true) {
 		DSCCAPS caps;
 		LPDIRECTSOUNDCAPTURE object;
-		hr = DirectSoundCaptureCreate(_lpguid, &object,	 nullptr);
+		hr = DirectSoundCaptureCreate(_lpguid, &object, nullptr);
 		if (hr != DS_OK) {
 			return TRUE;
 		}
@@ -171,7 +171,7 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
 	} else {
 		DSCAPS caps;
 		LPDIRECTSOUND object;
-		hr = DirectSoundCreate(_lpguid, &object,	 nullptr);
+		hr = DirectSoundCreate(_lpguid, &object, nullptr);
 		if (hr != DS_OK) {
 			return TRUE;
 		}
@@ -203,6 +203,9 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
 }
 
 uint32_t audio::orchestra::api::Ds::getDeviceCount() {
+	if (m_private->dsDevices.size()>0) {
+		return m_private->dsDevices.size();
+	}
 	// Query DirectSound devices.
 	struct DsProbeData probeInfo;
 	probeInfo.isInput = false;
@@ -230,11 +233,13 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 	}
 	HRESULT result;
 	if (m_private->dsDevices[_device].input == false) {
+		info.input = true;
 		LPDIRECTSOUND output;
 		DSCAPS outCaps;
 		result = DirectSoundCreate(m_private->dsDevices[_device].id, &output, nullptr);
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": opening output device (" << m_private->dsDevices[_device].name << ")!");
+			info.clear();
 			return info;
 		}
 		outCaps.dwSize = sizeof(outCaps);
@@ -242,6 +247,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 		if (FAILED(result)) {
 			output->Release();
 			ATA_ERROR(getErrorString(result) << ": getting capabilities!");
+			info.clear();
 			return info;
 		}
 		// Get output channel information.
@@ -267,12 +273,14 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 		}
 		output->Release();
 		info.name = m_private->dsDevices[_device].name;
+		info.isCorrect = true;
 		return info;
 	} else {
 		LPDIRECTSOUNDCAPTURE input;
 		result = DirectSoundCaptureCreate(m_private->dsDevices[_device].id, &input, nullptr);
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": opening input device (" << m_private->dsDevices[_device].name << ")!");
+			info.clear();
 			return info;
 		}
 		DSCCAPS inCaps;
@@ -281,6 +289,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 		if (FAILED(result)) {
 			input->Release();
 			ATA_ERROR(getErrorString(result) << ": getting object capabilities (" << m_private->dsDevices[_device].name << ")!");
+			info.clear();
 			return info;
 		}
 		// Get input channel information.
@@ -353,6 +362,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 		}
 		input->Release();
 		if (info.channels.size() == 0) {
+			info.clear();
 			return info;
 		}
 		// Copy the supported rates to the info structure but avoid duplication.
@@ -372,19 +382,21 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 		std::sort(info.sampleRates.begin(), info.sampleRates.end());
 		// Copy name and return.
 		info.name = m_private->dsDevices[_device].name;
+		info.isCorrect = true;
 		return info;
 	}
+	info.clear();
 	return info;
 }
 
-bool audio::orchestra::api::Ds::probeDeviceOpen(uint32_t _device,
-                                         enum audio::orchestra::mode _mode,
-                                         uint32_t _channels,
-                                         uint32_t _firstChannel,
-                                         uint32_t _sampleRate,
-                                         enum audio::format _format,
-                                         uint32_t *_bufferSize,
-                                         const audio::orchestra::StreamOptions& _options) {
+bool audio::orchestra::api::Ds::open(uint32_t _device,
+                                     enum audio::orchestra::mode _mode,
+                                     uint32_t _channels,
+                                     uint32_t _firstChannel,
+                                     uint32_t _sampleRate,
+                                     enum audio::format _format,
+                                     uint32_t *_bufferSize,
+                                     const audio::orchestra::StreamOptions& _options) {
 	if (_channels + _firstChannel > 2) {
 		ATA_ERROR("DirectSound does not support more than 2 channels per device.");
 		return false;

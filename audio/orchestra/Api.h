@@ -66,12 +66,12 @@ namespace audio {
 				virtual uint32_t getDefaultInputDevice();
 				virtual uint32_t getDefaultOutputDevice();
 				enum audio::orchestra::error openStream(audio::orchestra::StreamParameters* _outputParameters,
-				                                 audio::orchestra::StreamParameters* _inputParameters,
-				                                 audio::format _format,
-				                                 uint32_t _sampleRate,
-				                                 uint32_t* _nbChunk,
-				                                 audio::orchestra::AirTAudioCallback _callback,
-				                                 const audio::orchestra::StreamOptions& _options);
+				                                        audio::orchestra::StreamParameters* _inputParameters,
+				                                        audio::format _format,
+				                                        uint32_t _sampleRate,
+				                                        uint32_t* _nbChunk,
+				                                        audio::orchestra::AirTAudioCallback _callback,
+				                                        const audio::orchestra::StreamOptions& _options);
 				virtual enum audio::orchestra::error closeStream();
 				virtual enum audio::orchestra::error startStream();
 				virtual enum audio::orchestra::error stopStream() = 0;
@@ -119,21 +119,21 @@ namespace audio {
 				 * "warning" message is reported and false is returned. A
 				 * successful probe is indicated by a return value of true.
 				 */
-				virtual bool probeDeviceOpen(uint32_t _device,
-				                             enum audio::orchestra::mode _mode,
-				                             uint32_t _channels,
-				                             uint32_t _firstChannel,
-				                             uint32_t _sampleRate,
-				                             enum audio::format _format,
-				                             uint32_t *_bufferSize,
-				                             const audio::orchestra::StreamOptions& _options);
-				virtual bool probeDeviceOpenName(const std::string& _deviceName,
-				                                 audio::orchestra::mode _mode,
-				                                 uint32_t _channels,
-				                                 uint32_t _firstChannel,
-				                                 uint32_t _sampleRate,
-				                                 audio::format _format,
-				                                 uint32_t *_bufferSize,
+				virtual bool open(uint32_t _device,
+				                  enum audio::orchestra::mode _mode,
+				                  uint32_t _channels,
+				                  uint32_t _firstChannel,
+				                  uint32_t _sampleRate,
+				                  enum audio::format _format,
+				                  uint32_t *_bufferSize,
+				                  const audio::orchestra::StreamOptions& _options);
+				virtual bool openName(const std::string& _deviceName,
+				                      audio::orchestra::mode _mode,
+				                      uint32_t _channels,
+				                      uint32_t _firstChannel,
+				                      uint32_t _sampleRate,
+				                      audio::format _format,
+				                      uint32_t *_bufferSize,
 				                                 const audio::orchestra::StreamOptions& _options) { return false; }
 				/**
 				 * @brief Increment the stream time.

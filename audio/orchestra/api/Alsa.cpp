@@ -308,11 +308,13 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Alsa::getDeviceInfo(uint32_t
 	if (nDevices == 0) {
 		ATA_ERROR("no devices found!");
 		// TODO : audio::orchestra::error_invalidUse;
+		info.clear();
 		return info;
 	}
 	if (_device >= nDevices) {
 		ATA_ERROR("device ID is invalid!");
 		// TODO : audio::orchestra::error_invalidUse;
+		info.clear();
 		return info;
 	}
 
@@ -326,6 +328,7 @@ foundDevice:
 		if (_device >= m_devices.size()) {
 			ATA_ERROR("device ID was not present before stream was opened.");
 			// TODO : return audio::orchestra::error_warning;
+			info.clear();
 			return info;
 		}
 		return m_devices[_device];
@@ -333,8 +336,10 @@ foundDevice:
 	bool ret = audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(name, info, card, subdevice, _device, isInput);
 	if (ret == false) {
 		// TODO : ...
+		info.clear();
 		return info;
 	}
+	info.isCorrect = true;
 	return info;
 }
 
@@ -347,14 +352,14 @@ void audio::orchestra::api::Alsa::saveDeviceInfo() {
 	}
 }
 
-bool audio::orchestra::api::Alsa::probeDeviceOpen(uint32_t _device,
-                                                  audio::orchestra::mode _mode,
-                                                  uint32_t _channels,
-                                                  uint32_t _firstChannel,
-                                                  uint32_t _sampleRate,
-                                                  audio::format _format,
-                                                  uint32_t *_bufferSize,
-                                                  const audio::orchestra::StreamOptions& _options) {
+bool audio::orchestra::api::Alsa::open(uint32_t _device,
+                                       audio::orchestra::mode _mode,
+                                       uint32_t _channels,
+                                       uint32_t _firstChannel,
+                                       uint32_t _sampleRate,
+                                       audio::format _format,
+                                       uint32_t *_bufferSize,
+                                       const audio::orchestra::StreamOptions& _options) {
 	// I'm not using the "plug" interface ... too much inconsistent behavior.
 	unsigned nDevices = 0;
 	int32_t result, subdevice, card;
@@ -399,17 +404,17 @@ bool audio::orchestra::api::Alsa::probeDeviceOpen(uint32_t _device,
 	// NOTE : Find the device name : [ END ]
 
 foundDevice:
-	return probeDeviceOpenName(name, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options);
+	return openName(name, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options);
 }
 
-bool audio::orchestra::api::Alsa::probeDeviceOpenName(const std::string& _deviceName,
-                                                      audio::orchestra::mode _mode,
-                                                      uint32_t _channels,
-                                                      uint32_t _firstChannel,
-                                                      uint32_t _sampleRate,
-                                                      audio::format _format,
-                                                      uint32_t *_bufferSize,
-                                                      const audio::orchestra::StreamOptions& _options) {
+bool audio::orchestra::api::Alsa::openName(const std::string& _deviceName,
+                                           audio::orchestra::mode _mode,
+                                           uint32_t _channels,
+                                           uint32_t _firstChannel,
+                                           uint32_t _sampleRate,
+                                           audio::format _format,
+                                           uint32_t *_bufferSize,
+                                           const audio::orchestra::StreamOptions& _options) {
 	ATA_DEBUG("Probe ALSA device : ");
 	ATA_DEBUG("    _deviceName=" << _deviceName);
 	ATA_DEBUG("    _mode=" << _mode);

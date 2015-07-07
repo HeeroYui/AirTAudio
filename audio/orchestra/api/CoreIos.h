@@ -36,18 +36,18 @@ namespace audio {
 				private:
 					std::vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
-					bool probeDeviceOpen(uint32_t _device,
-					                     audio::orchestra::mode _mode,
-					                     uint32_t _channels,
-					                     uint32_t _firstChannel,
-					                     uint32_t _sampleRate,
-					                     audio::format _format,
-					                     uint32_t *_bufferSize,
-					                     const audio::orchestra::StreamOptions& _options);
+					bool open(uint32_t _device,
+					          audio::orchestra::mode _mode,
+					          uint32_t _channels,
+					          uint32_t _firstChannel,
+					          uint32_t _sampleRate,
+					          audio::format _format,
+					          uint32_t *_bufferSize,
+					          const audio::orchestra::StreamOptions& _options);
 				public:
 					void callBackEvent(void* _data,
 					                   int32_t _nbChunk,
-									   const audio::Time& _time);
+					                   const audio::Time& _time);
 				public:
 					std11::shared_ptr<CoreIosPrivate> m_private;
 			};

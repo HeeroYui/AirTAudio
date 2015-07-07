@@ -53,23 +53,23 @@ namespace audio {
 					std11::shared_ptr<AlsaPrivate> m_private;
 					std::vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
-					bool probeDeviceOpen(uint32_t _device,
-					                     enum audio::orchestra::mode _mode,
-					                     uint32_t _channels,
-					                     uint32_t _firstChannel,
-					                     uint32_t _sampleRate,
-					                     enum audio::format _format,
-					                     uint32_t *_bufferSize,
-					                     const audio::orchestra::StreamOptions& _options);
+					bool open(uint32_t _device,
+					          enum audio::orchestra::mode _mode,
+					          uint32_t _channels,
+					          uint32_t _firstChannel,
+					          uint32_t _sampleRate,
+					          enum audio::format _format,
+					          uint32_t *_bufferSize,
+					          const audio::orchestra::StreamOptions& _options);
 					
-					virtual bool probeDeviceOpenName(const std::string& _deviceName,
-					                                 audio::orchestra::mode _mode,
-					                                 uint32_t _channels,
-					                                 uint32_t _firstChannel,
-					                                 uint32_t _sampleRate,
-					                                 audio::format _format,
-					                                 uint32_t *_bufferSize,
-					                                 const audio::orchestra::StreamOptions& _options);
+					bool openName(const std::string& _deviceName,
+					              audio::orchestra::mode _mode,
+					              uint32_t _channels,
+					              uint32_t _firstChannel,
+					              uint32_t _sampleRate,
+					              audio::format _format,
+					              uint32_t *_bufferSize,
+					              const audio::orchestra::StreamOptions& _options);
 					virtual audio::Time getStreamTime();
 				public:
 					bool isMasterOf(std11::shared_ptr<audio::orchestra::Api> _api);

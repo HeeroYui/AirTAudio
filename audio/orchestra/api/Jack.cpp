@@ -136,6 +136,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 	if (client == nullptr) {
 		ATA_ERROR("Jack server not found or connection error!");
 		// TODO : audio::orchestra::error_warning;
+		info.clear();
 		return info;
 	}
 	const char **ports;
@@ -199,6 +200,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 		jack_client_close(client);
 		ATA_ERROR("error determining Jack input/output channels!");
 		// TODO : audio::orchestra::error_warning;
+		info.clear();
 		return info;
 	}
 	// Jack always uses 32-bit floats.
@@ -208,6 +210,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 		info.isDefault = true;
 	}
 	jack_client_close(client);
+	info.isCorrect = true;
 	return info;
 }
 
@@ -257,14 +260,14 @@ int32_t audio::orchestra::api::Jack::jackXrun(void* _userData) {
 	return 0;
 }
 
-bool audio::orchestra::api::Jack::probeDeviceOpen(uint32_t _device,
-                                                  audio::orchestra::mode _mode,
-                                                  uint32_t _channels,
-                                                  uint32_t _firstChannel,
-                                                  uint32_t _sampleRate,
-                                                  audio::format _format,
-                                                  uint32_t* _bufferSize,
-                                                  const audio::orchestra::StreamOptions& _options) {
+bool audio::orchestra::api::Jack::open(uint32_t _device,
+                                       audio::orchestra::mode _mode,
+                                       uint32_t _channels,
+                                       uint32_t _firstChannel,
+                                       uint32_t _sampleRate,
+                                       audio::format _format,
+                                       uint32_t* _bufferSize,
+                                       const audio::orchestra::StreamOptions& _options) {
 	// Look for jack server and try to become a client (only do once per stream).
 	jack_client_t *client = 0;
 	if (    _mode == audio::orchestra::mode_output

@@ -133,14 +133,14 @@ void audio::orchestra::api::Android::record(int16_t* _dst, int32_t _nbChunk) {
 	audio::orchestra::Api::tickStreamTime();
 }
 
-bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
-                                                     audio::orchestra::mode _mode,
-                                                     uint32_t _channels,
-                                                     uint32_t _firstChannel,
-                                                     uint32_t _sampleRate,
-                                                     audio::format _format,
-                                                     uint32_t *_bufferSize,
-                                                     const audio::orchestra::StreamOptions& _options) {
+bool audio::orchestra::api::Android::open(uint32_t _device,
+                                          audio::orchestra::mode _mode,
+                                          uint32_t _channels,
+                                          uint32_t _firstChannel,
+                                          uint32_t _sampleRate,
+                                          audio::format _format,
+                                          uint32_t *_bufferSize,
+                                          const audio::orchestra::StreamOptions& _options) {
 	bool ret = false;
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);
 	m_mode = _mode;
@@ -178,7 +178,7 @@ bool audio::orchestra::api::Android::probeDeviceOpen(uint32_t _device,
 		uint64_t bufferBytes = m_nUserChannels[modeToIdTable(m_mode)] * m_bufferSize * audio::getFormatBytes(m_userFormat);
 		m_userBuffer[modeToIdTable(m_mode)].resize(bufferBytes);
 		if (m_userBuffer[modeToIdTable(m_mode)].size() == 0) {
-			ATA_ERROR("audio::orchestra::api::Android::probeDeviceOpen: error allocating user buffer memory.");
+			ATA_ERROR("error allocating user buffer memory.");
 		}
 		setConvertInfo(m_mode, _firstChannel);
 	}

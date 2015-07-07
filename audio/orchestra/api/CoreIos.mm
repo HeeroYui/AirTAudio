@@ -115,7 +115,7 @@ void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
 	std::vector<enum audio::orchestra::status> status;
 	if (m_doConvertBuffer[modeToIdTable(audio::orchestra::mode_output)] == true) {
 		doStopStream = m_callback(nullptr,
-								  audio::Time(),
+		                          audio::Time(),
 		                          &m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0],
 		                          _time,
 		                          _nbChunk,
@@ -125,7 +125,7 @@ void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
 		doStopStream = m_callback(_data,
 		                          _time,
 		                          nullptr,
-								  audio::Time(),
+		                          audio::Time(),
 		                          _nbChunk,
 		                          status);
 	}
@@ -163,14 +163,14 @@ static OSStatus playbackCallback(void *_userData,
 }
 
 
-bool audio::orchestra::api::CoreIos::probeDeviceOpen(uint32_t _device,
-                                                     audio::orchestra::mode _mode,
-                                                     uint32_t _channels,
-                                                     uint32_t _firstChannel,
-                                                     uint32_t _sampleRate,
-                                                     audio::format _format,
-                                                     uint32_t *_bufferSize,
-                                                     const audio::orchestra::StreamOptions& _options) {
+bool audio::orchestra::api::CoreIos::open(uint32_t _device,
+                                          audio::orchestra::mode _mode,
+                                          uint32_t _channels,
+                                          uint32_t _firstChannel,
+                                          uint32_t _sampleRate,
+                                          audio::format _format,
+                                          uint32_t *_bufferSize,
+                                          const audio::orchestra::StreamOptions& _options) {
 	ATA_INFO("Probe : device=" << _device << " channels=" << _channels << " firstChannel=" << _firstChannel << " sampleRate=" << _sampleRate);
 	if (_mode != audio::orchestra::mode_output) {
 		ATA_ERROR("Can not start a device input or duplex for CoreIos ...");

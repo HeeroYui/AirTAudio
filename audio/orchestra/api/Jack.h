@@ -42,14 +42,14 @@ namespace audio {
 					static int32_t jackCallbackHandler(jack_nframes_t _nframes, void* _userData);
 				private:
 					std11::shared_ptr<JackPrivate> m_private;
-					bool probeDeviceOpen(uint32_t _device,
-					                     audio::orchestra::mode _mode,
-					                     uint32_t _channels,
-					                     uint32_t _firstChannel,
-					                     uint32_t _sampleRate,
-					                     audio::format _format,
-					                     uint32_t *_bufferSize,
-					                     const audio::orchestra::StreamOptions& _options);
+					bool open(uint32_t _device,
+					          audio::orchestra::mode _mode,
+					          uint32_t _channels,
+					          uint32_t _firstChannel,
+					          uint32_t _sampleRate,
+					          audio::format _format,
+					          uint32_t *_bufferSize,
+					          const audio::orchestra::StreamOptions& _options);
 			};
 		}
 	}

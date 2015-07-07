@@ -244,6 +244,7 @@ class AndroidOrchestraContext {
 			ATA_WARNING("get device information : " << retString);
 			ejson::Document doc;
 			if (doc.parse(retString) == false) {
+				
 				return info;
 			}
 			info.name = doc.getStringValue("name", "no-name");
@@ -271,7 +272,7 @@ class AndroidOrchestraContext {
 				}
 			}
 			info.isDefault = doc.getBooleanValue("default", false);
-			//return retString;
+			info.isCorrect = true;
 			return info;
 		}
 	private:
