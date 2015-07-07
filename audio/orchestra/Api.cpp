@@ -36,6 +36,7 @@ const std::vector<uint32_t>& audio::orchestra::genericSampleRate() {
 		list.push_back(128000);
 		list.push_back(176400);
 		list.push_back(192000);
+		list.push_back(256000);
 	}
 	return list;
 };

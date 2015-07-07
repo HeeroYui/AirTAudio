@@ -105,7 +105,7 @@ uint32_t audio::orchestra::api::Core::getDeviceCount() {
 		ATA_ERROR("OS-X error getting device info!");
 		return 0;
 	}
-	return dataSize / sizeof(AudioDeviceID);
+	return (dataSize / sizeof(AudioDeviceID)) * 2;
 }
 
 uint32_t audio::orchestra::api::Core::getDefaultInputDevice() {
@@ -145,7 +145,7 @@ uint32_t audio::orchestra::api::Core::getDefaultInputDevice() {
 	}
 	for (uint32_t iii=0; iii<nDevices; iii++) {
 		if (id == deviceList[iii]) {
-			return iii;
+			return iii*2+1;
 		}
 	}
 	ATA_ERROR("No default device found!");
@@ -189,7 +189,7 @@ uint32_t audio::orchestra::api::Core::getDefaultOutputDevice() {
 	}
 	for (uint32_t iii=0; iii<nDevices; iii++) {
 		if (id == deviceList[iii]) {
-			return iii;
+			return iii*2;
 		}
 	}
 	ATA_ERROR("No default device found!");
@@ -198,19 +198,25 @@ uint32_t audio::orchestra::api::Core::getDefaultOutputDevice() {
 
 audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t _device) {
 	audio::orchestra::DeviceInfo info;
-	info.probed = false;
 	// Get device ID
 	uint32_t nDevices = getDeviceCount();
 	if (nDevices == 0) {
 		ATA_ERROR("no devices found!");
+		info.clear();
 		return info;
 	}
 	if (_device >= nDevices) {
 		ATA_ERROR("device ID is invalid!");
+		info.clear();
 		return info;
 	}
-	AudioDeviceID deviceList[ nDevices ];
-	uint32_t dataSize = sizeof(AudioDeviceID) * nDevices;
+	info.input = false;
+	if (_device%2 == 1) {
+		info.input = true;
+	}
+	// The /2 corespond of not mixing input and output ... ==< then the user number of devide is twice the number of real device ...
+	AudioDeviceID deviceList[nDevices/2];
+	uint32_t dataSize = sizeof(AudioDeviceID) * nDevices/2;
 	AudioObjectPropertyAddress property = {
 		kAudioHardwarePropertyDevices,
 		kAudioObjectPropertyScopeGlobal,
@@ -224,10 +230,13 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	                                             (void*)&deviceList);
 	if (result != noErr) {
 		ATA_ERROR("OS-X system error getting device IDs.");
+		info.clear();
 		return info;
 	}
-	AudioDeviceID id = deviceList[ _device ];
+	AudioDeviceID id = deviceList[ _device/2 ];
+	// ------------------------------------------------
 	// Get the device name.
+	// ------------------------------------------------
 	info.name.erase();
 	CFStringRef cfname;
 	dataSize = sizeof(CFStringRef);
@@ -235,102 +244,85 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &cfname);
 	if (result != noErr) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting device manufacturer.");
+		info.clear();
 		return info;
 	}
 	//const char *mname = CFStringGetCStringPtr(cfname, CFStringGetSystemEncoding());
 	int32_t length = CFStringGetLength(cfname);
-	char *mname = (char *)malloc(length * 3 + 1);
-	CFStringGetCString(cfname, mname, length * 3 + 1, CFStringGetSystemEncoding());
-	info.name.append((const char *)mname, strlen(mname));
+	std::vector<char> name;
+	name.resize(length * 3 + 1, '\0');
+	CFStringGetCString(cfname, &name[0], length * 3 + 1, CFStringGetSystemEncoding());
+	info.name.append(&name[0], strlen(&name[0]));
 	info.name.append(": ");
 	CFRelease(cfname);
-	free(mname);
 	property.mSelector = kAudioObjectPropertyName;
 	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &cfname);
 	if (result != noErr) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting device name.");
+		info.clear();
 		return info;
 	}
 	//const char *name = CFStringGetCStringPtr(cfname, CFStringGetSystemEncoding());
 	length = CFStringGetLength(cfname);
-	char *name = (char *)malloc(length * 3 + 1);
-	CFStringGetCString(cfname, name, length * 3 + 1, CFStringGetSystemEncoding());
-	info.name.append((const char *)name, strlen(name));
+	name.resize(length * 3 + 1, '\0');
+	CFStringGetCString(cfname, &name[0], length * 3 + 1, CFStringGetSystemEncoding());
+	info.name.append(&name[0], strlen(&name[0]));
 	CFRelease(cfname);
-	free(name);
+	// ------------------------------------------------
 	// Get the output stream "configuration".
-	AudioBufferList	*bufferList = nil;
+	// ------------------------------------------------
 	property.mSelector = kAudioDevicePropertyStreamConfiguration;
-	property.mScope = kAudioDevicePropertyScopeOutput;
-	//	property.mElement = kAudioObjectPropertyElementWildcard;
+	
+	if (info.input == false) {
+		property.mScope = kAudioDevicePropertyScopeOutput;
+	} else {
+		property.mScope = kAudioDevicePropertyScopeInput;
+	}
+	AudioBufferList	*bufferList = nullptr;
 	dataSize = 0;
 	result = AudioObjectGetPropertyDataSize(id, &property, 0, nullptr, &dataSize);
 	if (result != noErr || dataSize == 0) {
-		ATA_ERROR("system error (" << getErrorCode(result) << ") getting output stream configuration info for device (" << _device << ").");
+		ATA_ERROR("system error (" << getErrorCode(result) << ") getting stream configuration info for device (" << _device << ").");
+		info.clear();
 		return info;
 	}
 	// Allocate the AudioBufferList.
 	bufferList = (AudioBufferList *) malloc(dataSize);
 	if (bufferList == nullptr) {
-		ATA_ERROR("memory error allocating output AudioBufferList.");
+		ATA_ERROR("memory error allocating AudioBufferList.");
+		info.clear();
 		return info;
 	}
 	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, bufferList);
 	if (    result != noErr
 	     || dataSize == 0) {
 		free(bufferList);
-		ATA_ERROR("system error (" << getErrorCode(result) << ") getting output stream configuration for device (" << _device << ").");
+		ATA_ERROR("system error (" << getErrorCode(result) << ") getting stream configuration for device (" << _device << ").");
+		info.clear();
 		return info;
 	}
-	// Get output channel information.
-	uint32_t i, nStreams = bufferList->mNumberBuffers;
-	for (i=0; i<nStreams; i++) {
-		info.outputChannels += bufferList->mBuffers[i].mNumberChannels;
+	// Get channel information.
+	for (size_t iii=0; iii<bufferList->mNumberBuffers; ++iii) {
+		for (size_t jjj=0; jjj<bufferList->mBuffers[iii].mNumberChannels; ++jjj) {
+			info.channels.push_back(audio::channel_unknow);
+		}
 	}
 	free(bufferList);
-	// Get the input stream "configuration".
-	property.mScope = kAudioDevicePropertyScopeInput;
-	result = AudioObjectGetPropertyDataSize(id, &property, 0, nullptr, &dataSize);
-	if (    result != noErr
-	     || dataSize == 0) {
-		ATA_ERROR("system error (" << getErrorCode(result) << ") getting input stream configuration info for device (" << _device << ").");
+	if (info.channels.size() == 0) {
+		ATA_DEBUG("system error (" << getErrorCode(result) << ") getting stream configuration for device (" << _device << ") ==> no channels.");
+		info.clear();
 		return info;
 	}
-	// Allocate the AudioBufferList.
-	bufferList = (AudioBufferList *) malloc(dataSize);
-	if (bufferList == nullptr) {
-		ATA_ERROR("memory error allocating input AudioBufferList.");
-		return info;
-	}
-	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, bufferList);
-	if (result != noErr || dataSize == 0) {
-		free(bufferList);
-		ATA_ERROR("system error (" << getErrorCode(result) << ") getting input stream configuration for device (" << _device << ").");
-		return info;
-	}
-	// Get input channel information.
-	nStreams = bufferList->mNumberBuffers;
-	for (i=0; i<nStreams; i++) {
-		info.inputChannels += bufferList->mBuffers[i].mNumberChannels;
-	}
-	free(bufferList);
-	// If device opens for both playback and capture, we determine the channels.
-	if (    info.outputChannels > 0
-	     && info.inputChannels > 0) {
-		info.duplexChannels = (info.outputChannels > info.inputChannels) ? info.inputChannels : info.outputChannels;
-	}
-	// Probe the device sample rates.
-	bool isInput = false;
-	if (info.outputChannels == 0) {
-		isInput = true;
-	}
+	
+	// ------------------------------------------------
 	// Determine the supported sample rates.
+	// ------------------------------------------------
 	property.mSelector = kAudioDevicePropertyAvailableNominalSampleRates;
-	if (isInput == false) property.mScope = kAudioDevicePropertyScopeOutput;
 	result = AudioObjectGetPropertyDataSize(id, &property, 0, nullptr, &dataSize);
 	if (    result != kAudioHardwareNoError
 	     || dataSize == 0) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting sample rate info.");
+		info.clear();
 		return info;
 	}
 	uint32_t nRanges = dataSize / sizeof(AudioValueRange);
@@ -338,6 +330,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &rangeList);
 	if (result != kAudioHardwareNoError) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting sample rates.");
+		info.clear();
 		return info;
 	}
 	double minimumRate = 100000000.0, maximumRate = 0.0;
@@ -358,33 +351,40 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	}
 	if (info.sampleRates.size() == 0) {
 		ATA_ERROR("No supported sample rates found for device (" << _device << ").");
+		info.clear();
 		return info;
 	}
+	// ------------------------------------------------
+	// Determine the format.
+	// ------------------------------------------------
 	// CoreAudio always uses 32-bit floating point data for PCM streams.
 	// Thus, any other "physical" formats supported by the device are of
 	// no interest to the client.
 	info.nativeFormats.push_back(audio::format_float);
-	if (info.outputChannels > 0) {
+	// ------------------------------------------------
+	// Determine the default channel.
+	// ------------------------------------------------
+	
+	if (info.input == false) {
 		if (getDefaultOutputDevice() == _device) {
-			info.isDefaultOutput = true;
+			info.isDefault = true;
 		}
-	}
-	if (info.inputChannels > 0) {
+	} else {
 		if (getDefaultInputDevice() == _device) {
-			info.isDefaultInput = true;
+			info.isDefault = true;
 		}
 	}
-	info.probed = true;
+	info.isCorrect = true;
 	return info;
 }
 
 OSStatus audio::orchestra::api::Core::callbackEvent(AudioDeviceID _inDevice,
-                                             const AudioTimeStamp* _inNow,
-                                             const AudioBufferList* _inInputData,
-                                             const AudioTimeStamp* _inInputTime,
-                                             AudioBufferList* _outOutputData,
-                                             const AudioTimeStamp* _inOutputTime,
-                                             void* _userData) {
+                                                    const AudioTimeStamp* _inNow,
+                                                    const AudioBufferList* _inInputData,
+                                                    const AudioTimeStamp* _inInputTime,
+                                                    AudioBufferList* _outOutputData,
+                                                    const AudioTimeStamp* _inOutputTime,
+                                                    void* _userData) {
 	audio::orchestra::api::Core* myClass = reinterpret_cast<audio::orchestra::api::Core*>(_userData);
 	audio::Time inputTime;
 	audio::Time outputTime;
@@ -453,8 +453,8 @@ bool audio::orchestra::api::Core::probeDeviceOpen(uint32_t _device,
 		ATA_ERROR("device ID is invalid!");
 		return false;
 	}
-	AudioDeviceID deviceList[ nDevices ];
-	uint32_t dataSize = sizeof(AudioDeviceID) * nDevices;
+	AudioDeviceID deviceList[ nDevices/2 ];
+	uint32_t dataSize = sizeof(AudioDeviceID) * nDevices/2;
 	AudioObjectPropertyAddress property = {
 		kAudioHardwarePropertyDevices,
 		kAudioObjectPropertyScopeGlobal,
@@ -470,7 +470,7 @@ bool audio::orchestra::api::Core::probeDeviceOpen(uint32_t _device,
 		ATA_ERROR("OS-X system error getting device IDs.");
 		return false;
 	}
-	AudioDeviceID id = deviceList[ _device ];
+	AudioDeviceID id = deviceList[ _device/2 ];
 	// Setup for stream mode.
 	bool isInput = false;
 	if (_mode == audio::orchestra::mode_input) {
@@ -505,7 +505,7 @@ bool audio::orchestra::api::Core::probeDeviceOpen(uint32_t _device,
 	// channels. CoreAudio devices can have an arbitrary number of
 	// streams and each stream can have an arbitrary number of channels.
 	// For each stream, a single buffer of interleaved samples is
-	// provided.	RtAudio prefers the use of one stream of interleaved
+	// provided. orchestra prefers the use of one stream of interleaved
 	// data or multiple consecutive single-channel streams.	However, we
 	// now support multiple consecutive multi-channel streams of
 	// interleaved data as well.

@@ -19,6 +19,7 @@ namespace audio {
 		 */
 		class DeviceInfo {
 			public:
+				bool isCorrect; //!< the information is correct (the system can return information incorect).
 				bool input; //!< true if the device in an input; false: output.
 				std::string name; //!< Character string device identifier.
 				std::string desc; //!< description of the device
@@ -28,6 +29,7 @@ namespace audio {
 				bool isDefault; //! is default input/output
 				// Default constructor.
 				DeviceInfo() :
+				  isCorrect(false),
 				  input(false),
 				  name(),
 				  desc(),
@@ -35,7 +37,14 @@ namespace audio {
 				  sampleRates(),
 				  nativeFormats(),
 				  isDefault(false) {}
+				/**
+				 * @brief Display the current information of the device (on console)
+				 */
 				void display(int32_t _tabNumber = 1) const;
+				/**
+				 * @brief Clear all internal data
+				 */
+				void clear();
 		};
 		std::ostream& operator <<(std::ostream& _os, const audio::orchestra::DeviceInfo& _obj);
 	}

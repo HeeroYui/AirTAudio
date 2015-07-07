@@ -46,23 +46,19 @@ audio::orchestra::api::CoreIos::CoreIos(void) :
 	ATA_ERROR("Get count devices : " << 2);
 	audio::orchestra::DeviceInfo tmp;
 	// Add default output format :
-	tmp.name = "out";
+	tmp.name = "speaker";
 	tmp.sampleRates.push_back(48000);
-	tmp.outputChannels = 2;
-	tmp.inputChannels = 0;
-	tmp.duplexChannels = 0;
-	tmp.isDefaultOutput = true;
-	tmp.isDefaultInput = false;
+	tmp.channels.push_back(audio::channel_frontRight);
+	tmp.channels.push_back(audio::channel_frontLeft);
+	tmp.isDefault = true;
 	tmp.nativeFormats.push_back(audio::format_int16);
 	m_devices.push_back(tmp);
 	// add default input format:
-	tmp.name = "in";
+	tmp.name = "microphone";
 	tmp.sampleRates.push_back(48000);
-	tmp.outputChannels = 0;
-	tmp.inputChannels = 2;
-	tmp.duplexChannels = 0;
-	tmp.isDefaultOutput = false;
-	tmp.isDefaultInput = true;
+	tmp.channels.push_back(audio::channel_frontRight);
+	tmp.channels.push_back(audio::channel_frontLeft);
+	tmp.isDefault = true;
 	tmp.nativeFormats.push_back(audio::format_int16);
 	m_devices.push_back(tmp);
 	ATA_INFO("Create CoreIOs interface (end)");
@@ -114,7 +110,7 @@ enum audio::orchestra::error audio::orchestra::api::CoreIos::abortStream(void) {
 
 void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
                                                    int32_t _nbChunk,
-												   const audio::Time& _time) {
+                                                   const audio::Time& _time) {
 	int32_t doStopStream = 0;
 	std::vector<enum audio::orchestra::status> status;
 	if (m_doConvertBuffer[modeToIdTable(audio::orchestra::mode_output)] == true) {
