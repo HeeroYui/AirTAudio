@@ -14,6 +14,7 @@
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
 #include <limits.h>
+#include <audio/orchestra/api/CoreIos.h>
 
 #undef __class__
 #define __class__ "api::CoreIos"

@@ -12,6 +12,7 @@
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
 #include <audio/orchestra/api/AndroidNativeInterface.h>
+#include <audio/orchestra/api/Android.h>
 #include <limits.h>
 
 #undef __class__

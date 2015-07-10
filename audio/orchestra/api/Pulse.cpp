@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <etk/thread/tools.h>
 #include <audio/orchestra/api/PulseDeviceList.h>
+#include <audio/orchestra/api/Pulse.h>
 
 #undef __class__
 #define __class__ "api::Pulse"

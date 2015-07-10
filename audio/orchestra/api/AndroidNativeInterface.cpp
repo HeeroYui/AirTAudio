@@ -12,7 +12,7 @@
 #include <audio/orchestra/api/AndroidNativeInterface.h>
 #include <audio/orchestra/api/Android.h>
 /* include auto generated file */
-#include <org_musicdsp_orchestra_Constants.h>
+#include <org_musicdsp_orchestra_OrchestraConstants.h>
 #include <jvm-basics/jvm-basics.h>
 #include <etk/memory.h>
 #include <ejson/ejson.h>

@@ -44,13 +44,11 @@ def create(target):
 			'audio/orchestra/api/Alsa.cpp',
 			'audio/orchestra/api/Jack.cpp',
 			'audio/orchestra/api/Pulse.cpp',
-			'audio/orchestra/api/PulseDeviceList.cpp',
-			'audio/orchestra/api/Oss.cpp'
+			'audio/orchestra/api/PulseDeviceList.cpp'
 			])
 		myModule.add_optionnal_module_depend('alsa', ["c++", "-DORCHESTRA_BUILD_ALSA"])
 		myModule.add_optionnal_module_depend('jack', ["c++", "-DORCHESTRA_BUILD_JACK"])
 		myModule.add_optionnal_module_depend('pulse', ["c++", "-DORCHESTRA_BUILD_PULSE"])
-		myModule.add_optionnal_module_depend('oss', ["c++", "-DORCHESTRA_BUILD_OSS"])
 	elif target.name=="MacOs":
 		myModule.add_src_file([
 							   'audio/orchestra/api/Core.cpp',

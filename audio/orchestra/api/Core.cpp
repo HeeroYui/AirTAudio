@@ -18,6 +18,7 @@
 #include <audio/orchestra/debug.h>
 #include <etk/thread.h>
 #include <etk/thread/tools.h>
+#include <audio/orchestra/api/Core.h>
 
 std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Core::create() {
 	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Core());

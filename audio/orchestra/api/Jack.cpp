@@ -14,6 +14,7 @@
 #include <audio/orchestra/debug.h>
 #include <string.h>
 #include <etk/thread/tools.h>
+#include <audio/orchestra/api/Jack.h>
 
 #undef __class__
 #define __class__ "api::Jack"

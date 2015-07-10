@@ -141,7 +141,7 @@ bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _de
 		// need to check if it is an input or output:
 		listElement = etk::split(_deviceName, '_');
 	}
-	ATA_INFO("Open control : " << listElement[0]);
+	ATA_DEBUG("Open control : " << listElement[0]);
 	result = snd_ctl_open(&chandle, listElement[0].c_str(), SND_CTL_NONBLOCK);
 	if (result < 0) {
 		ATA_ERROR("control open, card = " << listElement[0] << ", " << snd_strerror(result) << ".");
@@ -190,7 +190,7 @@ bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _de
 		ATA_ERROR("error getting device (" << _deviceName << ") input channels, " << snd_strerror(result) << ".");
 		return false;
 	}
-	ATA_ERROR("Input channel = " << value);
+	ATA_DEBUG("Input channel = " << value);
 	for (int32_t iii=0; iii<value; ++iii) {
 		_info.channels.push_back(audio::channel_unknow);
 	}

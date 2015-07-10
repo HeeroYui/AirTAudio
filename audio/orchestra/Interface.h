@@ -13,16 +13,6 @@
 #include <audio/orchestra/base.h>
 #include <audio/orchestra/CallbackInfo.h>
 #include <audio/orchestra/Api.h>
-#include <audio/orchestra/api/Alsa.h>
-#include <audio/orchestra/api/Android.h>
-#include <audio/orchestra/api/Asio.h>
-#include <audio/orchestra/api/Core.h>
-#include <audio/orchestra/api/CoreIos.h>
-#include <audio/orchestra/api/Ds.h>
-#include <audio/orchestra/api/Dummy.h>
-#include <audio/orchestra/api/Jack.h>
-#include <audio/orchestra/api/Oss.h>
-#include <audio/orchestra/api/Pulse.h>
 
 namespace audio {
 	namespace orchestra {

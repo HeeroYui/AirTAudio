@@ -9,6 +9,15 @@
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
 #include <iostream>
+#include <audio/orchestra/api/Alsa.h>
+#include <audio/orchestra/api/Android.h>
+#include <audio/orchestra/api/Asio.h>
+#include <audio/orchestra/api/Core.h>
+#include <audio/orchestra/api/CoreIos.h>
+#include <audio/orchestra/api/Ds.h>
+#include <audio/orchestra/api/Dummy.h>
+#include <audio/orchestra/api/Jack.h>
+#include <audio/orchestra/api/Pulse.h>
 
 #undef __class__
 #define __class__ "Interface"
@@ -53,9 +62,6 @@ audio::orchestra::Interface::Interface() :
 #endif
 #if defined(ORCHESTRA_BUILD_PULSE)
 	addInterface(audio::orchestra::type_pulse, audio::orchestra::api::Pulse::create);
-#endif
-#if defined(ORCHESTRA_BUILD_OSS)
-	addInterface(audio::orchestra::type_oss, audio::orchestra::api::Oss::create);
 #endif
 #if defined(ORCHESTRA_BUILD_ASIO)
 	addInterface(audio::orchestra::type_asio, audio::orchestra::api::Asio::create);
