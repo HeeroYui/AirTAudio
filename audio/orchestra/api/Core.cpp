@@ -16,7 +16,7 @@
 
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
-#include <etk/thread.h>
+#include <thread>
 #include <etk/thread/tools.h>
 #include <audio/orchestra/api/Core.h>
 

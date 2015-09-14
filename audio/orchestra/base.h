@@ -7,12 +7,12 @@
 
 #ifndef __AUDIO_ORCHESTRA_CB_H__
 #define __AUDIO_ORCHESTRA_CB_H__
-#include <etk/thread.h>
-#include <etk/condition_variable.h>
-#include <etk/mutex.h>
-#include <etk/chrono.h>
-#include <etk/functional.h>
-#include <etk/memory.h>
+#include <thread>
+#include <condition_variable>
+#include <mutex>
+#include <chrono>
+#include <functional>
+#include <memory>
 #include <audio/channel.h>
 #include <audio/format.h>
 #include <audio/orchestra/error.h>

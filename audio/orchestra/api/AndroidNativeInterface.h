@@ -12,7 +12,7 @@
 #include <audio/orchestra/error.h>
 #include <audio/orchestra/StreamOptions.h>
 #include <audio/format.h>
-#include <etk/memory.h>
+#include <memory>
 
 namespace audio {
 	namespace orchestra {

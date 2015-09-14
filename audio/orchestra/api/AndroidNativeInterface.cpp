@@ -14,7 +14,7 @@
 /* include auto generated file */
 #include <org_musicdsp_orchestra_OrchestraConstants.h>
 #include <jvm-basics/jvm-basics.h>
-#include <etk/memory.h>
+#include <memory>
 #include <ejson/ejson.h>
 
 class AndroidOrchestraContext {

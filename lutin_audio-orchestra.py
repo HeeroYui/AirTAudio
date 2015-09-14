@@ -25,6 +25,22 @@ def create(target):
 		'audio/orchestra/StreamOptions.cpp',
 		'audio/orchestra/api/Dummy.cpp'
 		])
+	myModule.add_header_file([
+		'audio/orchestra/debug.h',
+		'audio/orchestra/status.h',
+		'audio/orchestra/type.h',
+		'audio/orchestra/mode.h',
+		'audio/orchestra/state.h',
+		'audio/orchestra/error.h',
+		'audio/orchestra/base.h',
+		'audio/orchestra/Interface.h',
+		'audio/orchestra/Flags.h',
+		'audio/orchestra/Api.h',
+		'audio/orchestra/DeviceInfo.h',
+		'audio/orchestra/StreamOptions.h',
+		'audio/orchestra/CallbackInfo.h',
+		'audio/orchestra/StreamParameters.h'
+		])
 	myModule.add_module_depend(['audio', 'etk'])
 	# add all the time the dummy interface
 	myModule.add_export_flag('c++', ['-DORCHESTRA_BUILD_DUMMY'])
@@ -80,7 +96,7 @@ def create(target):
 	else:
 		debug.warning("unknow target for audio_orchestra : " + target.name);
 	
-	myModule.add_export_path(tools.get_current_path(__file__))
+	myModule.add_path(tools.get_current_path(__file__))
 	
 	return myModule
 
