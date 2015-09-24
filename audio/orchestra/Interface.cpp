@@ -133,6 +133,8 @@ enum audio::orchestra::error audio::orchestra::Interface::instanciate(const std:
 		if (m_api->getDeviceCount() != 0) {
 			ATA_INFO("    ==> api open");
 			break;
+		} else {
+			ATA_INFO("    ==> Interface exist, but have no devices: " << m_api->getDeviceCount());
 		}
 	}
 	if (m_api != nullptr) {

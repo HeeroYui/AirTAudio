@@ -210,7 +210,7 @@ class AndroidOrchestraContext {
 		
 		uint32_t getDeviceCount() {
 			// Request the clipBoard :
-			ATA_DEBUG("C->java : audio get device count");
+			ATA_WARNING("C->java : audio get device count");
 			int status;
 			if(!java_attach_current_thread(&status)) {
 				return 0;
@@ -221,13 +221,13 @@ class AndroidOrchestraContext {
 			// manage execption : 
 			jvm_basics::checkExceptionJavaVM(m_JavaVirtualMachinePointer);
 			java_detach_current_thread(status);
+			ATA_WARNING(" find " << (uint32_t)ret << " IO");
 			return (uint32_t)ret;
-			return 0;
 		}
 		audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _idDevice) {
 			audio::orchestra::DeviceInfo info;
 			// Request the clipBoard :
-			ATA_DEBUG("C->java : audio get device count");
+			ATA_WARNING("C->java : audio get device info " << _idDevice);
 			int status;
 			if(!java_attach_current_thread(&status)) {
 				return info;
@@ -401,6 +401,7 @@ static int32_t s_nbContextRequested(0);
 
 uint32_t audio::orchestra::api::android::getDeviceCount() {
 	if (s_localContext == nullptr) {
+		ATA_ERROR("Have no Orchertra API instanciate in JAVA ...");
 		return 0;
 	}
 	return s_localContext->getDeviceCount();

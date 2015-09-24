@@ -8,9 +8,9 @@ def get_desc():
 
 
 def create(target):
-	myModule = module.Module(__file__, 'audio-orchestra', 'LIBRARY')
+	my_module = module.Module(__file__, 'audio-orchestra', 'LIBRARY')
 	
-	myModule.add_src_file([
+	my_module.add_src_file([
 		'audio/orchestra/debug.cpp',
 		'audio/orchestra/status.cpp',
 		'audio/orchestra/type.cpp',
@@ -25,7 +25,7 @@ def create(target):
 		'audio/orchestra/StreamOptions.cpp',
 		'audio/orchestra/api/Dummy.cpp'
 		])
-	myModule.add_header_file([
+	my_module.add_header_file([
 		'audio/orchestra/debug.h',
 		'audio/orchestra/status.h',
 		'audio/orchestra/type.h',
@@ -41,64 +41,64 @@ def create(target):
 		'audio/orchestra/CallbackInfo.h',
 		'audio/orchestra/StreamParameters.h'
 		])
-	myModule.add_module_depend(['audio', 'etk'])
+	my_module.add_module_depend(['audio', 'etk'])
 	# add all the time the dummy interface
-	myModule.add_export_flag('c++', ['-DORCHESTRA_BUILD_DUMMY'])
+	my_module.add_export_flag('c++', ['-DORCHESTRA_BUILD_DUMMY'])
 	# TODO : Add a FILE interface:
 	
 	if target.name=="Windows":
-		myModule.add_src_file([
+		my_module.add_src_file([
 			'audio/orchestra/api/Asio.cpp',
 			'audio/orchestra/api/Ds.cpp',
 			])
 		# load optionnal API:
-		myModule.add_optionnal_module_depend('asio', ["c++", "-DORCHESTRA_BUILD_ASIO"])
-		myModule.add_optionnal_module_depend('ds', ["c++", "-DORCHESTRA_BUILD_DS"])
-		myModule.add_optionnal_module_depend('wasapi', ["c++", "-DORCHESTRA_BUILD_WASAPI"])
+		my_module.add_optionnal_module_depend('asio', ["c++", "-DORCHESTRA_BUILD_ASIO"])
+		my_module.add_optionnal_module_depend('ds', ["c++", "-DORCHESTRA_BUILD_DS"])
+		my_module.add_optionnal_module_depend('wasapi', ["c++", "-DORCHESTRA_BUILD_WASAPI"])
 	elif target.name=="Linux":
-		myModule.add_src_file([
+		my_module.add_src_file([
 			'audio/orchestra/api/Alsa.cpp',
 			'audio/orchestra/api/Jack.cpp',
 			'audio/orchestra/api/Pulse.cpp',
 			'audio/orchestra/api/PulseDeviceList.cpp'
 			])
-		myModule.add_optionnal_module_depend('alsa', ["c++", "-DORCHESTRA_BUILD_ALSA"])
-		myModule.add_optionnal_module_depend('jack', ["c++", "-DORCHESTRA_BUILD_JACK"])
-		myModule.add_optionnal_module_depend('pulse', ["c++", "-DORCHESTRA_BUILD_PULSE"])
+		my_module.add_optionnal_module_depend('alsa', ["c++", "-DORCHESTRA_BUILD_ALSA"])
+		my_module.add_optionnal_module_depend('jack', ["c++", "-DORCHESTRA_BUILD_JACK"])
+		my_module.add_optionnal_module_depend('pulse', ["c++", "-DORCHESTRA_BUILD_PULSE"])
 	elif target.name=="MacOs":
-		myModule.add_src_file([
+		my_module.add_src_file([
 							   'audio/orchestra/api/Core.cpp',
 							   'audio/orchestra/api/Oss.cpp'
 							   ])
 		# MacOsX core
-		myModule.add_optionnal_module_depend('CoreAudio', ["c++", "-DORCHESTRA_BUILD_MACOSX_CORE"])
+		my_module.add_optionnal_module_depend('CoreAudio', ["c++", "-DORCHESTRA_BUILD_MACOSX_CORE"])
 	elif target.name=="IOs":
-		myModule.add_src_file('audio/orchestra/api/CoreIos.mm')
+		my_module.add_src_file('audio/orchestra/api/CoreIos.mm')
 		# IOsX core
-		myModule.add_optionnal_module_depend('CoreAudio', ["c++", "-DORCHESTRA_BUILD_IOS_CORE"])
+		my_module.add_optionnal_module_depend('CoreAudio', ["c++", "-DORCHESTRA_BUILD_IOS_CORE"])
 	elif target.name=="Android":
-		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraConstants.java')
-		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraManagerCallback.java')
-		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraNative.java')
-		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraInterfaceInput.java')
-		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraInterfaceOutput.java')
-		myModule.add_src_file('android/org/musicdsp/orchestra/OrchestraManager.java')
+		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraConstants.java')
+		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraManagerCallback.java')
+		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraNative.java')
+		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraInterfaceInput.java')
+		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraInterfaceOutput.java')
+		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraManager.java')
 		# create inter language interface
-		myModule.add_src_file('org.musicdsp.orchestra.OrchestraConstants.javah')
-		myModule.add_path(tools.get_current_path(__file__) + '/android/', type='java')
-		myModule.add_module_depend(['SDK', 'jvm-basics', 'ejson'])
-		myModule.add_export_flag('c++', ['-DORCHESTRA_BUILD_JAVA'])
+		my_module.add_src_file('org.musicdsp.orchestra.OrchestraConstants.javah')
+		my_module.add_path(tools.get_current_path(__file__) + '/android/', type='java')
+		my_module.add_module_depend(['SDK', 'jvm-basics', 'ejson'])
+		my_module.add_export_flag('c++', ['-DORCHESTRA_BUILD_JAVA'])
 		
-		myModule.add_src_file('audio/orchestra/api/Android.cpp')
-		myModule.add_src_file('audio/orchestra/api/AndroidNativeInterface.cpp')
+		my_module.add_src_file('audio/orchestra/api/Android.cpp')
+		my_module.add_src_file('audio/orchestra/api/AndroidNativeInterface.cpp')
 		# add tre creator of the basic java class ...
-		target.add_action("PACKAGE", 11, "audio-orchestra-out-wrapper", tool_generate_add_java_section_in_class)
+		target.add_action("BINARY", 11, "audio-orchestra-out-wrapper", tool_generate_add_java_section_in_class)
 	else:
 		debug.warning("unknow target for audio_orchestra : " + target.name);
 	
-	myModule.add_path(tools.get_current_path(__file__))
+	my_module.add_path(tools.get_current_path(__file__))
 	
-	return myModule
+	return my_module
 
 
 
