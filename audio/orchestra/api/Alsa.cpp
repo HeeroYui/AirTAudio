@@ -1338,8 +1338,6 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
 	if (m_state == audio::orchestra::state_stopped) {
 		// !!! goto unlock;
 	}
-	
-	ATA_DEBUG("UPDATE");
 	int32_t avail = snd_pcm_avail_update(m_private->handle);
 	if (avail < 0) {
 		ATA_ERROR("Can not get buffer data ..." << avail);
