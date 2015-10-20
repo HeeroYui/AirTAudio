@@ -84,8 +84,7 @@ def create(target, module_name):
 		my_module.add_optionnal_module_depend('pulse', ["c++", "-DORCHESTRA_BUILD_PULSE"])
 	elif target.name=="MacOs":
 		my_module.add_src_file([
-							   'audio/orchestra/api/Core.cpp',
-							   'audio/orchestra/api/Oss.cpp'
+							   'audio/orchestra/api/Core.cpp'
 							   ])
 		# MacOsX core
 		my_module.add_optionnal_module_depend('CoreAudio', ["c++", "-DORCHESTRA_BUILD_MACOSX_CORE"])
