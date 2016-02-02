@@ -4,9 +4,7 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
-
-#ifndef __AUDIO_ORCHESTRA_INTERFACE_H__
-#define __AUDIO_ORCHESTRA_INTERFACE_H__
+#pragma once
 
 #include <string>
 #include <vector>
@@ -307,4 +305,3 @@ namespace audio {
 	}
 }
 
-#endif

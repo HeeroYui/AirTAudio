@@ -4,9 +4,8 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
-
-#if !defined(__AUDIO_ORCHESTRA_API_PULSE_DEVICE_H__) && defined(ORCHESTRA_BUILD_PULSE)
-#define __AUDIO_ORCHESTRA_API_PULSE_DEVICE_H__
+#pragma once
+#ifdef ORCHESTRA_BUILD_PULSE
 
 #include <etk/types.h>
 #include <audio/orchestra/DeviceInfo.h>

@@ -4,9 +4,8 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
-
-#if !defined(__AUDIO_ORCHESTRA_API_CORE_H__) && defined(ORCHESTRA_BUILD_MACOSX_CORE)
-#define __AUDIO_ORCHESTRA_API_CORE_H__
+#pragma once
+#ifdef ORCHESTRA_BUILD_MACOSX_CORE
 
 #include <CoreAudio/AudioHardware.h>
 

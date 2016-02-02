@@ -4,12 +4,9 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
-
-#ifndef __AUDIO_ORCHESTRA_MODE_H__
-#define __AUDIO_ORCHESTRA_MODE_H__
+#pragma once
 
 #include <etk/types.h>
-
 
 namespace audio {
 	namespace orchestra {
@@ -24,4 +21,3 @@ namespace audio {
 	std::ostream& operator <<(std::ostream& _os, enum audio::orchestra::mode _obj);
 }
 
-#endif

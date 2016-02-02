@@ -4,9 +4,7 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
-
-#ifndef __AUDIO_ORCHESTRA_ERROR_H__
-#define __AUDIO_ORCHESTRA_ERROR_H__
+#pragma once
 
 #include <etk/types.h>
 
@@ -22,5 +20,3 @@ namespace audio {
 		};
 	}
 }
-
-#endif

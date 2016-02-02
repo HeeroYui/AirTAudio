@@ -4,13 +4,10 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
-
-#ifndef __AUDIO_ORCHESTRA_DEVICE_INFO_H__
-#define __AUDIO_ORCHESTRA_DEVICE_INFO_H__
+#pragma once
 
 #include <audio/format.h>
 #include <audio/channel.h>
-
 
 namespace audio {
 	namespace orchestra {
@@ -49,6 +46,4 @@ namespace audio {
 		std::ostream& operator <<(std::ostream& _os, const audio::orchestra::DeviceInfo& _obj);
 	}
 }
-
-#endif
 

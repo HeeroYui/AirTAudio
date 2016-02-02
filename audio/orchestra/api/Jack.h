@@ -4,9 +4,8 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
-
-#if !defined(__AUDIO_ORCHESTRA_API_JACK_H__) && defined(ORCHESTRA_BUILD_JACK)
-#define __AUDIO_ORCHESTRA_API_JACK_H__
+#pragma once
+#ifdef ORCHESTRA_BUILD_JACK
 
 #include <jack/jack.h>
 

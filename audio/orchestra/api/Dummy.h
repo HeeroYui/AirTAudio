@@ -4,12 +4,11 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
+#pragma once
 
-#if !defined(__AUDIO_ORCHESTRA_DUMMY__) && defined(ORCHESTRA_BUILD_DUMMY)
-#define __AUDIO_ORCHESTRA_DUMMY__
+#ifdef ORCHESTRA_BUILD_DUMMY
 
 #include <audio/orchestra/Interface.h>
-
 
 namespace audio {
 	namespace orchestra {

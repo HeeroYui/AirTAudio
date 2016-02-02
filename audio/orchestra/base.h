@@ -4,9 +4,8 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
+#pragma once
 
-#ifndef __AUDIO_ORCHESTRA_CB_H__
-#define __AUDIO_ORCHESTRA_CB_H__
 #include <thread>
 #include <condition_variable>
 #include <mutex>
@@ -23,8 +22,4 @@
 #include <audio/orchestra/DeviceInfo.h>
 #include <audio/orchestra/StreamOptions.h>
 #include <audio/orchestra/StreamParameters.h>
-
-
-#endif
-
 

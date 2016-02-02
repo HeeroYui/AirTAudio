@@ -3,9 +3,9 @@
  * @copyright 2011, Edouard DUPIN, all right reserved
  * @license APACHE v2.0 (see license file)
  */
+#pragma once
 
-#if !defined(__AUDIO_ORCHESTRA_API_ANDROID_NATIVE_H__) && defined(ORCHESTRA_BUILD_JAVA)
-#define __AUDIO_ORCHESTRA_API_ANDROID_NATIVE_H__
+#ifdef ORCHESTRA_BUILD_JAVA
 
 #include <audio/orchestra/DeviceInfo.h>
 #include <audio/orchestra/mode.h>

@@ -4,9 +4,8 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
-
-#if !defined(__AUDIO_ORCHESTRA_API_ASIO_H__) && defined(ORCHESTRA_BUILD_ASIO)
-#define __AUDIO_ORCHESTRA_API_ASIO_H__
+#pragma once
+#ifdef ORCHESTRA_BUILD_ASIO
 
 namespace audio {
 	namespace orchestra {

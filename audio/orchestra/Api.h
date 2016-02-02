@@ -4,9 +4,7 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
-
-#ifndef __AUDIO_ORCHESTRA_API_H__
-#define __AUDIO_ORCHESTRA_API_H__
+#pragma once
 
 #include <sstream>
 #include <audio/orchestra/debug.h>
@@ -175,4 +173,3 @@ namespace audio {
 	}
 }
 
-#endif

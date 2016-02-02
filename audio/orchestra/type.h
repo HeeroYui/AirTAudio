@@ -4,13 +4,10 @@
  * @license APACHE v2.0 (see license file)
  * @fork from RTAudio
  */
-
-#ifndef __AUDIO_ORCHESTRA_TYPE_H__
-#define __AUDIO_ORCHESTRA_TYPE_H__
+#pragma once
 
 #include <etk/types.h>
 #include <etk/stdTools.h>
-
 
 namespace audio {
 	namespace orchestra {
@@ -31,4 +28,3 @@ namespace audio {
 	}
 }
 
-#endif
