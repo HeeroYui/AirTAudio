@@ -148,7 +148,7 @@ bool audio::orchestra::api::Android::open(uint32_t _device,
 	m_userFormat = _format;
 	m_nUserChannels[modeToIdTable(m_mode)] = _channels;
 	
-	m_uid = audio::orchestra::api::android::open(_device, m_mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options, std11::static_pointer_cast<audio::orchestra::api::Android>(shared_from_this()));
+	m_uid = audio::orchestra::api::android::open(_device, m_mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options, std::static_pointer_cast<audio::orchestra::api::Android>(shared_from_this()));
 	if (m_uid < 0) {
 		ret = false;
 	} else {

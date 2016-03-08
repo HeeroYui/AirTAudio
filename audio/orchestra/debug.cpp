@@ -8,6 +8,6 @@
 #include <audio/orchestra/debug.h>
 
 int32_t audio::orchestra::getLogId() {
-	static int32_t g_val = etk::log::registerInstance("audio-orchestra");
+	static int32_t g_val = elog::registerInstance("audio-orchestra");
 	return g_val;
 }

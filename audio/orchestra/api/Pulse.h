@@ -33,7 +33,7 @@ namespace audio {
 					void callbackEventOneCycle();
 					void callbackEvent();
 				private:
-					std11::shared_ptr<PulsePrivate> m_private;
+					std::shared_ptr<PulsePrivate> m_private;
 					std::vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool open(uint32_t _device,

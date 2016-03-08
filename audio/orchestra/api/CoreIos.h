@@ -47,7 +47,7 @@ namespace audio {
 					                   int32_t _nbChunk,
 					                   const audio::Time& _time);
 				public:
-					std11::shared_ptr<CoreIosPrivate> m_private;
+					std::shared_ptr<CoreIosPrivate> m_private;
 			};
 		}
 	}

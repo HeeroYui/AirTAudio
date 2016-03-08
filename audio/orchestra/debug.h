@@ -6,14 +6,14 @@
  */
 #pragma once
 
-#include <etk/log.h>
+#include <elog/log.h>
 
 namespace audio {
 	namespace orchestra {
 		int32_t getLogId();
 	}
 }
-#define ATA_BASE(info,data) TK_LOG_BASE(audio::orchestra::getLogId(),info,data)
+#define ATA_BASE(info,data) ELOG_BASE(audio::orchestra::getLogId(),info,data)
 
 #define ATA_PRINT(data)         ATA_BASE(-1, data)
 #define ATA_CRITICAL(data)      ATA_BASE(1, data)

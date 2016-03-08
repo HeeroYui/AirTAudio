@@ -50,7 +50,7 @@ namespace audio {
 				private:
 					static void alsaCallbackEvent(void* _userData);
 				private:
-					std11::shared_ptr<AlsaPrivate> m_private;
+					std::shared_ptr<AlsaPrivate> m_private;
 					std::vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool open(uint32_t _device,
@@ -72,7 +72,7 @@ namespace audio {
 					              const audio::orchestra::StreamOptions& _options);
 					virtual audio::Time getStreamTime();
 				public:
-					bool isMasterOf(std11::shared_ptr<audio::orchestra::Api> _api);
+					bool isMasterOf(std::shared_ptr<audio::orchestra::Api> _api);
 			};
 		}
 	}

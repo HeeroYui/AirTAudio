@@ -9,7 +9,7 @@
 #if defined(ORCHESTRA_BUILD_DS)
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
-#include <etk/thread/tools.h>
+#include <ethread/tools.h>
 #include <audio/orchestra/api/Ds.h>
 
 #undef __class__
@@ -75,7 +75,7 @@ namespace audio {
 		namespace api {
 			class DsPrivate {
 				public:
-					std11::shared_ptr<std11::thread> thread;
+					std::shared_ptr<std::thread> thread;
 					bool threadRunning;
 					uint32_t drainCounter; // Tracks callback counts when draining
 					bool internalDrain; // Indicates if stop is initiated from callback or not.
@@ -765,7 +765,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 	// Setup the callback thread.
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
-		std11::shared_ptr<std11::thread> tmpThread(new std11::thread(&audio::orchestra::api::Ds::dsCallbackEvent, this));
+		std::shared_ptr<std::thread> tmpThread(new std::thread(&audio::orchestra::api::Ds::dsCallbackEvent, this));
 		m_private->thread =	std::move(tmpThread);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating callback thread!");
@@ -988,7 +988,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::abortStream() {
 }
 
 void audio::orchestra::api::Ds::callbackEvent() {
-	etk::thread::setName("DS IO-" + m_name);
+	ethread::setName("DS IO-" + m_name);
 	if (m_state == audio::orchestra::state_stopped || m_state == audio::orchestra::state_stopping) {
 		Sleep(50); // sleep 50 milliseconds
 		return;

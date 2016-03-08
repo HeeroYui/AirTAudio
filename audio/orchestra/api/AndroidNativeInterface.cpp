@@ -253,7 +253,7 @@ class AndroidOrchestraContext {
 			} else {
 				info.input = true;
 			}
-			std11::shared_ptr<const ejson::Array> list = doc.getArray("sample-rate");
+			std::shared_ptr<const ejson::Array> list = doc.getArray("sample-rate");
 			if (list != nullptr) {
 				for (size_t iii=0; iii<list->size(); ++iii) {
 					info.sampleRates.push_back(int32_t(list->getNumberValue(iii, 48000)));
@@ -276,7 +276,7 @@ class AndroidOrchestraContext {
 			return info;
 		}
 	private:
-		std::vector<std11::weak_ptr<audio::orchestra::api::Android> > m_instanceList; // list of connected handle ...
+		std::vector<std::weak_ptr<audio::orchestra::api::Android> > m_instanceList; // list of connected handle ...
 		//AndroidAudioCallback m_audioCallBack;
 		//void* m_audioCallBackUserData;
 	public:
@@ -288,7 +288,7 @@ class AndroidOrchestraContext {
 		             audio::format _format,
 		             uint32_t *_bufferSize,
 		             const audio::orchestra::StreamOptions& _options,
-		             std11::shared_ptr<audio::orchestra::api::Android> _instance) {
+		             std::shared_ptr<audio::orchestra::api::Android> _instance) {
 			ATA_DEBUG("C->java : audio open device");
 			int status;
 			if(!java_attach_current_thread(&status)) {
@@ -422,7 +422,7 @@ int32_t audio::orchestra::api::android::open(uint32_t _device,
                                              audio::format _format,
                                              uint32_t *_bufferSize,
                                              const audio::orchestra::StreamOptions& _options,
-                                             std11::shared_ptr<audio::orchestra::api::Android> _instance) {
+                                             std::shared_ptr<audio::orchestra::api::Android> _instance) {
 	if (s_localContext == nullptr) {
 		return -1;
 	}

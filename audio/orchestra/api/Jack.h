@@ -40,7 +40,7 @@ namespace audio {
 					static void jackShutdown(void* _userData);
 					static int32_t jackCallbackHandler(jack_nframes_t _nframes, void* _userData);
 				private:
-					std11::shared_ptr<JackPrivate> m_private;
+					std::shared_ptr<JackPrivate> m_private;
 					bool open(uint32_t _device,
 					          audio::orchestra::mode _mode,
 					          uint32_t _channels,

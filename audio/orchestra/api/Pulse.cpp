@@ -15,7 +15,7 @@
 #include <pulse/error.h>
 #include <pulse/simple.h>
 #include <cstdio>
-#include <etk/thread/tools.h>
+#include <ethread/tools.h>
 #include <audio/orchestra/api/PulseDeviceList.h>
 #include <audio/orchestra/api/Pulse.h>
 
@@ -56,9 +56,9 @@ namespace audio {
 			class PulsePrivate {
 				public:
 					pa_simple* handle;
-					std11::shared_ptr<std11::thread> thread;
+					std::shared_ptr<std::thread> thread;
 					bool threadRunning;
-					std11::condition_variable runnable_cv;
+					std::condition_variable runnable_cv;
 					bool runnable;
 					PulsePrivate() :
 					  handle(0),
@@ -105,7 +105,7 @@ static void pulseaudio_callback(void* _userData) {
 }
 
 void audio::orchestra::api::Pulse::callbackEvent() {
-	etk::thread::setName("Pulse IO-" + m_name);
+	ethread::setName("Pulse IO-" + m_name);
 	while (m_private->threadRunning == true) {
 		callbackEventOneCycle();
 	}
@@ -134,7 +134,7 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::closeStream() {
 
 void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 	if (m_state == audio::orchestra::state_stopped) {
-		std11::unique_lock<std11::mutex> lck(m_mutex);
+		std::unique_lock<std::mutex> lck(m_mutex);
 		while (!m_private->runnable) {
 			m_private->runnable_cv.wait(lck);
 		}
@@ -396,7 +396,7 @@ bool audio::orchestra::api::Pulse::open(uint32_t _device,
 	}
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
-		m_private->thread = std11::make_shared<std11::thread>(&pulseaudio_callback, this);
+		m_private->thread = std::make_shared<std::thread>(&pulseaudio_callback, this);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating thread.");
 			goto error;

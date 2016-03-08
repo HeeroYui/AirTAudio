@@ -13,7 +13,7 @@
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
 #include <string.h>
-#include <etk/thread/tools.h>
+#include <ethread/tools.h>
 #include <audio/orchestra/api/Jack.h>
 
 #undef __class__
@@ -68,7 +68,7 @@ namespace audio {
 					jack_port_t **ports[2];
 					std::string deviceName[2];
 					bool xrun[2];
-					std11::condition_variable condition;
+					std::condition_variable condition;
 					int32_t drainCounter; // Tracks callback counts when draining
 					bool internalDrain; // Indicates if stop is initiated from callback or not.
 					
@@ -231,7 +231,7 @@ int32_t audio::orchestra::api::Jack::jackCallbackHandler(jack_nframes_t _nframes
 // it this way because the jackShutdown() function must return before
 // the jack_deactivate() function (in closeStream()) will return.
 void audio::orchestra::api::Jack::jackCloseStream(void* _userData) {
-	etk::thread::setName("Jack_closeStream");
+	ethread::setName("Jack_closeStream");
 	audio::orchestra::api::Jack* myClass = reinterpret_cast<audio::orchestra::api::Jack*>(_userData);
 	myClass->closeStream();
 }
@@ -246,7 +246,7 @@ void audio::orchestra::api::Jack::jackShutdown(void* _userData) {
 	if (myClass->isStreamRunning() == false) {
 		return;
 	}
-	new std11::thread(&audio::orchestra::api::Jack::jackCloseStream, _userData);
+	new std::thread(&audio::orchestra::api::Jack::jackCloseStream, _userData);
 	ATA_ERROR("The Jack server is shutting down this client ... stream stopped and closed!!");
 }
 
@@ -600,7 +600,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::stopStream() {
 	     || m_mode == audio::orchestra::mode_duplex) {
 		if (m_private->drainCounter == 0) {
 			m_private->drainCounter = 2;
-			std11::unique_lock<std11::mutex> lck(m_mutex);
+			std::unique_lock<std::mutex> lck(m_mutex);
 			m_private->condition.wait(lck);
 		}
 	}
@@ -627,7 +627,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::abortStream() {
 // callbackEvent() function must return before the jack_deactivate()
 // function will return.
 static void jackStopStream(void* _userData) {
-	etk::thread::setName("Jack_stopStream");
+	ethread::setName("Jack_stopStream");
 	audio::orchestra::api::Jack* myClass = reinterpret_cast<audio::orchestra::api::Jack*>(_userData);
 	myClass->stopStream();
 }
@@ -649,7 +649,7 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 	if (m_private->drainCounter > 3) {
 		m_state = audio::orchestra::state_stopping;
 		if (m_private->internalDrain == true) {
-			new std11::thread(jackStopStream, this);
+			new std::thread(jackStopStream, this);
 		} else {
 			m_private->condition.notify_one();
 		}
@@ -676,7 +676,7 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 		if (cbReturnValue == 2) {
 			m_state = audio::orchestra::state_stopping;
 			m_private->drainCounter = 2;
-			new std11::thread(jackStopStream, this);
+			new std::thread(jackStopStream, this);
 			return true;
 		}
 		else if (cbReturnValue == 1) {

@@ -29,7 +29,7 @@ namespace audio {
 				             audio::format _format,
 				             uint32_t *_bufferSize,
 				             const audio::orchestra::StreamOptions& _options,
-				             std11::shared_ptr<audio::orchestra::api::Android> _instance);
+				             std::shared_ptr<audio::orchestra::api::Android> _instance);
 				enum audio::orchestra::error closeStream(int32_t _id);
 				enum audio::orchestra::error startStream(int32_t _id);
 				enum audio::orchestra::error stopStream(int32_t _id);

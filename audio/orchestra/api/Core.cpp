@@ -17,7 +17,7 @@
 #include <audio/orchestra/Interface.h>
 #include <audio/orchestra/debug.h>
 #include <thread>
-#include <etk/thread/tools.h>
+#include <ethread/tools.h>
 #include <audio/orchestra/api/Core.h>
 
 std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Core::create() {
@@ -40,7 +40,7 @@ namespace audio {
 					uint32_t nStreams[2]; // number of streams to use
 					bool xrun[2];
 					char *deviceBuffer;
-					std11::condition_variable condition;
+					std::condition_variable condition;
 					int32_t drainCounter; // Tracks callback counts when draining
 					bool internalDrain; // Indicates if stop is initiated from callback or not.
 					CorePrivate() :
@@ -970,7 +970,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::stopStream() {
 	if (    m_mode == audio::orchestra::mode_output
 	     || m_mode == audio::orchestra::mode_duplex) {
 		if (m_private->drainCounter == 0) {
-			std11::unique_lock<std11::mutex> lck(m_mutex);
+			std::unique_lock<std::mutex> lck(m_mutex);
 			m_private->drainCounter = 2;
 			m_private->condition.wait(lck);
 		}
@@ -1016,7 +1016,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::abortStream() {
 // callbackEvent() function probably should return before the AudioDeviceStop()
 // function is called.
 void audio::orchestra::api::Core::coreStopStream(void *_userData) {
-	etk::thread::setName("CoreAudio_stopStream");
+	ethread::setName("CoreAudio_stopStream");
 	audio::orchestra::api::Core* myClass = reinterpret_cast<audio::orchestra::api::Core*>(_userData);
 	myClass->stopStream();
 }
@@ -1039,7 +1039,7 @@ bool audio::orchestra::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		m_state = audio::orchestra::state_stopping;
 		ATA_VERBOSE("Set state as stopping");
 		if (m_private->internalDrain == true) {
-			new std11::thread(&audio::orchestra::api::Core::coreStopStream, this);
+			new std::thread(&audio::orchestra::api::Core::coreStopStream, this);
 		} else {
 			// external call to stopStream()
 			m_private->condition.notify_one();

@@ -27,7 +27,7 @@ namespace audio {
 		 * @param _nbChunk The number of chunk of input or output chunk in the buffer (same size).
 		 * @param _status List of error that occured in the laps of time.
 		 */
-		typedef std11::function<int32_t (const void* _inputBuffer,
+		typedef std::function<int32_t (const void* _inputBuffer,
 		                                 const audio::Time& _timeInput,
 		                                 void* _outputBuffer,
 		                                 const audio::Time& _timeOutput,
@@ -85,7 +85,7 @@ namespace audio {
 				}
 				
 			protected:
-				mutable std11::mutex m_mutex;
+				mutable std::mutex m_mutex;
 				audio::orchestra::AirTAudioCallback m_callback;
 				uint32_t m_device[2]; // Playback and record, respectively.
 				enum audio::orchestra::mode m_mode; // audio::orchestra::mode_output, audio::orchestra::mode_input, or audio::orchestra::mode_duplex.
@@ -166,7 +166,7 @@ namespace audio {
 				                    uint32_t _firstChannel);
 				
 			public:
-				virtual bool isMasterOf(std11::shared_ptr<audio::orchestra::Api> _api) {
+				virtual bool isMasterOf(std::shared_ptr<audio::orchestra::Api> _api) {
 					return false;
 				};
 		};
