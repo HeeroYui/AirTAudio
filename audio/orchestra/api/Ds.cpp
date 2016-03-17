@@ -772,7 +772,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 			goto error;
 		}
 		// Boost DS thread priority
-		etk::thread::setPriority(*m_private->thread, -6);
+		ethread::setPriority(*m_private->thread, -6);
 	}
 	return true;
 error:
