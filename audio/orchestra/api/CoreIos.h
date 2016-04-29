@@ -18,7 +18,7 @@ namespace audio {
 					CoreIos();
 					virtual ~CoreIos();
 					const std::string& getCurrentApi() {
-						return audio::orchestra::type_coreIOS;
+						return audio::orchestra::typeCoreIOS;
 					}
 					uint32_t getDeviceCount();
 					audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device);

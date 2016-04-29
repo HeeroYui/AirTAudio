@@ -10,10 +10,10 @@
 
 namespace audio {
 	namespace orchestra {
-		enum status {
-			status_ok, //!< nothing...
-			status_overflow, //!< Internal buffer has more data than they can accept
-			status_underflow //!< The internal buffer is empty
+		enum class status {
+			ok, //!< nothing...
+			overflow, //!< Internal buffer has more data than they can accept
+			underflow //!< The internal buffer is empty
 		};
 		std::ostream& operator <<(std::ostream& _os, enum audio::orchestra::status _obj);
 		std::ostream& operator <<(std::ostream& _os, const std::vector<enum audio::orchestra::status>& _obj);

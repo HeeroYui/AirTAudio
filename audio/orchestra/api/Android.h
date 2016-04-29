@@ -19,7 +19,7 @@ namespace audio {
 					Android();
 					virtual ~Android();
 					const std::string& getCurrentApi() {
-						return audio::orchestra::type_java;
+						return audio::orchestra::typeJava;
 					}
 					uint32_t getDeviceCount();
 					audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device);

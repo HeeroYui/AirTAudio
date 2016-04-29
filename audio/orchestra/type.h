@@ -14,17 +14,17 @@ namespace audio {
 		/**
 		 * @brief Audio API specifier arguments.
 		 */
-		extern const std::string type_undefined; //!< Error API.
-		extern const std::string type_alsa; //!< LINUX The Advanced Linux Sound Architecture.
-		extern const std::string type_pulse; //!< LINUX The Linux PulseAudio.
-		extern const std::string type_oss; //!< LINUX The Linux Open Sound System.
-		extern const std::string type_jack; //!< UNIX The Jack Low-Latency Audio Server.
-		extern const std::string type_coreOSX; //!< Macintosh OSX Core Audio.
-		extern const std::string type_coreIOS; //!< Macintosh iOS Core Audio.
-		extern const std::string type_asio; //!< WINDOWS The Steinberg Audio Stream I/O.
-		extern const std::string type_ds; //!< WINDOWS The Microsoft Direct Sound.
-		extern const std::string type_java; //!< ANDROID Interface.
-		extern const std::string type_dummy; //!< Empty wrapper (non-functional).
+		extern const std::string typeUndefined; //!< Error API.
+		extern const std::string typeAlsa; //!< LINUX The Advanced Linux Sound Architecture.
+		extern const std::string typePulse; //!< LINUX The Linux PulseAudio.
+		extern const std::string typeOss; //!< LINUX The Linux Open Sound System.
+		extern const std::string typeJack; //!< UNIX The Jack Low-Latency Audio Server.
+		extern const std::string typeCoreOSX; //!< Macintosh OSX Core Audio.
+		extern const std::string typeCoreIOS; //!< Macintosh iOS Core Audio.
+		extern const std::string typeAsio; //!< WINDOWS The Steinberg Audio Stream I/O.
+		extern const std::string typeDs; //!< WINDOWS The Microsoft Direct Sound.
+		extern const std::string typeJava; //!< ANDROID Interface.
+		extern const std::string typeDummy; //!< Empty wrapper (non-functional).
 	}
 }
 

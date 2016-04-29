@@ -88,7 +88,7 @@ audio::orchestra::api::Core::~Core() {
 	// The subclass destructor gets called before the base class
 	// destructor, so close an existing stream before deallocating
 	// apiDeviceId memory.
-	if (m_state != audio::orchestra::state_closed) {
+	if (m_state != audio::orchestra::state::closed) {
 		closeStream();
 	}
 }
@@ -828,7 +828,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 	}
 	m_sampleRate = _sampleRate;
 	m_device[modeToIdTable(_mode)] = _device;
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	ATA_VERBOSE("Set state as stopped");
 	// Setup the buffer conversion information structure.
 	if (m_doConvertBuffer[modeToIdTable(_mode)]) {
@@ -872,19 +872,19 @@ error:
 		free(m_deviceBuffer);
 		m_deviceBuffer = 0;
 	}
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 	ATA_VERBOSE("Set state as closed");
 	return false;
 }
 
 enum audio::orchestra::error audio::orchestra::api::Core::closeStream() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("no open stream to close!");
 		return audio::orchestra::error_warning;
 	}
 	if (    m_mode == audio::orchestra::mode_output
 	     || m_mode == audio::orchestra::mode_duplex) {
-		if (m_state == audio::orchestra::state_running) {
+		if (m_state == audio::orchestra::state::running) {
 			AudioDeviceStop(m_private->id[0], &audio::orchestra::api::Core::callbackEvent);
 		}
 #if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
@@ -897,7 +897,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::closeStream() {
 	if (    m_mode == audio::orchestra::mode_input
 	     || (    m_mode == audio::orchestra::mode_duplex
 	          && m_device[0] != m_device[1])) {
-		if (m_state == audio::orchestra::state_running) {
+		if (m_state == audio::orchestra::state::running) {
 			AudioDeviceStop(m_private->id[1], &audio::orchestra::api::Core::callbackEvent);
 		}
 #if defined(MAC_OS_X_VERSION_10_5) && (MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_5)
@@ -914,7 +914,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::closeStream() {
 		m_deviceBuffer = nullptr;
 	}
 	m_mode = audio::orchestra::mode_unknow;
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 	ATA_VERBOSE("Set state as closed");
 	return audio::orchestra::error_none;
 }
@@ -925,7 +925,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::startStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_running) {
+	if (m_state == audio::orchestra::state::running) {
 		ATA_ERROR("the stream is already running!");
 		return audio::orchestra::error_warning;
 	}
@@ -949,7 +949,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::startStream() {
 	}
 	m_private->drainCounter = 0;
 	m_private->internalDrain = false;
-	m_state = audio::orchestra::state_running;
+	m_state = audio::orchestra::state::running;
 	ATA_VERBOSE("Set state as running");
 unlock:
 	if (result == noErr) {
@@ -962,7 +962,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::stopStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
@@ -989,7 +989,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::stopStream() {
 			goto unlock;
 		}
 	}
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	ATA_VERBOSE("Set state as stopped");
 unlock:
 	if (result == noErr) {
@@ -1002,7 +1002,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::abortStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
@@ -1026,17 +1026,17 @@ bool audio::orchestra::api::Core::callbackEvent(AudioDeviceID _deviceId,
                                          const audio::Time& _inTime,
                                          const AudioBufferList *_outBufferList,
                                          const audio::Time& _outTime) {
-	if (    m_state == audio::orchestra::state_stopped
-	     || m_state == audio::orchestra::state_stopping) {
+	if (    m_state == audio::orchestra::state::stopped
+	     || m_state == audio::orchestra::state::stopping) {
 		return true;
 	}
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return false;
 	}
 	// Check if we were draining the stream and signal is finished.
 	if (m_private->drainCounter > 3) {
-		m_state = audio::orchestra::state_stopping;
+		m_state = audio::orchestra::state::stopping;
 		ATA_VERBOSE("Set state as stopping");
 		if (m_private->internalDrain == true) {
 			new std::thread(&audio::orchestra::api::Core::coreStopStream, this);
@@ -1054,12 +1054,12 @@ bool audio::orchestra::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		std::vector<enum audio::orchestra::status> status;
 		if (    m_mode != audio::orchestra::mode_input
 		     && m_private->xrun[0] == true) {
-			status.push_back(audio::orchestra::status_underflow);
+			status.push_back(audio::orchestra::status::underflow);
 			m_private->xrun[0] = false;
 		}
 		if (    m_mode != audio::orchestra::mode_output
 		     && m_private->xrun[1] == true) {
-			status.push_back(audio::orchestra::status_overflow);
+			status.push_back(audio::orchestra::status::overflow);
 			m_private->xrun[1] = false;
 		}
 		int32_t cbReturnValue = m_callback(&m_userBuffer[1][0],
@@ -1069,7 +1069,7 @@ bool audio::orchestra::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		                                   m_bufferSize,
 		                                   status);
 		if (cbReturnValue == 2) {
-			m_state = audio::orchestra::state_stopping;
+			m_state = audio::orchestra::state::stopping;
 			ATA_VERBOSE("Set state as stopping");
 			m_private->drainCounter = 2;
 			abortStream();

@@ -16,9 +16,6 @@
 #include <ethread/tools.h>
 #include <audio/orchestra/api/Jack.h>
 
-#undef __class__
-#define __class__ "api::Jack"
-
 std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Jack::create() {
 	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Jack());
 }
@@ -92,7 +89,7 @@ audio::orchestra::api::Jack::Jack() :
 }
 
 audio::orchestra::api::Jack::~Jack() {
-	if (m_state != audio::orchestra::state_closed) {
+	if (m_state != audio::orchestra::state::closed) {
 		closeStream();
 	}
 }
@@ -426,7 +423,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 	}
 	m_device[modeToIdTable(_mode)] = _device;
 	m_channelOffset[modeToIdTable(_mode)] = _firstChannel;
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	if (    m_mode == audio::orchestra::mode_output
 	     && _mode == audio::orchestra::mode_input) {
 		// We had already set up the stream for output.
@@ -486,12 +483,12 @@ error:
 }
 
 enum audio::orchestra::error audio::orchestra::api::Jack::closeStream() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("no open stream to close!");
 		return audio::orchestra::error_warning;
 	}
 	if (m_private != nullptr) {
-		if (m_state == audio::orchestra::state_running) {
+		if (m_state == audio::orchestra::state::running) {
 			jack_deactivate(m_private->client);
 		}
 		jack_client_close(m_private->client);
@@ -512,7 +509,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::closeStream() {
 		m_deviceBuffer = nullptr;
 	}
 	m_mode = audio::orchestra::mode_unknow;
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 	return audio::orchestra::error_none;
 }
 
@@ -522,7 +519,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::startStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_running) {
+	if (m_state == audio::orchestra::state::running) {
 		ATA_ERROR("the stream is already running!");
 		return audio::orchestra::error_warning;
 	}
@@ -580,7 +577,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::startStream() {
 	}
 	m_private->drainCounter = 0;
 	m_private->internalDrain = false;
-	m_state = audio::orchestra::state_running;
+	m_state = audio::orchestra::state::running;
 unlock:
 	if (result == 0) {
 		return audio::orchestra::error_none;
@@ -592,7 +589,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::stopStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
@@ -605,7 +602,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::stopStream() {
 		}
 	}
 	jack_deactivate(m_private->client);
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	return audio::orchestra::error_none;
 }
 
@@ -613,7 +610,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::abortStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
@@ -633,11 +630,11 @@ static void jackStopStream(void* _userData) {
 }
 
 bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
-	if (    m_state == audio::orchestra::state_stopped
-	     || m_state == audio::orchestra::state_stopping) {
+	if (    m_state == audio::orchestra::state::stopped
+	     || m_state == audio::orchestra::state::stopping) {
 		return true;
 	}
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return false;
 	}
@@ -647,7 +644,7 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 	}
 	// Check if we were draining the stream and signal is finished.
 	if (m_private->drainCounter > 3) {
-		m_state = audio::orchestra::state_stopping;
+		m_state = audio::orchestra::state::stopping;
 		if (m_private->internalDrain == true) {
 			new std::thread(jackStopStream, this);
 		} else {
@@ -660,11 +657,11 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 		audio::Time streamTime = getStreamTime();
 		std::vector<enum audio::orchestra::status> status;
 		if (m_mode != audio::orchestra::mode_input && m_private->xrun[0] == true) {
-			status.push_back(audio::orchestra::status_underflow);
+			status.push_back(audio::orchestra::status::underflow);
 			m_private->xrun[0] = false;
 		}
 		if (m_mode != audio::orchestra::mode_output && m_private->xrun[1] == true) {
-			status.push_back(audio::orchestra::status_overflow);
+			status.push_back(audio::orchestra::status::overflow);
 			m_private->xrun[1] = false;
 		}
 		int32_t cbReturnValue = m_callback(&m_userBuffer[1][0],
@@ -674,7 +671,7 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 		                                   m_bufferSize,
 		                                   status);
 		if (cbReturnValue == 2) {
-			m_state = audio::orchestra::state_stopping;
+			m_state = audio::orchestra::state::stopping;
 			m_private->drainCounter = 2;
 			new std::thread(jackStopStream, this);
 			return true;

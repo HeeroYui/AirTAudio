@@ -78,10 +78,10 @@ namespace audio {
 				uint32_t getStreamSampleRate();
 				virtual audio::Time getStreamTime();
 				bool isStreamOpen() const {
-					return m_state != audio::orchestra::state_closed;
+					return m_state != audio::orchestra::state::closed;
 				}
 				bool isStreamRunning() const {
-					return m_state == audio::orchestra::state_running;
+					return m_state == audio::orchestra::state::running;
 				}
 				
 			protected:

@@ -76,7 +76,7 @@ audio::orchestra::api::Pulse::Pulse() :
 }
 
 audio::orchestra::api::Pulse::~Pulse() {
-	if (m_state != audio::orchestra::state_closed) {
+	if (m_state != audio::orchestra::state::closed) {
 		closeStream();
 	}
 }
@@ -114,7 +114,7 @@ void audio::orchestra::api::Pulse::callbackEvent() {
 enum audio::orchestra::error audio::orchestra::api::Pulse::closeStream() {
 	m_private->threadRunning = false;
 	m_mutex.lock();
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		m_private->runnable = true;
 		m_private->runnable_cv.notify_one();;
 	}
@@ -127,23 +127,23 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::closeStream() {
 	m_private->handle = nullptr;
 	m_userBuffer[0].clear();
 	m_userBuffer[1].clear();
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 	m_mode = audio::orchestra::mode_unknow;
 	return audio::orchestra::error_none;
 }
 
 void audio::orchestra::api::Pulse::callbackEventOneCycle() {
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		std::unique_lock<std::mutex> lck(m_mutex);
 		while (!m_private->runnable) {
 			m_private->runnable_cv.wait(lck);
 		}
-		if (m_state != audio::orchestra::state_running) {
+		if (m_state != audio::orchestra::state::running) {
 			m_mutex.unlock();
 			return;
 		}
 	}
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return;
 	}
@@ -162,7 +162,7 @@ void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 	m_mutex.lock();
 	void *pulse_in = m_doConvertBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)] ? m_deviceBuffer : &m_userBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)][0];
 	void *pulse_out = m_doConvertBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_output)] ? m_deviceBuffer : &m_userBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_output)][0];
-	if (m_state != audio::orchestra::state_running) {
+	if (m_state != audio::orchestra::state::running) {
 		goto unlock;
 	}
 	int32_t pa_error;
@@ -210,16 +210,16 @@ unlock:
 enum audio::orchestra::error audio::orchestra::api::Pulse::startStream() {
 	// TODO : Check return ...
 	audio::orchestra::Api::startStream();
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("the stream is not open!");
 		return audio::orchestra::error_invalidUse;
 	}
-	if (m_state == audio::orchestra::state_running) {
+	if (m_state == audio::orchestra::state::running) {
 		ATA_ERROR("the stream is already running!");
 		return audio::orchestra::error_warning;
 	}
 	m_mutex.lock();
-	m_state = audio::orchestra::state_running;
+	m_state = audio::orchestra::state::running;
 	m_private->runnable = true;
 	m_private->runnable_cv.notify_one();
 	m_mutex.unlock();
@@ -227,15 +227,15 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::startStream() {
 }
 
 enum audio::orchestra::error audio::orchestra::api::Pulse::stopStream() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("the stream is not open!");
 		return audio::orchestra::error_invalidUse;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	m_mutex.lock();
 	if (    m_private != nullptr
 	     && m_private->handle != nullptr
@@ -247,21 +247,21 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::stopStream() {
 			return audio::orchestra::error_systemError;
 		}
 	}
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	m_mutex.unlock();
 	return audio::orchestra::error_none;
 }
 
 enum audio::orchestra::error audio::orchestra::api::Pulse::abortStream() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("the stream is not open!");
 		return audio::orchestra::error_invalidUse;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	m_mutex.lock();
 	if (    m_private != nullptr
 	     && m_private->handle != nullptr
@@ -273,7 +273,7 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::abortStream() {
 			return audio::orchestra::error_systemError;
 		}
 	}
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	m_mutex.unlock();
 	return audio::orchestra::error_none;
 }
@@ -402,7 +402,7 @@ bool audio::orchestra::api::Pulse::open(uint32_t _device,
 			goto error;
 		}
 	}
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	return true;
 error:
 	for (int32_t iii=0; iii<2; ++iii) {

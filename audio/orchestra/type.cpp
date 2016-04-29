@@ -12,17 +12,14 @@
 #include <cstring>
 #include <climits>
 
-#undef __class__
-#define __class__ "type"
-
-const std::string audio::orchestra::type_undefined = "undefined";
-const std::string audio::orchestra::type_alsa = "alsa";
-const std::string audio::orchestra::type_pulse = "pulse";
-const std::string audio::orchestra::type_oss = "oss";
-const std::string audio::orchestra::type_jack = "jack";
-const std::string audio::orchestra::type_coreOSX = "coreOSX";
-const std::string audio::orchestra::type_coreIOS = "coreIOS";
-const std::string audio::orchestra::type_asio = "asio";
-const std::string audio::orchestra::type_ds = "ds";
-const std::string audio::orchestra::type_java = "java";
-const std::string audio::orchestra::type_dummy = "dummy";
+const std::string audio::orchestra::typeUndefined = "undefined";
+const std::string audio::orchestra::typeAlsa = "alsa";
+const std::string audio::orchestra::typePulse = "pulse";
+const std::string audio::orchestra::typeOss = "oss";
+const std::string audio::orchestra::typeJack = "jack";
+const std::string audio::orchestra::typeCoreOSX = "coreOSX";
+const std::string audio::orchestra::typeCoreIOS = "coreIOS";
+const std::string audio::orchestra::typeAsio = "asio";
+const std::string audio::orchestra::typeDs = "ds";
+const std::string audio::orchestra::typeJava = "java";
+const std::string audio::orchestra::typeDummy = "dummy";

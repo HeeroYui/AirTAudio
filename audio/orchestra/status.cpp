@@ -14,7 +14,7 @@ static const char* listValue[] = {
 };
 
 std::ostream& audio::orchestra::operator <<(std::ostream& _os, enum audio::orchestra::status _obj) {
-	_os << listValue[_obj];
+	_os << listValue[int32_t(_obj)];
 	return _os;
 }
 

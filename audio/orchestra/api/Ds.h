@@ -18,7 +18,7 @@ namespace audio {
 					Ds();
 					virtual ~Ds();
 					const std::string& getCurrentApi() {
-						return audio::orchestra::type_ds;
+						return audio::orchestra::typeDs;
 					}
 					uint32_t getDeviceCount();
 					audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device);

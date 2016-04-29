@@ -47,7 +47,7 @@ audio::orchestra::Api::Api() :
   m_deviceBuffer(nullptr) {
 	m_device[0] = 11111;
 	m_device[1] = 11111;
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 	m_mode = audio::orchestra::mode_unknow;
 }
 
@@ -69,7 +69,7 @@ enum audio::orchestra::error audio::orchestra::Api::openStream(audio::orchestra:
                                                  uint32_t* _bufferFrames,
                                                  audio::orchestra::AirTAudioCallback _callback,
                                                  const audio::orchestra::StreamOptions& _options) {
-	if (m_state != audio::orchestra::state_closed) {
+	if (m_state != audio::orchestra::state::closed) {
 		ATA_ERROR("a stream is already open!");
 		return audio::orchestra::error_invalidUse;
 	}
@@ -168,7 +168,7 @@ enum audio::orchestra::error audio::orchestra::Api::openStream(audio::orchestra:
 	}
 	m_callback = _callback;
 	//_options.numberOfBuffers = m_nBuffers;
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	return audio::orchestra::error_none;
 }
 
@@ -237,7 +237,7 @@ uint32_t audio::orchestra::Api::getStreamSampleRate() {
 }
 
 enum audio::orchestra::error audio::orchestra::Api::verifyStream() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("a stream is not open!");
 		return audio::orchestra::error_invalidUse;
 	}
@@ -246,7 +246,7 @@ enum audio::orchestra::error audio::orchestra::Api::verifyStream() {
 
 void audio::orchestra::Api::clearStreamInfo() {
 	m_mode = audio::orchestra::mode_unknow;
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 	m_sampleRate = 0;
 	m_bufferSize = 0;
 	m_nBuffers = 0;

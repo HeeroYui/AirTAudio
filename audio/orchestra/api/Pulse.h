@@ -18,7 +18,7 @@ namespace audio {
 					Pulse();
 					virtual ~Pulse();
 					const std::string& getCurrentApi() {
-						return audio::orchestra::type_pulse;
+						return audio::orchestra::typePulse;
 					}
 					uint32_t getDeviceCount();
 					audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device);

@@ -10,11 +10,11 @@
 
 namespace audio {
 	namespace orchestra {
-		enum state {
-			state_closed,
-			state_stopped,
-			state_stopping,
-			state_running
+		enum class state {
+			closed,
+			stopped,
+			stopping,
+			running
 		};
 	}
 }

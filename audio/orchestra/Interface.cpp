@@ -55,31 +55,31 @@ audio::orchestra::Interface::Interface() :
   m_api(nullptr) {
 	ATA_DEBUG("Add interface:");
 #if defined(ORCHESTRA_BUILD_JACK)
-	addInterface(audio::orchestra::type_jack, audio::orchestra::api::Jack::create);
+	addInterface(audio::orchestra::typeJack, audio::orchestra::api::Jack::create);
 #endif
 #if defined(ORCHESTRA_BUILD_ALSA)
-	addInterface(audio::orchestra::type_alsa, audio::orchestra::api::Alsa::create);
+	addInterface(audio::orchestra::typeAlsa, audio::orchestra::api::Alsa::create);
 #endif
 #if defined(ORCHESTRA_BUILD_PULSE)
-	addInterface(audio::orchestra::type_pulse, audio::orchestra::api::Pulse::create);
+	addInterface(audio::orchestra::typePulse, audio::orchestra::api::Pulse::create);
 #endif
 #if defined(ORCHESTRA_BUILD_ASIO)
-	addInterface(audio::orchestra::type_asio, audio::orchestra::api::Asio::create);
+	addInterface(audio::orchestra::typeAsio, audio::orchestra::api::Asio::create);
 #endif
 #if defined(ORCHESTRA_BUILD_DS)
-	addInterface(audio::orchestra::type_ds, audio::orchestra::api::Ds::create);
+	addInterface(audio::orchestra::typeDs, audio::orchestra::api::Ds::create);
 #endif
 #if defined(ORCHESTRA_BUILD_MACOSX_CORE)
-	addInterface(audio::orchestra::type_coreOSX, audio::orchestra::api::Core::create);
+	addInterface(audio::orchestra::typeCoreOSX, audio::orchestra::api::Core::create);
 #endif
 #if defined(ORCHESTRA_BUILD_IOS_CORE)
-	addInterface(audio::orchestra::type_coreIOS, audio::orchestra::api::CoreIos::create);
+	addInterface(audio::orchestra::typeCoreIOS, audio::orchestra::api::CoreIos::create);
 #endif
 #if defined(ORCHESTRA_BUILD_JAVA)
-	addInterface(audio::orchestra::type_java, audio::orchestra::api::Android::create);
+	addInterface(audio::orchestra::typeJava, audio::orchestra::api::Android::create);
 #endif
 #if defined(ORCHESTRA_BUILD_DUMMY)
-	addInterface(audio::orchestra::type_dummy, audio::orchestra::api::Dummy::create);
+	addInterface(audio::orchestra::typeDummy, audio::orchestra::api::Dummy::create);
 #endif
 }
 
@@ -103,7 +103,7 @@ enum audio::orchestra::error audio::orchestra::Interface::instanciate(const std:
 		ATA_WARNING("Interface already started!");
 		return audio::orchestra::error_none;
 	}
-	if (_api != audio::orchestra::type_undefined) {
+	if (_api != audio::orchestra::typeUndefined) {
 		ATA_INFO("API specified : " << _api);
 		// Attempt to open the specified API.
 		openApi(_api);
@@ -181,8 +181,8 @@ bool audio::orchestra::Interface::isMasterOf(audio::orchestra::Interface& _inter
 		ATA_ERROR("Can not link 2 Interface with not the same Low level type (?)");//" << _interface.m_adac->getCurrentApi() << " != " << m_adac->getCurrentApi() << ")");
 		return false;
 	}
-	if (m_api->getCurrentApi() != audio::orchestra::type_alsa) {
-		ATA_ERROR("Link 2 device together work only if the interafec is ?");// << audio::orchestra::type_alsa << " not for " << m_api->getCurrentApi());
+	if (m_api->getCurrentApi() != audio::orchestra::typeAlsa) {
+		ATA_ERROR("Link 2 device together work only if the interafec is ?");// << audio::orchestra::type::alsa << " not for " << m_api->getCurrentApi());
 		return false;
 	}
 	return m_api->isMasterOf(_interface.m_api);

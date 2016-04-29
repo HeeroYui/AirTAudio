@@ -90,7 +90,7 @@ audio::orchestra::api::Asio::Asio() :
 }
 
 audio::orchestra::api::Asio::~Asio() {
-	if (m_state != audio::orchestra::state_closed) {
+	if (m_state != audio::orchestra::state::closed) {
 		closeStream();
 	}
 	if (m_coInitialized) {
@@ -116,7 +116,7 @@ rtaudio::DeviceInfo audio::orchestra::api::Asio::getDeviceInfo(uint32_t _device)
 		return info;
 	}
 	// If a stream is already open, we cannot probe other devices.	Thus, use the saved results.
-	if (m_state != audio::orchestra::state_closed) {
+	if (m_state != audio::orchestra::state::closed) {
 		if (_device >= m_devices.size()) {
 			ATA_ERROR("device ID was not present before stream was opened.");
 			return info;
@@ -503,7 +503,7 @@ bool audio::orchestra::api::Asio::open(uint32_t _device,
 	}
 	m_sampleRate = _sampleRate;
 	m_device[modeToIdTable(_mode)] = _device;
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	if (    _mode == audio::orchestra::mode_output
 	     && _mode == audio::orchestra::mode_input) {
 		// We had already set up an output stream.
@@ -550,12 +550,12 @@ error:
 }
 
 enum audio::orchestra::error audio::orchestra::api::Asio::closeStream() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("no open stream to close!");
 		return audio::orchestra::error_warning;
 	}
-	if (m_state == audio::orchestra::state_running) {
-		m_state = audio::orchestra::state_stopped;
+	if (m_state == audio::orchestra::state::running) {
+		m_state = audio::orchestra::state::stopped;
 		ASIOStop();
 	}
 	ASIODisposeBuffers();
@@ -575,7 +575,7 @@ enum audio::orchestra::error audio::orchestra::api::Asio::closeStream() {
 		m_deviceBuffer = 0;
 	}
 	m_mode = audio::orchestra::mode_unknow;
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 	return audio::orchestra::error_none;
 }
 
@@ -587,7 +587,7 @@ enum audio::orchestra::error audio::orchestra::api::Asio::startStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_running) {
+	if (m_state == audio::orchestra::state::running) {
 		ATA_ERROR("the stream is already running!");
 		return audio::orchestra::error_warning;
 	}
@@ -599,7 +599,7 @@ enum audio::orchestra::error audio::orchestra::api::Asio::startStream() {
 	m_private->drainCounter = 0;
 	m_private->internalDrain = false;
 	ResetEvent(m_private->condition);
-	m_state = audio::orchestra::state_running;
+	m_state = audio::orchestra::state::running;
 	asioXRun = false;
 unlock:
 	stopThreadCalled = false;
@@ -613,7 +613,7 @@ enum audio::orchestra::error audio::orchestra::api::Asio::stopStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
@@ -623,7 +623,7 @@ enum audio::orchestra::error audio::orchestra::api::Asio::stopStream() {
 			WaitForSingleObject(m_private->condition, INFINITE);	// block until signaled
 		}
 	}
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	ASIOError result = ASIOStop();
 	if (result != ASE_OK) {
 		ATA_ERROR("error (" << getAsioErrorString(result) << ") stopping device.");
@@ -638,7 +638,7 @@ enum audio::orchestra::error audio::orchestra::api::Asio::abortStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		error(audio::orchestra::error_warning);
 		return;
@@ -666,18 +666,18 @@ static unsigned __stdcall asioStopStream(void *_ptr) {
 }
 
 bool audio::orchestra::api::Asio::callbackEvent(long bufferIndex) {
-	if (    m_state == audio::orchestra::state_stopped
-	     || m_state == audio::orchestra::state_stopping) {
+	if (    m_state == audio::orchestra::state::stopped
+	     || m_state == audio::orchestra::state::stopping) {
 		return true;
 	}
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return false;
 	}
 	CallbackInfo *info = (CallbackInfo *) &m_callbackInfo;
 	// Check if we were draining the stream and signal if finished.
 	if (m_private->drainCounter > 3) {
-		m_state = audio::orchestra::state_stopping;
+		m_state = audio::orchestra::state::stopping;
 		if (m_private->internalDrain == false) {
 			SetEvent(m_private->condition);
 		} else { // spawn a thread to stop the stream
@@ -697,11 +697,11 @@ bool audio::orchestra::api::Asio::callbackEvent(long bufferIndex) {
 		audio::Time streamTime = getStreamTime();
 		std::vector<enum audio::orchestra::status status;
 		if (m_mode != audio::orchestra::mode_input && asioXRun == true) {
-			status.push_back(audio::orchestra::status_underflow);
+			status.push_back(audio::orchestra::status::underflow);
 			asioXRun = false;
 		}
 		if (m_mode != audio::orchestra::mode_output && asioXRun == true) {
-			status.push_back(audio::orchestra::status_underflow;
+			status.push_back(audio::orchestra::status::underflow;
 			asioXRun = false;
 		}
 		int32_t cbReturnValue = info->callback(m_userBuffer[1],
@@ -711,7 +711,7 @@ bool audio::orchestra::api::Asio::callbackEvent(long bufferIndex) {
 		                                       m_bufferSize,
 		                                       status);
 		if (cbReturnValue == 2) {
-			m_state = audio::orchestra::state_stopping;
+			m_state = audio::orchestra::state::stopping;
 			m_private->drainCounter = 2;
 			unsigned threadId;
 			m_callbackInfo.thread = _beginthreadex(nullptr,

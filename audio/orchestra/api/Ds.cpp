@@ -128,7 +128,7 @@ audio::orchestra::api::Ds::~Ds() {
 	if (m_coInitialized) {
 		CoUninitialize(); // balanced call.
 	}
-	if (m_state != audio::orchestra::state_closed) {
+	if (m_state != audio::orchestra::state::closed) {
 		closeStream();
 	}
 }
@@ -748,7 +748,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 	m_private->dsBufferSize[modeToIdTable(_mode)] = dsBufferSize;
 	m_private->dsPointerLeadTime[modeToIdTable(_mode)] = dsPointerLeadTime;
 	m_device[modeToIdTable(_mode)] = _device;
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	if (    m_mode == audio::orchestra::mode_output
 	     && _mode == audio::orchestra::mode_input) {
 		// We had already set up an output stream.
@@ -800,12 +800,12 @@ error:
 		free(m_deviceBuffer);
 		m_deviceBuffer = 0;
 	}
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 	return false;
 }
 
 enum audio::orchestra::error audio::orchestra::api::Ds::closeStream() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("no open stream to close!");
 		return audio::orchestra::error_warning;
 	}
@@ -842,7 +842,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::closeStream() {
 		m_deviceBuffer = 0;
 	}
 	m_mode = audio::orchestra::mode_unknow;
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 }
 
 enum audio::orchestra::error audio::orchestra::api::Ds::startStream() {
@@ -851,7 +851,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::startStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_running) {
+	if (m_state == audio::orchestra::state::running) {
 		ATA_ERROR("the stream is already running!");
 		return audio::orchestra::error_warning;
 	}
@@ -887,7 +887,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::startStream() {
 	m_private->drainCounter = 0;
 	m_private->internalDrain = false;
 	ResetEvent(m_private->condition);
-	m_state = audio::orchestra::state_running;
+	m_state = audio::orchestra::state::running;
 unlock:
 	if (FAILED(result)) {
 		return audio::orchestra::error_systemError;
@@ -899,7 +899,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
@@ -912,7 +912,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 			m_private->drainCounter = 2;
 			WaitForSingleObject(m_private->condition, INFINITE);	// block until signaled
 		}
-		m_state = audio::orchestra::state_stopped;
+		m_state = audio::orchestra::state::stopped;
 		// Stop the buffer and clear memory
 		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
 		result = buffer->Stop();
@@ -943,7 +943,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 		LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
 		audioPtr = nullptr;
 		dataLen = 0;
-		m_state = audio::orchestra::state_stopped;
+		m_state = audio::orchestra::state::stopped;
 		result = buffer->Stop();
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": stopping input buffer!");
@@ -979,7 +979,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::abortStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
@@ -989,17 +989,17 @@ enum audio::orchestra::error audio::orchestra::api::Ds::abortStream() {
 
 void audio::orchestra::api::Ds::callbackEvent() {
 	ethread::setName("DS IO-" + m_name);
-	if (m_state == audio::orchestra::state_stopped || m_state == audio::orchestra::state_stopping) {
+	if (m_state == audio::orchestra::state::stopped || m_state == audio::orchestra::state_stopping) {
 		Sleep(50); // sleep 50 milliseconds
 		return;
 	}
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("the stream is closed ... this shouldn't happen!");
 		return;
 	}
 	// Check if we were draining the stream and signal is finished.
 	if (m_private->drainCounter > m_nBuffers + 2) {
-		m_state = audio::orchestra::state_stopping;
+		m_state = audio::orchestra::state::stopping;
 		if (m_private->internalDrain == false) {
 			SetEvent(m_private->condition);
 		} else {
@@ -1014,12 +1014,12 @@ void audio::orchestra::api::Ds::callbackEvent() {
 		std::vector<audio::orchestra::status> status;
 		if (    m_mode != audio::orchestra::mode_input
 		     && m_private->xrun[0] == true) {
-			status.push_back(audio::orchestra::status_underflow);
+			status.push_back(audio::orchestra::status::underflow);
 			m_private->xrun[0] = false;
 		}
 		if (    m_mode != audio::orchestra::mode_output
 		     && m_private->xrun[1] == true) {
-			status.push_back(audio::orchestra::status_overflow);
+			status.push_back(audio::orchestra::status::overflow);
 			m_private->xrun[1] = false;
 		}
 		int32_t cbReturnValue = m_callback(&m_userBuffer[1][0],
@@ -1029,7 +1029,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 		                                   m_bufferSize,
 		                                   status);
 		if (cbReturnValue == 2) {
-			m_state = audio::orchestra::state_stopping;
+			m_state = audio::orchestra::state::stopping;
 			m_private->drainCounter = 2;
 			abortStream();
 			return;

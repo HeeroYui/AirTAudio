@@ -19,7 +19,7 @@ namespace audio {
 					Alsa();
 					virtual ~Alsa();
 					const std::string& getCurrentApi() {
-						return audio::orchestra::type_alsa;
+						return audio::orchestra::typeAlsa;
 					}
 					uint32_t getDeviceCount();
 				private:

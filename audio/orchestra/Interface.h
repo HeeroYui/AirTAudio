@@ -66,13 +66,13 @@ namespace audio {
 				/**
 				 * @brief Create an interface instance
 				 */
-				enum audio::orchestra::error instanciate(const std::string& _api = audio::orchestra::type_undefined);
+				enum audio::orchestra::error instanciate(const std::string& _api = audio::orchestra::typeUndefined);
 				/**
 				 * @return the audio API specifier for the current instance of airtaudio.
 				 */
 				const std::string& getCurrentApi() {
 					if (m_api == nullptr) {
-						return audio::orchestra::type_undefined;
+						return audio::orchestra::typeUndefined;
 					}
 					return m_api->getCurrentApi();
 				}

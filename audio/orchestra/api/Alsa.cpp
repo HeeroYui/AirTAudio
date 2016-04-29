@@ -70,7 +70,7 @@ audio::orchestra::api::Alsa::Alsa() :
 }
 
 audio::orchestra::api::Alsa::~Alsa() {
-	if (m_state != audio::orchestra::state_closed) {
+	if (m_state != audio::orchestra::state::closed) {
 		closeStream();
 	}
 }
@@ -322,7 +322,7 @@ foundDevice:
 	snd_ctl_close(chandle);
 	// If a stream is already open, we cannot probe the stream devices.
 	// Thus, use the saved results.
-	if (    m_state != audio::orchestra::state_closed
+	if (    m_state != audio::orchestra::state::closed
 	     && (    m_device[0] == _device
 	          || m_device[1] == _device)) {
 		if (_device >= m_devices.size()) {
@@ -795,7 +795,7 @@ bool audio::orchestra::api::Alsa::openName(const std::string& _deviceName,
 	m_nBuffers = periods;
 	ATA_INFO("ALSA NB buffer = " << m_nBuffers);
 	// TODO : m_device[modeToIdTable(_mode)] = _device;
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	// Setup the buffer conversion information structure.
 	if (m_doConvertBuffer[modeToIdTable(_mode)]) {
 		setConvertInfo(_mode, _firstChannel);
@@ -824,18 +824,18 @@ error:
 		free(m_deviceBuffer);
 		m_deviceBuffer = 0;
 	}
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 	return false;
 }
 
 enum audio::orchestra::error audio::orchestra::api::Alsa::closeStream() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_ERROR("no open stream to close!");
 		return audio::orchestra::error_warning;
 	}
 	m_private->threadRunning = false;
 	m_mutex.lock();
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		m_private->runnable = true;
 		m_private->runnable_cv.notify_one();
 	}
@@ -844,8 +844,8 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::closeStream() {
 		m_private->thread->join();
 		m_private->thread = nullptr;
 	}
-	if (m_state == audio::orchestra::state_running) {
-		m_state = audio::orchestra::state_stopped;
+	if (m_state == audio::orchestra::state::running) {
+		m_state = audio::orchestra::state::stopped;
 		snd_pcm_drop(m_private->handle);
 	}
 	// close all stream :
@@ -861,7 +861,7 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::closeStream() {
 		m_deviceBuffer = 0;
 	}
 	m_mode = audio::orchestra::mode_unknow;
-	m_state = audio::orchestra::state_closed;
+	m_state = audio::orchestra::state::closed;
 	return audio::orchestra::error_none;
 }
 
@@ -872,7 +872,7 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::startStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_running) {
+	if (m_state == audio::orchestra::state::running) {
 		ATA_ERROR("the stream is already running!");
 		return audio::orchestra::error_warning;
 	}
@@ -891,7 +891,7 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::startStream() {
 			goto unlock;
 		}
 	}
-	m_state = audio::orchestra::state_running;
+	m_state = audio::orchestra::state::running;
 unlock:
 	m_private->runnable = true;
 	m_private->runnable_cv.notify_one();
@@ -905,11 +905,11 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::stopStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	std::unique_lock<std::mutex> lck(m_mutex);
 	int32_t result = 0;
 	if (m_mode == audio::orchestra::mode_output) {
@@ -932,11 +932,11 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::abortStream() {
 	if (verifyStream() != audio::orchestra::error_none) {
 		return audio::orchestra::error_fail;
 	}
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		ATA_ERROR("the stream is already stopped!");
 		return audio::orchestra::error_warning;
 	}
-	m_state = audio::orchestra::state_stopped;
+	m_state = audio::orchestra::state::stopped;
 	std::unique_lock<std::mutex> lck(m_mutex);
 	int32_t result = 0;
 	result = snd_pcm_drop(m_private->handle);
@@ -979,12 +979,12 @@ static int32_t wait_for_poll(snd_pcm_t* _handle, struct pollfd* _ufds, unsigned 
 
 void audio::orchestra::api::Alsa::callbackEvent() {
 	// Lock while the system is not started ...
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		std::unique_lock<std::mutex> lck(m_mutex);
 		while (!m_private->runnable) {
 			m_private->runnable_cv.wait(lck);
 		}
-		if (m_state != audio::orchestra::state_running) {
+		if (m_state != audio::orchestra::state::running) {
 			return;
 		}
 	}
@@ -1100,7 +1100,7 @@ audio::Time audio::orchestra::api::Alsa::getStreamTime() {
 }
 
 void audio::orchestra::api::Alsa::callbackEventOneCycleRead() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
 		return; // TODO : notify appl: audio::orchestra::error_warning;
 	}
@@ -1108,7 +1108,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleRead() {
 	audio::Time streamTime;
 	std::vector<enum audio::orchestra::status> status;
 	if (m_private->xrun[0] == true) {
-		status.push_back(audio::orchestra::status_underflow);
+		status.push_back(audio::orchestra::status::underflow);
 		m_private->xrun[0] = false;
 	}
 	int32_t result;
@@ -1117,7 +1117,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleRead() {
 	snd_pcm_sframes_t frames;
 	audio::format format;
 	
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		// !!! goto unlock;
 	}
 	
@@ -1216,7 +1216,7 @@ unlock:
 }
 
 void audio::orchestra::api::Alsa::callbackEventOneCycleWrite() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
 		return; // TODO : notify appl: audio::orchestra::error_warning;
 	}
@@ -1224,7 +1224,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleWrite() {
 	audio::Time streamTime;
 	std::vector<enum audio::orchestra::status> status;
 	if (m_private->xrun[1] == true) {
-		status.push_back(audio::orchestra::status_overflow);
+		status.push_back(audio::orchestra::status::overflow);
 		m_private->xrun[1] = false;
 	}
 	int32_t result;
@@ -1233,7 +1233,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleWrite() {
 	snd_pcm_sframes_t frames;
 	audio::format format;
 	
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		// !!! goto unlock;
 	}
 	
@@ -1318,7 +1318,7 @@ unlock:
 }
 
 void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
 		return; // TODO : notify appl: audio::orchestra::error_warning;
 	}
@@ -1326,7 +1326,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
 	audio::Time streamTime;
 	std::vector<enum audio::orchestra::status> status;
 	if (m_private->xrun[1] == true) {
-		status.push_back(audio::orchestra::status_overflow);
+		status.push_back(audio::orchestra::status::overflow);
 		m_private->xrun[1] = false;
 	}
 	int32_t result;
@@ -1335,7 +1335,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
 	snd_pcm_sframes_t frames;
 	audio::format format;
 	
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		// !!! goto unlock;
 	}
 	int32_t avail = snd_pcm_avail_update(m_private->handle);
@@ -1451,7 +1451,7 @@ unlock:
 	}
 }
 void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
-	if (m_state == audio::orchestra::state_closed) {
+	if (m_state == audio::orchestra::state::closed) {
 		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
 		return; // TODO : notify appl: audio::orchestra::error_warning;
 	}
@@ -1459,7 +1459,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
 	audio::Time streamTime;
 	std::vector<enum audio::orchestra::status> status;
 	if (m_private->xrun[0] == true) {
-		status.push_back(audio::orchestra::status_underflow);
+		status.push_back(audio::orchestra::status::underflow);
 		m_private->xrun[0] = false;
 	}
 	int32_t result;
@@ -1468,7 +1468,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
 	snd_pcm_sframes_t frames;
 	audio::format format;
 	
-	if (m_state == audio::orchestra::state_stopped) {
+	if (m_state == audio::orchestra::state::stopped) {
 		goto unlock;
 	}
 	{
@@ -1572,11 +1572,11 @@ bool audio::orchestra::api::Alsa::isMasterOf(std::shared_ptr<audio::orchestra::A
 		ATA_ERROR("NULL ptr API (not ALSA ...)");
 		return false;
 	}
-	if (m_state == audio::orchestra::state_running) {
+	if (m_state == audio::orchestra::state::running) {
 		ATA_ERROR("The MASTER stream is already running! ==> can not synchronize ...");
 		return false;
 	}
-	if (slave->m_state == audio::orchestra::state_running) {
+	if (slave->m_state == audio::orchestra::state::running) {
 		ATA_ERROR("The SLAVE stream is already running! ==> can not synchronize ...");
 		return false;
 	}
