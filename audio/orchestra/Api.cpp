@@ -13,9 +13,6 @@
 #include <cstring>
 #include <climits>
 
-#undef __class__
-#define __class__ "api"
-
 // Static variable definitions.
 const std::vector<uint32_t>& audio::orchestra::genericSampleRate() {
 	static std::vector<uint32_t> list;

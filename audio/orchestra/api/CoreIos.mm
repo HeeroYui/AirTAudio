@@ -16,9 +16,6 @@
 #include <limits.h>
 #include <audio/orchestra/api/CoreIos.h>
 
-#undef __class__
-#define __class__ "api::CoreIos"
-
 std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::CoreIos::create() {
 	ATA_INFO("Create CoreIos device ... ");
 	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::CoreIos());

@@ -27,8 +27,6 @@ extern "C" {
 #include <math.h>
 #include <poll.h>
 }
-#undef __class__
-#define __class__ "api::Alsa"
 
 std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Alsa::create() {
 	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Alsa());

@@ -38,9 +38,6 @@ std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Asio::create() {
 #include "asiodrivers.h"
 #include <cmath>
 
-#undef __class__
-#define __class__ "api::Asio"
-
 static AsioDrivers drivers;
 static ASIOCallbacks asioCallbacks;
 static ASIODriverInfo driverInfo;

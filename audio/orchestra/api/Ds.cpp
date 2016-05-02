@@ -12,9 +12,6 @@
 #include <ethread/tools.h>
 #include <audio/orchestra/api/Ds.h>
 
-#undef __class__
-#define __class__ "api::Ds"
-
 std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Ds::create() {
 	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Ds());
 }

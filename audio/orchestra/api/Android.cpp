@@ -15,9 +15,6 @@
 #include <audio/orchestra/api/Android.h>
 #include <limits.h>
 
-#undef __class__
-#define __class__ "api::Android"
-
 std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Android::create() {
 	ATA_INFO("Create Android device ... ");
 	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Android());

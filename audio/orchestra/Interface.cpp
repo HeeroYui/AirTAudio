@@ -19,9 +19,6 @@
 #include <audio/orchestra/api/Jack.h>
 #include <audio/orchestra/api/Pulse.h>
 
-#undef __class__
-#define __class__ "Interface"
-
 std::vector<std::string> audio::orchestra::Interface::getListApi() {
 	std::vector<std::string> apis;
 	// The order here will control the order of RtAudio's API search in

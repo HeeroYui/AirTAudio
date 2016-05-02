@@ -24,9 +24,6 @@ std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Core::create() {
 	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Core());
 }
 
-#undef __class__
-#define __class__ "api::Core"
-
 namespace audio {
 	namespace orchestra {
 		namespace api {

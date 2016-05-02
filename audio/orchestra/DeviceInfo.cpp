@@ -11,9 +11,6 @@
 #include <etk/stdTools.h>
 #include <iostream>
 
-#undef __class__
-#define __class__ "DeviceInfo"
-
 void audio::orchestra::DeviceInfo::display(int32_t _tabNumber) const {
 	std::string space;
 	for (int32_t iii=0; iii<_tabNumber; ++iii) {

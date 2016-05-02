@@ -9,9 +9,6 @@
 #include <audio/orchestra/api/Dummy.h>
 #include <audio/orchestra/debug.h>
 
-#undef __class__
-#define __class__ "api::Dummy"
-
 std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Dummy::create() {
 	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Dummy());
 }
