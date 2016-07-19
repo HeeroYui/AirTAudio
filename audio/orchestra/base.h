@@ -11,7 +11,7 @@
 #include <mutex>
 #include <chrono>
 #include <functional>
-#include <memory>
+#include <ememory/memory.h>
 #include <audio/channel.h>
 #include <audio/format.h>
 #include <audio/orchestra/error.h>

@@ -16,9 +16,9 @@
 #include <limits.h>
 #include <audio/orchestra/api/CoreIos.h>
 
-std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::CoreIos::create() {
+ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::CoreIos::create() {
 	ATA_INFO("Create CoreIos device ... ");
-	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::CoreIos());
+	return ememory::SharedPtr<audio::orchestra::api::CoreIos>(new audio::orchestra::api::CoreIos());
 }
 
 #define kOutputBus 0

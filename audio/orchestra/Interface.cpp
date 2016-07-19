@@ -80,8 +80,8 @@ audio::orchestra::Interface::Interface() :
 #endif
 }
 
-void audio::orchestra::Interface::addInterface(const std::string& _api, std::shared_ptr<Api> (*_callbackCreate)()) {
-	m_apiAvaillable.push_back(std::pair<std::string, std::shared_ptr<Api> (*)()>(_api, _callbackCreate));
+void audio::orchestra::Interface::addInterface(const std::string& _api, ememory::SharedPtr<Api> (*_callbackCreate)()) {
+	m_apiAvaillable.push_back(std::pair<std::string, ememory::SharedPtr<Api> (*)()>(_api, _callbackCreate));
 }
 
 enum audio::orchestra::error audio::orchestra::Interface::clear() {

@@ -19,8 +19,8 @@
 #include <audio/orchestra/api/PulseDeviceList.h>
 #include <audio/orchestra/api/Pulse.h>
 
-std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Pulse::create() {
-	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Pulse());
+ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Pulse::create() {
+	return ememory::SharedPtr<audio::orchestra::api::Pulse>(new audio::orchestra::api::Pulse());
 }
 
 
@@ -53,7 +53,7 @@ namespace audio {
 			class PulsePrivate {
 				public:
 					pa_simple* handle;
-					std::shared_ptr<std::thread> thread;
+					ememory::SharedPtr<std::thread> thread;
 					bool threadRunning;
 					std::condition_variable runnable_cv;
 					bool runnable;
@@ -393,7 +393,7 @@ bool audio::orchestra::api::Pulse::open(uint32_t _device,
 	}
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
-		m_private->thread = std::make_shared<std::thread>(&pulseaudio_callback, this);
+		m_private->thread = ememory::makeShared<std::thread>(&pulseaudio_callback, this);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating thread.");
 			goto error;

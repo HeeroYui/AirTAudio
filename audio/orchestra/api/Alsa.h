@@ -14,7 +14,7 @@ namespace audio {
 			class AlsaPrivate;
 			class Alsa: public audio::orchestra::Api {
 				public:
-					static std::shared_ptr<audio::orchestra::Api> create();
+					static ememory::SharedPtr<audio::orchestra::Api> create();
 				public:
 					Alsa();
 					virtual ~Alsa();
@@ -50,7 +50,7 @@ namespace audio {
 				private:
 					static void alsaCallbackEvent(void* _userData);
 				private:
-					std::shared_ptr<AlsaPrivate> m_private;
+					ememory::SharedPtr<AlsaPrivate> m_private;
 					std::vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool open(uint32_t _device,
@@ -72,7 +72,7 @@ namespace audio {
 					              const audio::orchestra::StreamOptions& _options);
 					virtual audio::Time getStreamTime();
 				public:
-					bool isMasterOf(std::shared_ptr<audio::orchestra::Api> _api);
+					bool isMasterOf(ememory::SharedPtr<audio::orchestra::Api> _api);
 			};
 		}
 	}

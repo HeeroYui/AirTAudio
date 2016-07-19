@@ -14,7 +14,7 @@ namespace audio {
 		namespace api {
 			class Android: public audio::orchestra::Api {
 				public:
-					static std::shared_ptr<audio::orchestra::Api> create();
+					static ememory::SharedPtr<audio::orchestra::Api> create();
 				public:
 					Android();
 					virtual ~Android();

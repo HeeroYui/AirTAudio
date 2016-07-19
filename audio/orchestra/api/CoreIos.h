@@ -13,7 +13,7 @@ namespace audio {
 			class CoreIosPrivate;
 			class CoreIos: public audio::orchestra::Api {
 				public:
-					static std::shared_ptr<audio::orchestra::Api> create();
+					static ememory::SharedPtr<audio::orchestra::Api> create();
 				public:
 					CoreIos();
 					virtual ~CoreIos();
@@ -47,7 +47,7 @@ namespace audio {
 					                   int32_t _nbChunk,
 					                   const audio::Time& _time);
 				public:
-					std::shared_ptr<CoreIosPrivate> m_private;
+					ememory::SharedPtr<CoreIosPrivate> m_private;
 			};
 		}
 	}

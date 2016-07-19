@@ -13,7 +13,7 @@ namespace audio {
 			class AsioPrivate:
 			class Asio: public audio::orchestra::Api {
 				public:
-					static std::shared_ptr<audio::orchestra::Api> create();
+					static ememory::SharedPtr<audio::orchestra::Api> create();
 				public:
 					Asio();
 					virtual ~Asio();
@@ -33,7 +33,7 @@ namespace audio {
 					// will most likely produce highly undesireable results!
 					bool callbackEvent(long _bufferIndex);
 				private:
-					std::shared_ptr<AsioPrivate> m_private;
+					ememory::SharedPtr<AsioPrivate> m_private;
 					std::vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool m_coInitialized;

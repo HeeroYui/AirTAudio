@@ -13,7 +13,7 @@ namespace audio {
 			class PulsePrivate;
 			class Pulse: public audio::orchestra::Api {
 				public:
-					static std::shared_ptr<audio::orchestra::Api> create();
+					static ememory::SharedPtr<audio::orchestra::Api> create();
 				public:
 					Pulse();
 					virtual ~Pulse();
@@ -33,7 +33,7 @@ namespace audio {
 					void callbackEventOneCycle();
 					void callbackEvent();
 				private:
-					std::shared_ptr<PulsePrivate> m_private;
+					ememory::SharedPtr<PulsePrivate> m_private;
 					std::vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool open(uint32_t _device,

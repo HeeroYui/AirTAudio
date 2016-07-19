@@ -28,8 +28,8 @@ extern "C" {
 #include <poll.h>
 }
 
-std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Alsa::create() {
-	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Alsa());
+ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Alsa::create() {
+	return ememory::SharedPtr<audio::orchestra::api::Alsa>(new audio::orchestra::api::Alsa());
 }
 
 namespace audio {
@@ -63,7 +63,7 @@ namespace audio {
 }
 
 audio::orchestra::api::Alsa::Alsa() :
-  m_private(std::make_shared<audio::orchestra::api::AlsaPrivate>()) {
+  m_private(ememory::makeShared<audio::orchestra::api::AlsaPrivate>()) {
 	// Nothing to do here.
 }
 
@@ -1564,8 +1564,8 @@ unlock:
 }
 
 
-bool audio::orchestra::api::Alsa::isMasterOf(std::shared_ptr<audio::orchestra::Api> _api) {
-	std::shared_ptr<audio::orchestra::api::Alsa> slave = std::dynamic_pointer_cast<audio::orchestra::api::Alsa>(_api);
+bool audio::orchestra::api::Alsa::isMasterOf(ememory::SharedPtr<audio::orchestra::Api> _api) {
+	ememory::SharedPtr<audio::orchestra::api::Alsa> slave = ememory::dynamicPointerCast<audio::orchestra::api::Alsa>(_api);
 	if (slave == nullptr) {
 		ATA_ERROR("NULL ptr API (not ALSA ...)");
 		return false;

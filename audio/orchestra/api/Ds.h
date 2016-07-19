@@ -13,7 +13,7 @@ namespace audio {
 			class DsPrivate;
 			class Ds: public audio::orchestra::Api {
 				public:
-					static std::shared_ptr<audio::orchestra::Api> create();
+					static ememory::SharedPtr<audio::orchestra::Api> create();
 				public:
 					Ds();
 					virtual ~Ds();
@@ -34,7 +34,7 @@ namespace audio {
 					void callbackEvent();
 				private:
 					static void dsCallbackEvent(void *_userData);
-					std::shared_ptr<DsPrivate> m_private;
+					ememory::SharedPtr<DsPrivate> m_private;
 					bool m_coInitialized;
 					bool m_buffersRolling;
 					long m_duplexPrerollBytes;

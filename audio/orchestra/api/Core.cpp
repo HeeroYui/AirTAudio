@@ -20,8 +20,8 @@
 #include <ethread/tools.h>
 #include <audio/orchestra/api/Core.h>
 
-std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Core::create() {
-	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Core());
+ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Core::create() {
+	return ememory::SharedPtr<audio::orchestra::api::Core>(new audio::orchestra::api::Core());
 }
 
 namespace audio {

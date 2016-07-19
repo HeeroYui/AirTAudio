@@ -14,7 +14,7 @@
 /* include auto generated file */
 #include <org_musicdsp_orchestra_OrchestraConstants.h>
 #include <jvm-basics/jvm-basics.h>
-#include <memory>
+#include <ememory/memory.h>
 #include <ejson/ejson.h>
 
 class AndroidOrchestraContext {
@@ -253,7 +253,7 @@ class AndroidOrchestraContext {
 			} else {
 				info.input = true;
 			}
-			std::shared_ptr<const ejson::Array> list = doc.getArray("sample-rate");
+			ememory::SharedPtr<const ejson::Array> list = doc.getArray("sample-rate");
 			if (list != nullptr) {
 				for (size_t iii=0; iii<list->size(); ++iii) {
 					info.sampleRates.push_back(int32_t(list->getNumberValue(iii, 48000)));
@@ -276,7 +276,7 @@ class AndroidOrchestraContext {
 			return info;
 		}
 	private:
-		std::vector<std::weak_ptr<audio::orchestra::api::Android> > m_instanceList; // list of connected handle ...
+		std::vector<ememory::WeakPtr<audio::orchestra::api::Android> > m_instanceList; // list of connected handle ...
 		//AndroidAudioCallback m_audioCallBack;
 		//void* m_audioCallBackUserData;
 	public:
@@ -288,7 +288,7 @@ class AndroidOrchestraContext {
 		             audio::format _format,
 		             uint32_t *_bufferSize,
 		             const audio::orchestra::StreamOptions& _options,
-		             std::shared_ptr<audio::orchestra::api::Android> _instance) {
+		             ememory::SharedPtr<audio::orchestra::api::Android> _instance) {
 			ATA_DEBUG("C->java : audio open device");
 			int status;
 			if(!java_attach_current_thread(&status)) {
@@ -395,7 +395,7 @@ class AndroidOrchestraContext {
 		}
 };
 
-static std::shared_ptr<AndroidOrchestraContext> s_localContext;
+static ememory::SharedPtr<AndroidOrchestraContext> s_localContext;
 static int32_t s_nbContextRequested(0);
 
 
@@ -422,7 +422,7 @@ int32_t audio::orchestra::api::android::open(uint32_t _device,
                                              audio::format _format,
                                              uint32_t *_bufferSize,
                                              const audio::orchestra::StreamOptions& _options,
-                                             std::shared_ptr<audio::orchestra::api::Android> _instance) {
+                                             ememory::SharedPtr<audio::orchestra::api::Android> _instance) {
 	if (s_localContext == nullptr) {
 		return -1;
 	}
@@ -468,7 +468,7 @@ extern "C" {
 		if (s_localContext != nullptr) {
 			s_nbContextRequested++;
 		}
-		s_localContext = std::make_shared<AndroidOrchestraContext>(_env, _classBase, _objCallback);
+		s_localContext = ememory::makeShared<AndroidOrchestraContext>(_env, _classBase, _objCallback);
 		if (s_localContext == nullptr) {
 			ATA_ERROR("Can not allocate the orchestra main context instance");
 			return;

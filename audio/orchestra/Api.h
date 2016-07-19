@@ -13,7 +13,7 @@
 #include <audio/orchestra/mode.h>
 #include <audio/Time.h>
 #include <audio/Duration.h>
-#include <memory>
+#include <ememory/memory.h>
 
 namespace audio {
 	namespace orchestra {
@@ -45,7 +45,7 @@ namespace audio {
 				std::vector<int> outOffset;
 		};
 	
-		class Api : public std::enable_shared_from_this<Api>{
+		class Api : public ememory::EnableSharedFromThis<Api>{
 			protected:
 				std::string m_name;
 			public:
@@ -166,7 +166,7 @@ namespace audio {
 				                    uint32_t _firstChannel);
 				
 			public:
-				virtual bool isMasterOf(std::shared_ptr<audio::orchestra::Api> _api) {
+				virtual bool isMasterOf(ememory::SharedPtr<audio::orchestra::Api> _api) {
 					return false;
 				};
 		};

@@ -16,7 +16,7 @@ namespace audio {
 			class CorePrivate;
 			class Core: public audio::orchestra::Api {
 				public:
-					static std::shared_ptr<audio::orchestra::Api> create();
+					static ememory::SharedPtr<audio::orchestra::Api> create();
 				public:
 					Core();
 					virtual ~Core();
@@ -46,7 +46,7 @@ namespace audio {
 					                              void* _infoPointer);
 					static void coreStopStream(void *_userData);
 				private:
-					std::shared_ptr<CorePrivate> m_private;
+					ememory::SharedPtr<CorePrivate> m_private;
 					bool open(uint32_t _device,
 					          audio::orchestra::mode _mode,
 					          uint32_t _channels,

@@ -12,8 +12,8 @@
 #include <ethread/tools.h>
 #include <audio/orchestra/api/Ds.h>
 
-std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Ds::create() {
-	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Ds());
+ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Ds::create() {
+	return ememory::SharedPtr<audio::orchestra::api::Ds>(new audio::orchestra::api::Ds());
 }
 
 
@@ -72,7 +72,7 @@ namespace audio {
 		namespace api {
 			class DsPrivate {
 				public:
-					std::shared_ptr<std::thread> thread;
+					ememory::SharedPtr<std::thread> thread;
 					bool threadRunning;
 					uint32_t drainCounter; // Tracks callback counts when draining
 					bool internalDrain; // Indicates if stop is initiated from callback or not.
@@ -762,7 +762,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 	// Setup the callback thread.
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
-		std::shared_ptr<std::thread> tmpThread(new std::thread(&audio::orchestra::api::Ds::dsCallbackEvent, this));
+		ememory::SharedPtr<std::thread> tmpThread(new std::thread(&audio::orchestra::api::Ds::dsCallbackEvent, this));
 		m_private->thread =	std::move(tmpThread);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating callback thread!");

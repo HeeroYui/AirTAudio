@@ -15,9 +15,9 @@
 #include <audio/orchestra/api/Android.h>
 #include <limits.h>
 
-std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Android::create() {
+ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Android::create() {
 	ATA_INFO("Create Android device ... ");
-	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Android());
+	return ememory::SharedPtr<audio::orchestra::api::Android>(new audio::orchestra::api::Android());
 }
 
 
@@ -145,7 +145,7 @@ bool audio::orchestra::api::Android::open(uint32_t _device,
 	m_userFormat = _format;
 	m_nUserChannels[modeToIdTable(m_mode)] = _channels;
 	
-	m_uid = audio::orchestra::api::android::open(_device, m_mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options, std::static_pointer_cast<audio::orchestra::api::Android>(shared_from_this()));
+	m_uid = audio::orchestra::api::android::open(_device, m_mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options, ememory::staticPointerCast<audio::orchestra::api::Android>(sharedFromThis()));
 	if (m_uid < 0) {
 		ret = false;
 	} else {

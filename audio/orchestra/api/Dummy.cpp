@@ -9,8 +9,8 @@
 #include <audio/orchestra/api/Dummy.h>
 #include <audio/orchestra/debug.h>
 
-std::shared_ptr<audio::orchestra::Api> audio::orchestra::api::Dummy::create() {
-	return std::shared_ptr<audio::orchestra::Api>(new audio::orchestra::api::Dummy());
+ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Dummy::create() {
+	return ememory::SharedPtr<audio::orchestra::api::Dummy>(new audio::orchestra::api::Dummy());
 }
 
 
