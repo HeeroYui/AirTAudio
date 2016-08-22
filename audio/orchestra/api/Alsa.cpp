@@ -282,6 +282,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Alsa::getDeviceInfo(uint32_t
 				ATA_WARNING("control next device, card = " << card << ", " << snd_strerror(result) << ".");
 				break;
 			}
+			ATA_WARNING("    ==> nbSubdevice = " << subdevice);
 			if (subdevice < 0) {
 				break;
 			}
@@ -1098,6 +1099,7 @@ audio::Time audio::orchestra::api::Alsa::getStreamTime() {
 }
 
 void audio::orchestra::api::Alsa::callbackEventOneCycleRead() {
+	ATA_VERBOSE("One cycle read ...");
 	if (m_state == audio::orchestra::state::closed) {
 		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
 		return; // TODO : notify appl: audio::orchestra::error_warning;
@@ -1149,7 +1151,8 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleRead() {
 	}
 	// get timestamp : (to init here ...
 	streamTime = getStreamTime();
-	if (result < (int) m_bufferSize) {
+	ATA_VERBOSE("get data :" << result << " request:" << int32_t(m_bufferSize));
+	if (result < int32_t(m_bufferSize)) {
 		// Either an error or overrun occured.
 		if (result == -EPIPE) {
 			snd_pcm_state_t state = snd_pcm_state(m_private->handle);
@@ -1449,6 +1452,7 @@ unlock:
 	}
 }
 void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
+	ATA_VERBOSE("One cycle read ...");
 	if (m_state == audio::orchestra::state::closed) {
 		ATA_CRITICAL("the stream is closed ... this shouldn't happen!");
 		return; // TODO : notify appl: audio::orchestra::error_warning;
@@ -1498,9 +1502,11 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
 				ATA_ERROR("Xrun...");
 			}
 		}
-		// get timestamp : (to init here ...
-		streamTime = getStreamTime();
+		ATA_VERBOSE("get data :" << result << " request:" << int32_t(m_bufferSize));
 		if (result < (int) m_bufferSize) {
+			if (result<0) {
+				ATA_PRINT("HAVE AN ERROR " << strerror(-result));
+			}
 			// Either an error or overrun occured.
 			if (result == -EPIPE) {
 				snd_pcm_state_t state = snd_pcm_state(m_private->handle);
@@ -1520,6 +1526,8 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
 			// TODO : Notify application ... audio::orchestra::error_warning;
 			goto noInput;
 		}
+		// get timestamp : (to init here ...
+		streamTime = getStreamTime();
 		// Do byte swapping if necessary.
 		if (m_doByteSwap[1]) {
 			byteSwapBuffer(buffer, m_bufferSize * channels, format);

@@ -12,7 +12,7 @@ namespace audio {
 	namespace orchestra {
 		enum timestampMode {
 			timestampMode_Hardware, //!< enable harware timestamp
-			timestampMode_trigered, //!< get harware triger time stamp and ingrement with duration
+			timestampMode_trigered, //!< get harware triger time stamp and increment with duration
 			timestampMode_soft, //!< Simulate all timestamp.
 		};
 		std::ostream& operator <<(std::ostream& _os, enum audio::orchestra::timestampMode _obj);
