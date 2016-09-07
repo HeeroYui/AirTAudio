@@ -247,31 +247,31 @@ class AndroidOrchestraContext {
 				
 				return info;
 			}
-			info.name = doc.getStringValue("name", "no-name");
-			if (doc.getStringValue("type", "output") == "output") {
+			info.name = doc["name"].toString().get("no-name");
+			if (doc["type"].toString().get("output") == "output") {
 				info.input = false;
 			} else {
 				info.input = true;
 			}
-			ememory::SharedPtr<const ejson::Array> list = doc.getArray("sample-rate");
-			if (list != nullptr) {
-				for (size_t iii=0; iii<list->size(); ++iii) {
-					info.sampleRates.push_back(int32_t(list->getNumberValue(iii, 48000)));
+			ejson::Array list = doc["sample-rate"].toArray();
+			if (list.exist() == true) {
+				for (auto it : list) {
+					info.sampleRates.push_back(int32_t(it.toNumber().get(48000)));
 				}
 			}
-			list = doc.getArray("channels");
-			if (list != nullptr) {
-				for (size_t iii=0; iii<list->size(); ++iii) {
-					info.channels.push_back(audio::getChannelFromString(list->getStringValue(iii, "???")));
+			list = doc["channels"].toArray();
+			if (list.exist() == true) {
+				for (auto it : list) {
+					info.channels.push_back(audio::getChannelFromString(it.toString().get("???")));
 				}
 			}
-			list = doc.getArray("format");
-			if (list != nullptr) {
-				for (size_t iii=0; iii<list->size(); ++iii) {
-					info.nativeFormats.push_back(audio::getFormatFromString(list->getStringValue(iii, "???")));
+			list = doc["format"].toArray();
+			if (list.exist() == true) {
+				for (auto it : list) {
+					info.nativeFormats.push_back(audio::getFormatFromString(it.toString().get("???")));
 				}
 			}
-			info.isDefault = doc.getBooleanValue("default", false);
+			info.isDefault = doc["default"].toBoolean().get(false);
 			info.isCorrect = true;
 			return info;
 		}

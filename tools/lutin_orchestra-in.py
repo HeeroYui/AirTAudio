@@ -31,7 +31,7 @@ def create(target, module_name):
 	my_module.add_src_file([
 		'orchestra-in.cpp'
 		])
-	my_module.add_module_depend(['audio-orchestra', 'test-debug'])
+	my_module.add_depend(['audio-orchestra', 'test-debug'])
 	return my_module
 
 
