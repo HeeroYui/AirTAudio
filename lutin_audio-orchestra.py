@@ -63,7 +63,7 @@ def create(target, module_name):
 	my_module.add_flag('c++', ['-DORCHESTRA_BUILD_DUMMY'], export=True)
 	# TODO : Add a FILE interface:
 	
-	if target.config_based_on=="Windows":
+	if "Windows" in target.get_type():
 		my_module.add_src_file([
 			'audio/orchestra/api/Asio.cpp',
 			'audio/orchestra/api/Ds.cpp',
@@ -72,7 +72,7 @@ def create(target, module_name):
 		my_module.add_optionnal_depend('asio', ["c++", "-DORCHESTRA_BUILD_ASIO"])
 		my_module.add_optionnal_depend('ds', ["c++", "-DORCHESTRA_BUILD_DS"])
 		my_module.add_optionnal_depend('wasapi', ["c++", "-DORCHESTRA_BUILD_WASAPI"])
-	elif target.config_based_on=="Linux":
+	elif "Linux" in target.get_type():
 		my_module.add_src_file([
 			'audio/orchestra/api/Alsa.cpp',
 			'audio/orchestra/api/Jack.cpp',
@@ -82,17 +82,17 @@ def create(target, module_name):
 		my_module.add_optionnal_depend('alsa', ["c++", "-DORCHESTRA_BUILD_ALSA"])
 		my_module.add_optionnal_depend('jack', ["c++", "-DORCHESTRA_BUILD_JACK"])
 		my_module.add_optionnal_depend('pulse', ["c++", "-DORCHESTRA_BUILD_PULSE"])
-	elif target.config_based_on=="MacOs":
+	elif "MacOs" in target.get_type():
 		my_module.add_src_file([
 							   'audio/orchestra/api/Core.cpp'
 							   ])
 		# MacOsX core
 		my_module.add_optionnal_depend('CoreAudio', ["c++", "-DORCHESTRA_BUILD_MACOSX_CORE"])
-	elif target.config_based_on=="IOs":
+	elif "IOs" in target.get_type():
 		my_module.add_src_file('audio/orchestra/api/CoreIos.mm')
 		# IOsX core
 		my_module.add_optionnal_depend('CoreAudio', ["c++", "-DORCHESTRA_BUILD_IOS_CORE"])
-	elif target.config_based_on=="Android":
+	elif "Android" in target.get_type():
 		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraConstants.java')
 		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraManagerCallback.java')
 		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraNative.java')
