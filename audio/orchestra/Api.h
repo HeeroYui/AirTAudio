@@ -14,8 +14,13 @@
 #include <audio/Time.h>
 #include <audio/Duration.h>
 #include <ememory/memory.h>
-
+/**
+ * @brief Audio library namespace
+ */
 namespace audio {
+	/**
+	 * @brief Audio-orchestra library namespace
+	 */
 	namespace orchestra {
 		const std::vector<uint32_t>& genericSampleRate();
 		/**

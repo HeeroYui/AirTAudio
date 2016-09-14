@@ -58,7 +58,10 @@ def create(target, module_name):
 		'audio/orchestra/CallbackInfo.h',
 		'audio/orchestra/StreamParameters.h'
 		])
-	my_module.add_depend(['audio', 'etk'])
+	my_module.add_depend([
+	    'audio',
+	    'etk'
+	    ])
 	# add all the time the dummy interface
 	my_module.add_flag('c++', ['-DORCHESTRA_BUILD_DUMMY'], export=True)
 	# TODO : Add a FILE interface:
