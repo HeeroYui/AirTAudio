@@ -8,8 +8,8 @@ def create(target, module_name):
 	my_module = module.Module(__file__, module_name)
 	my_module.set_version("version.txt")
 	my_module.set_title("Orchestra: audio interface wrapper")
-	my_module.set_website("http://atria-soft.github.io/" + module_name)
-	my_module.set_website_sources("http://github.com/atria-soft/" + module_name)
+	my_module.set_website("http://musicdsp.github.io/" + module_name)
+	my_module.set_website_sources("http://github.com/musicdsp/" + module_name)
 	my_module.add_path([
 	    "audio",
 	    "doc"
