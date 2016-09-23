@@ -102,11 +102,11 @@ def create(target, module_name):
 		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraInterfaceInput.java')
 		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraInterfaceOutput.java')
 		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraManager.java')
-		# create inter language interface
+		# create inter language interfacef
 		my_module.add_src_file('org.musicdsp.orchestra.OrchestraConstants.javah')
 		my_module.add_path(tools.get_current_path(__file__) + '/android/', type='java')
 		my_module.add_depend(['SDK', 'jvm-basics', 'ejson'])
-		my_module.add_export_flag('c++', ['-DORCHESTRA_BUILD_JAVA'])
+		my_module.add_flag('c++', ['-DORCHESTRA_BUILD_JAVA'], export=True)
 		
 		my_module.add_src_file('audio/orchestra/api/Android.cpp')
 		my_module.add_src_file('audio/orchestra/api/AndroidNativeInterface.cpp')

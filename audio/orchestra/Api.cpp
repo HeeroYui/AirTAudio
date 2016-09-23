@@ -60,12 +60,12 @@ enum audio::orchestra::error audio::orchestra::Api::startStream() {
 }
 
 enum audio::orchestra::error audio::orchestra::Api::openStream(audio::orchestra::StreamParameters* _oParams,
-                                                 audio::orchestra::StreamParameters* _iParams,
-                                                 enum audio::format _format,
-                                                 uint32_t _sampleRate,
-                                                 uint32_t* _bufferFrames,
-                                                 audio::orchestra::AirTAudioCallback _callback,
-                                                 const audio::orchestra::StreamOptions& _options) {
+                                                               audio::orchestra::StreamParameters* _iParams,
+                                                               enum audio::format _format,
+                                                               uint32_t _sampleRate,
+                                                               uint32_t* _bufferFrames,
+                                                               audio::orchestra::AirTAudioCallback _callback,
+                                                               const audio::orchestra::StreamOptions& _options) {
 	if (m_state != audio::orchestra::state::closed) {
 		ATA_ERROR("a stream is already open!");
 		return audio::orchestra::error_invalidUse;

@@ -48,6 +48,8 @@ namespace audio {
 					                   const audio::Time& _time);
 				public:
 					ememory::SharedPtr<CoreIosPrivate> m_private;
+					uint32_t getDefaultInputDevice();
+					uint32_t getDefaultOutputDevice();
 			};
 		}
 	}

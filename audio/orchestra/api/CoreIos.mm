@@ -37,7 +37,7 @@ namespace audio {
 
 
 
-audio::orchestra::api::CoreIos::CoreIos(void) :
+audio::orchestra::api::CoreIos::CoreIos() :
   m_private(new audio::orchestra::api::CoreIosPrivate()) {
 	ATA_INFO("new CoreIos");
 	int32_t deviceCount = 2;
@@ -45,45 +45,67 @@ audio::orchestra::api::CoreIos::CoreIos(void) :
 	audio::orchestra::DeviceInfo tmp;
 	// Add default output format :
 	tmp.name = "speaker";
+	tmp.input = false;
 	tmp.sampleRates.push_back(48000);
 	tmp.channels.push_back(audio::channel_frontRight);
 	tmp.channels.push_back(audio::channel_frontLeft);
-	tmp.isDefault = true;
 	tmp.nativeFormats.push_back(audio::format_int16);
+	tmp.isDefault = true;
+	tmp.isCorrect = true;
 	m_devices.push_back(tmp);
 	// add default input format:
 	tmp.name = "microphone";
+	tmp.input = true;
 	tmp.sampleRates.push_back(48000);
 	tmp.channels.push_back(audio::channel_frontRight);
 	tmp.channels.push_back(audio::channel_frontLeft);
-	tmp.isDefault = true;
 	tmp.nativeFormats.push_back(audio::format_int16);
+	tmp.isDefault = true;
+	tmp.isCorrect = true;
 	m_devices.push_back(tmp);
 	ATA_INFO("Create CoreIOs interface (end)");
 }
 
-audio::orchestra::api::CoreIos::~CoreIos(void) {
+uint32_t audio::orchestra::api::CoreIos::getDefaultInputDevice() {
+	// Should be implemented in subclasses if possible.
+	return 1;
+}
+
+uint32_t audio::orchestra::api::CoreIos::getDefaultOutputDevice() {
+	// Should be implemented in subclasses if possible.
+	return 0;
+}
+
+audio::orchestra::api::CoreIos::~CoreIos() {
 	ATA_INFO("Destroy CoreIOs interface");
 	AudioUnitUninitialize(m_private->audioUnit);
 }
 
-uint32_t audio::orchestra::api::CoreIos::getDeviceCount(void) {
+uint32_t audio::orchestra::api::CoreIos::getDeviceCount() {
 	//ATA_INFO("Get device count:"<< m_devices.size());
 	return m_devices.size();
 }
 
 audio::orchestra::DeviceInfo audio::orchestra::api::CoreIos::getDeviceInfo(uint32_t _device) {
 	//ATA_INFO("Get device info ...");
+	if (_device >= m_devices.size()) {
+		audio::orchestra::DeviceInfo tmp;
+		tmp.sampleRates.push_back(0);
+		tmp.channels.push_back(audio::channel_frontCenter);
+		tmp.isDefault = false;
+		tmp.nativeFormats.push_back(audio::format_int8);
+		return tmp;
+	}
 	return m_devices[_device];
 }
 
-enum audio::orchestra::error audio::orchestra::api::CoreIos::closeStream(void) {
+enum audio::orchestra::error audio::orchestra::api::CoreIos::closeStream() {
 	ATA_INFO("Close Stream");
 	// Can not close the stream now...
 	return audio::orchestra::error_none;
 }
 
-enum audio::orchestra::error audio::orchestra::api::CoreIos::startStream(void) {
+enum audio::orchestra::error audio::orchestra::api::CoreIos::startStream() {
 	ATA_INFO("Start Stream");
 	// TODO : Check return ...
 	audio::orchestra::Api::startStream();
@@ -92,14 +114,14 @@ enum audio::orchestra::error audio::orchestra::api::CoreIos::startStream(void) {
 	return audio::orchestra::error_none;
 }
 
-enum audio::orchestra::error audio::orchestra::api::CoreIos::stopStream(void) {
+enum audio::orchestra::error audio::orchestra::api::CoreIos::stopStream() {
 	ATA_INFO("Stop stream");
 	OSStatus status = AudioOutputUnitStop(m_private->audioUnit);
 	// Can not close the stream now...
 	return audio::orchestra::error_none;
 }
 
-enum audio::orchestra::error audio::orchestra::api::CoreIos::abortStream(void) {
+enum audio::orchestra::error audio::orchestra::api::CoreIos::abortStream() {
 	ATA_INFO("Abort Stream");
 	OSStatus status = AudioOutputUnitStop(m_private->audioUnit);
 	// Can not close the stream now...
@@ -111,15 +133,30 @@ void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
                                                    const audio::Time& _time) {
 	int32_t doStopStream = 0;
 	std::vector<enum audio::orchestra::status> status;
-	if (m_doConvertBuffer[modeToIdTable(audio::orchestra::mode_output)] == true) {
-		doStopStream = m_callback(nullptr,
-		                          audio::Time(),
-		                          &m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0],
-		                          _time,
-		                          _nbChunk,
-		                          status);
-		convertBuffer((char*)_data, &m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0], m_convertInfo[modeToIdTable(audio::orchestra::mode_output)]);
-	} else {
+	if (    m_mode == audio::orchestra::mode_output
+	     || m_mode == audio::orchestra::mode_duplex) {
+		if (m_doConvertBuffer[modeToIdTable(audio::orchestra::mode_output)] == true) {
+			ATA_INFO("get output DATA : " << uint64_t(&m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0]));
+			doStopStream = m_callback(nullptr,
+			                          audio::Time(),
+			                          &m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0],
+			                          _time,
+			                          _nbChunk,
+			                          status);
+			convertBuffer((char*)_data, &m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0], m_convertInfo[modeToIdTable(audio::orchestra::mode_output)]);
+		} else {
+			ATA_INFO("have output DATA : " << uint64_t(_data));
+			doStopStream = m_callback(nullptr,
+			                          _time,
+			                          _data,
+			                          audio::Time(),
+			                          _nbChunk,
+			                          status);
+		}
+	}
+	if (    m_mode == audio::orchestra::mode_input
+	     || m_mode == audio::orchestra::mode_duplex) {
+		ATA_INFO("have input DATA : " << uint64_t(_data));
 		doStopStream = m_callback(_data,
 		                          _time,
 		                          nullptr,
@@ -154,7 +191,7 @@ static OSStatus playbackCallback(void *_userData,
 	for (int32_t iii=0; iii < _ioData->mNumberBuffers; iii++) {
 		AudioBuffer buffer = _ioData->mBuffers[iii];
 		int32_t numberFrame = buffer.mDataByteSize/2/*stereo*/ /sizeof(int16_t);
-		ATA_VERBOSE("request data size: " << numberFrame << " busNumber=" << _inBusNumber);
+		ATA_INFO("request data size: " << numberFrame << " busNumber=" << _inBusNumber);
 		myClass->callBackEvent(buffer.mData, numberFrame, tmpTimeime);
 	}
 	return noErr;
@@ -175,7 +212,8 @@ bool audio::orchestra::api::CoreIos::open(uint32_t _device,
 		return false;
 	}
 	bool ret = true;
-	
+	// TODO : This is a bad ack ....
+	m_mode = audio::orchestra::mode_output;
 	// configure Airtaudio internal configuration:
 	m_userFormat = _format;
 	m_nUserChannels[modeToIdTable(_mode)] = _channels;
@@ -238,11 +276,11 @@ bool audio::orchestra::api::CoreIos::open(uint32_t _device,
 	uint32_t flag = 1;
 	// Enable IO for playback
 	status = AudioUnitSetProperty(m_private->audioUnit, 
-								  kAudioOutputUnitProperty_EnableIO, 
-								  kAudioUnitScope_Output, 
-								  kOutputBus,
-								  &flag, 
-								  sizeof(flag));
+	                              kAudioOutputUnitProperty_EnableIO, 
+	                              kAudioUnitScope_Output, 
+	                              kOutputBus,
+	                              &flag, 
+	                              sizeof(flag));
 	if (status != 0) {
 		ATA_ERROR("can not request audio autorisation...");
 	}
@@ -260,11 +298,11 @@ bool audio::orchestra::api::CoreIos::open(uint32_t _device,
 	audioFormat.mReserved = 0;
 	// Apply format
 	status = AudioUnitSetProperty(m_private->audioUnit, 
-								  kAudioUnitProperty_StreamFormat, 
-								  kAudioUnitScope_Input, 
-								  kOutputBus, 
-								  &audioFormat, 
-								  sizeof(audioFormat));
+	                              kAudioUnitProperty_StreamFormat, 
+	                              kAudioUnitScope_Input, 
+	                              kOutputBus, 
+	                              &audioFormat, 
+	                              sizeof(audioFormat));
 	if (status != 0) {
 		ATA_ERROR("can not set stream properties...");
 	}
@@ -275,11 +313,11 @@ bool audio::orchestra::api::CoreIos::open(uint32_t _device,
 	callbackStruct.inputProc = &playbackCallback;
 	callbackStruct.inputProcRefCon = this;
 	status = AudioUnitSetProperty(m_private->audioUnit, 
-								  kAudioUnitProperty_SetRenderCallback, 
-								  kAudioUnitScope_Global, 
-								  kOutputBus,
-								  &callbackStruct, 
-								  sizeof(callbackStruct));
+	                              kAudioUnitProperty_SetRenderCallback, 
+	                              kAudioUnitScope_Global, 
+	                              kOutputBus,
+	                              &callbackStruct, 
+	                              sizeof(callbackStruct));
 	if (status != 0) {
 		ATA_ERROR("can not set Callback...");
 	}
