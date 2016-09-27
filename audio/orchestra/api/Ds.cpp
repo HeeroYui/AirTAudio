@@ -986,7 +986,8 @@ enum audio::orchestra::error audio::orchestra::api::Ds::abortStream() {
 
 void audio::orchestra::api::Ds::callbackEvent() {
 	ethread::setName("DS IO-" + m_name);
-	if (m_state == audio::orchestra::state::stopped || m_state == audio::orchestra::state_stopping) {
+	if (    m_state == audio::orchestra::state::stopped
+	     || m_state == audio::orchestra::state::stopping) {
 		Sleep(50); // sleep 50 milliseconds
 		return;
 	}
