@@ -4,10 +4,10 @@
  * @license APACHE v2.0 (see license file)
  */
 
-#include <etk/etk.h>
-#include <test-debug/debug.h>
+#include <etk/etk.hpp>
+#include <test-debug/debug.hpp>
 #include <unistd.h>
-#include <audio/orchestra/Interface.h>
+#include <audio/orchestra/Interface.hpp>
 
 int main(int _argc, const char **_argv) {
 	// the only one init for etk:

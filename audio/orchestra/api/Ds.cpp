@@ -7,10 +7,10 @@
 
 // Windows DirectSound API
 #if defined(ORCHESTRA_BUILD_DS)
-#include <audio/orchestra/Interface.h>
-#include <audio/orchestra/debug.h>
-#include <ethread/tools.h>
-#include <audio/orchestra/api/Ds.h>
+#include <audio/orchestra/Interface.hpp>
+#include <audio/orchestra/debug.hpp>
+#include <ethread/tools.hpp>
+#include <audio/orchestra/api/Ds.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Ds::create() {
 	return ememory::SharedPtr<audio::orchestra::api::Ds>(new audio::orchestra::api::Ds());

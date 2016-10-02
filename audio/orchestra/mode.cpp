@@ -5,8 +5,8 @@
  * @fork from RTAudio
  */
 
-#include <audio/orchestra/mode.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/mode.hpp>
+#include <audio/orchestra/debug.hpp>
 
 int32_t audio::orchestra::modeToIdTable(enum mode _mode) {
 	switch (_mode) {

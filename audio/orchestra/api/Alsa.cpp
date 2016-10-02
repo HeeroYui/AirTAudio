@@ -8,14 +8,14 @@
 
 #if defined(ORCHESTRA_BUILD_ALSA)
 
-#include <alsa/asoundlib.h>
-#include <unistd.h>
-#include <audio/orchestra/Interface.h>
-#include <audio/orchestra/debug.h>
-#include <etk/stdTools.h>
-#include <ethread/tools.h>
+#include <alsa/asoundlib.hpp>
+#include <unistd.hpp>
+#include <audio/orchestra/Interface.hpp>
+#include <audio/orchestra/debug.hpp>
+#include <etk/stdTools.hpp>
+#include <ethread/tools.hpp>
 #include <limits.h>
-#include <audio/orchestra/api/Alsa.h>
+#include <audio/orchestra/api/Alsa.hpp>
 extern "C" {
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,9 +24,9 @@ extern "C" {
 #include <errno.h>
 #include <getopt.h>
 #include <sys/time.h>
-#include <math.h>
 #include <poll.h>
 }
+#include <cmath>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Alsa::create() {
 	return ememory::SharedPtr<audio::orchestra::api::Alsa>(new audio::orchestra::api::Alsa());

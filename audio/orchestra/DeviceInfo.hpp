@@ -6,8 +6,8 @@
  */
 #pragma once
 
-#include <audio/format.h>
-#include <audio/channel.h>
+#include <audio/format.hpp>
+#include <audio/channel.hpp>
 
 namespace audio {
 	namespace orchestra {

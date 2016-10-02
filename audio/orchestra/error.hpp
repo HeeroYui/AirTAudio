@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include <etk/types.h>
+#include <etk/types.hpp>
 
 namespace audio {
 	namespace orchestra {

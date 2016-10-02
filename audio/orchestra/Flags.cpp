@@ -5,5 +5,5 @@
  * @fork from RTAudio
  */
 
-#include <audio/orchestra/Flags.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/Flags.hpp>
+#include <audio/orchestra/debug.hpp>

@@ -7,12 +7,12 @@
 
 #ifdef ORCHESTRA_BUILD_JAVA
 
-#include <audio/orchestra/DeviceInfo.h>
-#include <audio/orchestra/mode.h>
-#include <audio/orchestra/error.h>
-#include <audio/orchestra/StreamOptions.h>
-#include <audio/format.h>
-#include <ememory/memory.h>
+#include <audio/orchestra/DeviceInfo.hpp>
+#include <audio/orchestra/mode.hpp>
+#include <audio/orchestra/error.hpp>
+#include <audio/orchestra/StreamOptions.hpp>
+#include <audio/format.hpp>
+#include <ememory/memory.hpp>
 
 namespace audio {
 	namespace orchestra {

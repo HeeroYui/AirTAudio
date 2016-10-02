@@ -8,7 +8,7 @@
 
 #ifdef ORCHESTRA_BUILD_DUMMY
 
-#include <audio/orchestra/Interface.h>
+#include <audio/orchestra/Interface.hpp>
 
 namespace audio {
 	namespace orchestra {

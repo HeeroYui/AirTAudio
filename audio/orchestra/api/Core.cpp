@@ -14,11 +14,11 @@
 
 #if defined(__MACOSX_CORE__) || defined(ORCHESTRA_BUILD_MACOSX_CORE)
 
-#include <audio/orchestra/Interface.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/Interface.hpp>
+#include <audio/orchestra/debug.hpp>
 #include <thread>
-#include <ethread/tools.h>
-#include <audio/orchestra/api/Core.h>
+#include <ethread/tools.hpp>
+#include <audio/orchestra/api/Core.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Core::create() {
 	return ememory::SharedPtr<audio::orchestra::api::Core>(new audio::orchestra::api::Core());

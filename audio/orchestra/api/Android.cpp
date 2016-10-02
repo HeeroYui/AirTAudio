@@ -9,10 +9,10 @@
 
 //#include <ewol/context/Context.h>
 #include <unistd.h>
-#include <audio/orchestra/Interface.h>
-#include <audio/orchestra/debug.h>
-#include <audio/orchestra/api/AndroidNativeInterface.h>
-#include <audio/orchestra/api/Android.h>
+#include <audio/orchestra/Interface.hpp>
+#include <audio/orchestra/debug.hpp>
+#include <audio/orchestra/api/AndroidNativeInterface.hpp>
+#include <audio/orchestra/api/Android.hpp>
 #include <limits.h>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Android::create() {

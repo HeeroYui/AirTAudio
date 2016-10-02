@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include <audio/orchestra/Flags.h>
+#include <audio/orchestra/Flags.hpp>
 
 namespace audio {
 	namespace orchestra {

@@ -5,10 +5,10 @@
  * @fork from RTAudio
  */
 
-//#include <etk/types.h>
-#include <audio/orchestra/debug.h>
-#include <audio/orchestra/DeviceInfo.h>
-#include <etk/stdTools.h>
+//#include <etk/types.hpp>
+#include <audio/orchestra/debug.hpp>
+#include <audio/orchestra/DeviceInfo.hpp>
+#include <etk/stdTools.hpp>
 #include <iostream>
 
 void audio::orchestra::DeviceInfo::display(int32_t _tabNumber) const {

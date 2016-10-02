@@ -5,18 +5,19 @@
  * @fork from RTAudio
  */
 #pragma once
+#ifdef ORCHESTRA_BUILD_PULSE
 
-#include <etk/types.h>
+#include <etk/types.hpp>
+#include <audio/orchestra/DeviceInfo.hpp>
 
 namespace audio {
 	namespace orchestra {
-		class Flags {
-			public:
-				bool m_minimizeLatency; // Simple example ==> TODO ...
-				Flags() :
-				  m_minimizeLatency(false) {
-					// nothing to do ...
-				}
-		};
+		namespace api {
+			namespace pulse {
+				std::vector<audio::orchestra::DeviceInfo> getDeviceList();
+			}
+		}
 	}
 }
+
+#endif

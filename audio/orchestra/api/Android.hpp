@@ -7,7 +7,7 @@
 
 #ifdef ORCHESTRA_BUILD_JAVA
 
-#include <audio/orchestra/Interface.h>
+#include <audio/orchestra/Interface.hpp>
 
 namespace audio {
 	namespace orchestra {

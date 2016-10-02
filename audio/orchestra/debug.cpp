@@ -5,7 +5,7 @@
  * @fork from RTAudio
  */
 
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/debug.hpp>
 
 int32_t audio::orchestra::getLogId() {
 	static int32_t g_val = elog::registerInstance("audio-orchestra");

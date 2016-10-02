@@ -5,19 +5,17 @@
  * @fork from RTAudio
  */
 #pragma once
-#ifdef ORCHESTRA_BUILD_PULSE
 
-#include <etk/types.h>
-#include <audio/orchestra/DeviceInfo.h>
+#include <etk/types.hpp>
 
 namespace audio {
 	namespace orchestra {
-		namespace api {
-			namespace pulse {
-				std::vector<audio::orchestra::DeviceInfo> getDeviceList();
-			}
-		}
+		enum class state {
+			closed,
+			stopped,
+			stopping,
+			running
+		};
 	}
 }
 
-#endif

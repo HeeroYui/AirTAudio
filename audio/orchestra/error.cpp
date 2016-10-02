@@ -5,5 +5,5 @@
  * @fork from RTAudio
  */
 
-#include <audio/orchestra/error.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/error.hpp>
+#include <audio/orchestra/debug.hpp>

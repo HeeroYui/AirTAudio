@@ -10,11 +10,11 @@
 #include <unistd.h>
 #include <limits.h>
 #include <iostream>
-#include <audio/orchestra/Interface.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/Interface.hpp>
+#include <audio/orchestra/debug.hpp>
 #include <string.h>
-#include <ethread/tools.h>
-#include <audio/orchestra/api/Jack.h>
+#include <ethread/tools.hpp>
+#include <audio/orchestra/api/Jack.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Jack::create() {
 	return ememory::SharedPtr<audio::orchestra::api::Jack>(new audio::orchestra::api::Jack());

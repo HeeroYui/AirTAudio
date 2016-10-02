@@ -5,9 +5,9 @@
  * @fork from RTAudio
  */
 
-#include <audio/orchestra/StreamOptions.h>
-#include <etk/stdTools.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/StreamOptions.hpp>
+#include <etk/stdTools.hpp>
+#include <audio/orchestra/debug.hpp>
 
 static const char* listValue[] = {
 	"hardware",

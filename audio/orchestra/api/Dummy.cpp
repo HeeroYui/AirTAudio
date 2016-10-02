@@ -6,8 +6,8 @@
  */
 
 #if defined(ORCHESTRA_BUILD_DUMMY)
-#include <audio/orchestra/api/Dummy.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/api/Dummy.hpp>
+#include <audio/orchestra/debug.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Dummy::create() {
 	return ememory::SharedPtr<audio::orchestra::api::Dummy>(new audio::orchestra::api::Dummy());

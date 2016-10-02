@@ -8,8 +8,8 @@
 
 #if defined(ORCHESTRA_BUILD_ASIO)
 
-#include <audio/orchestra/Interface.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/Interface.hpp>
+#include <audio/orchestra/debug.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Asio::create() {
 	return ememory::SharedPtr<audio::orchestra::api::Asio>(new audio::orchestra::api::Asio());

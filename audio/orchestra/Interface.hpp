@@ -8,9 +8,9 @@
 
 #include <string>
 #include <vector>
-#include <audio/orchestra/base.h>
-#include <audio/orchestra/CallbackInfo.h>
-#include <audio/orchestra/Api.h>
+#include <audio/orchestra/base.hpp>
+#include <audio/orchestra/CallbackInfo.hpp>
+#include <audio/orchestra/Api.hpp>
 
 namespace audio {
 	namespace orchestra {

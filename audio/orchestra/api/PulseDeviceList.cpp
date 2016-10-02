@@ -9,13 +9,13 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <pulse/pulseaudio.h>
-#include <audio/orchestra/api/PulseDeviceList.h>
-#include <audio/orchestra/debug.h>
-#include <audio/Time.h>
-#include <audio/Duration.h>
-#include <audio/format.h>
-#include <etk/stdTools.h>
+#include <pulse/pulseaudio.hpp>
+#include <audio/orchestra/api/PulseDeviceList.hpp>
+#include <audio/orchestra/debug.hpp>
+#include <audio/Time.hpp>
+#include <audio/Duration.hpp>
+#include <audio/format.hpp>
+#include <etk/stdTools.hpp>
 
 // This callback gets called when our context changes state.  We really only
 // care about when it's ready or if it has failed

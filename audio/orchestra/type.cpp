@@ -5,8 +5,8 @@
  * @fork from RTAudio
  */
 
-#include <audio/orchestra/type.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/type.hpp>
+#include <audio/orchestra/debug.hpp>
 #include <iostream>
 #include <cstdlib>
 #include <cstring>

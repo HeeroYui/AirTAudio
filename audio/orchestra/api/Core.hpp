@@ -7,7 +7,7 @@
 #pragma once
 #ifdef ORCHESTRA_BUILD_MACOSX_CORE
 
-#include <CoreAudio/AudioHardware.h>
+#include <CoreAudio/AudioHardware.hpp>
 
 
 namespace audio {

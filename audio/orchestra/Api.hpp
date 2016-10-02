@@ -7,13 +7,13 @@
 #pragma once
 
 #include <sstream>
-#include <audio/orchestra/debug.h>
-#include <audio/orchestra/type.h>
-#include <audio/orchestra/state.h>
-#include <audio/orchestra/mode.h>
-#include <audio/Time.h>
-#include <audio/Duration.h>
-#include <ememory/memory.h>
+#include <audio/orchestra/debug.hpp>
+#include <audio/orchestra/type.hpp>
+#include <audio/orchestra/state.hpp>
+#include <audio/orchestra/mode.hpp>
+#include <audio/Time.hpp>
+#include <audio/Duration.hpp>
+#include <ememory/memory.hpp>
 /**
  * @brief Audio library namespace
  */

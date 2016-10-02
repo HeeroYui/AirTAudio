@@ -5,19 +5,19 @@
  * @fork from RTAudio
  */
 
-//#include <etk/types.h>
-#include <audio/orchestra/Interface.h>
-#include <audio/orchestra/debug.h>
+//#include <etk/types.hpp>
+#include <audio/orchestra/Interface.hpp>
+#include <audio/orchestra/debug.hpp>
 #include <iostream>
-#include <audio/orchestra/api/Alsa.h>
-#include <audio/orchestra/api/Android.h>
-#include <audio/orchestra/api/Asio.h>
-#include <audio/orchestra/api/Core.h>
-#include <audio/orchestra/api/CoreIos.h>
-#include <audio/orchestra/api/Ds.h>
-#include <audio/orchestra/api/Dummy.h>
-#include <audio/orchestra/api/Jack.h>
-#include <audio/orchestra/api/Pulse.h>
+#include <audio/orchestra/api/Alsa.hpp>
+#include <audio/orchestra/api/Android.hpp>
+#include <audio/orchestra/api/Asio.hpp>
+#include <audio/orchestra/api/Core.hpp>
+#include <audio/orchestra/api/CoreIos.hpp>
+#include <audio/orchestra/api/Ds.hpp>
+#include <audio/orchestra/api/Dummy.hpp>
+#include <audio/orchestra/api/Jack.hpp>
+#include <audio/orchestra/api/Pulse.hpp>
 
 std::vector<std::string> audio::orchestra::Interface::getListApi() {
 	std::vector<std::string> apis;

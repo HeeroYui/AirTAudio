@@ -5,8 +5,8 @@
  * @fork from RTAudio
  */
 
-#include <audio/orchestra/status.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/status.hpp>
+#include <audio/orchestra/debug.hpp>
 static const char* listValue[] = {
 	"ok",
 	"overflow",

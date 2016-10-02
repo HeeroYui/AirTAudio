@@ -6,16 +6,17 @@
  */
 #pragma once
 
-#include <etk/types.h>
+#include <etk/types.hpp>
 
 namespace audio {
 	namespace orchestra {
-		enum class state {
-			closed,
-			stopped,
-			stopping,
-			running
+		class Flags {
+			public:
+				bool m_minimizeLatency; // Simple example ==> TODO ...
+				Flags() :
+				  m_minimizeLatency(false) {
+					// nothing to do ...
+				}
 		};
 	}
 }
-

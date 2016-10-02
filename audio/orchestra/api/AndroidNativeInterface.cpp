@@ -7,15 +7,15 @@
 #include <jni.h>
 #include <pthread.h>
 #include <mutex>
-#include <audio/orchestra/debug.h>
-#include <audio/orchestra/error.h>
-#include <audio/orchestra/api/AndroidNativeInterface.h>
-#include <audio/orchestra/api/Android.h>
+#include <audio/orchestra/debug.hpp>
+#include <audio/orchestra/error.hpp>
+#include <audio/orchestra/api/AndroidNativeInterface.hpp>
+#include <audio/orchestra/api/Android.hpp>
 /* include auto generated file */
-#include <org_musicdsp_orchestra_OrchestraConstants.h>
-#include <jvm-basics/jvm-basics.h>
-#include <ememory/memory.h>
-#include <ejson/ejson.h>
+#include <org_musicdsp_orchestra_OrchestraConstants.hpp>
+#include <jvm-basics/jvm-basics.hpp>
+#include <ememory/memory.hpp>
+#include <ejson/ejson.hpp>
 
 class AndroidOrchestraContext {
 	public:

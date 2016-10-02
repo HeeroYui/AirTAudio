@@ -5,9 +5,9 @@
  * @fork from RTAudio
  */
 
-//#include <etk/types.h>
-#include <audio/orchestra/Interface.h>
-#include <audio/orchestra/debug.h>
+//#include <etk/types.hpp>
+#include <audio/orchestra/Interface.hpp>
+#include <audio/orchestra/debug.hpp>
 #include <iostream>
 #include <cstdlib>
 #include <cstring>

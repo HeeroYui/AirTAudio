@@ -10,14 +10,14 @@
 
 #include <unistd.h>
 #include <limits.h>
-#include <audio/orchestra/Interface.h>
-#include <audio/orchestra/debug.h>
+#include <audio/orchestra/Interface.hpp>
+#include <audio/orchestra/debug.hpp>
 #include <pulse/error.h>
 #include <pulse/simple.h>
 #include <cstdio>
-#include <ethread/tools.h>
-#include <audio/orchestra/api/PulseDeviceList.h>
-#include <audio/orchestra/api/Pulse.h>
+#include <ethread/tools.hpp>
+#include <audio/orchestra/api/PulseDeviceList.hpp>
+#include <audio/orchestra/api/Pulse.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Pulse::create() {
 	return ememory::SharedPtr<audio::orchestra::api::Pulse>(new audio::orchestra::api::Pulse());
