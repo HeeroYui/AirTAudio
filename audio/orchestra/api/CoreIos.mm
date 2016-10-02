@@ -11,10 +11,10 @@
 #import <AudioToolbox/AudioToolbox.h>
 
 #include <unistd.h>
-#include <audio/orchestra/Interface.h>
-#include <audio/orchestra/debug.h>
-#include <limits.h>
-#include <audio/orchestra/api/CoreIos.h>
+#include <audio/orchestra/Interface.hpp>
+#include <audio/orchestra/debug.hpp>
+#include <climits>
+#include <audio/orchestra/api/CoreIos.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::CoreIos::create() {
 	ATA_INFO("Create CoreIos device ... ");

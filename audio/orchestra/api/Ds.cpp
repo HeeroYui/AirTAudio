@@ -25,7 +25,7 @@ ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Ds::create() {
 // Changed device query structure for RtAudio 4.0.7, January 2010
 
 #include <dsound.h>
-#include <assert.h>
+#include <cassert>
 #include <algorithm>
 
 #if defined(__MINGW32__)

@@ -8,11 +8,11 @@
 // must run before :          
 #if defined(ORCHESTRA_BUILD_JACK)
 #include <unistd.h>
-#include <limits.h>
+#include <climits>
 #include <iostream>
 #include <audio/orchestra/Interface.hpp>
 #include <audio/orchestra/debug.hpp>
-#include <string.h>
+#include <cstring>
 #include <ethread/tools.hpp>
 #include <audio/orchestra/api/Jack.hpp>
 

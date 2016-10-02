@@ -13,7 +13,7 @@
 #include <audio/orchestra/debug.hpp>
 #include <audio/orchestra/api/AndroidNativeInterface.hpp>
 #include <audio/orchestra/api/Android.hpp>
-#include <limits.h>
+#include <climits>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Android::create() {
 	ATA_INFO("Create Android device ... ");

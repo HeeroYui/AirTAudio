@@ -7,8 +7,8 @@
 
 #if defined(ORCHESTRA_BUILD_PULSE)
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <pulse/pulseaudio.hpp>
 #include <audio/orchestra/api/PulseDeviceList.hpp>
 #include <audio/orchestra/debug.hpp>

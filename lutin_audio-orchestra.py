@@ -43,20 +43,20 @@ def create(target, module_name):
 		'audio/orchestra/api/Dummy.cpp'
 		])
 	my_module.add_header_file([
-		'audio/orchestra/debug.h',
-		'audio/orchestra/status.h',
-		'audio/orchestra/type.h',
-		'audio/orchestra/mode.h',
-		'audio/orchestra/state.h',
-		'audio/orchestra/error.h',
-		'audio/orchestra/base.h',
-		'audio/orchestra/Interface.h',
-		'audio/orchestra/Flags.h',
-		'audio/orchestra/Api.h',
-		'audio/orchestra/DeviceInfo.h',
-		'audio/orchestra/StreamOptions.h',
-		'audio/orchestra/CallbackInfo.h',
-		'audio/orchestra/StreamParameters.h'
+		'audio/orchestra/debug.hpp',
+		'audio/orchestra/status.hpp',
+		'audio/orchestra/type.hpp',
+		'audio/orchestra/mode.hpp',
+		'audio/orchestra/state.hpp',
+		'audio/orchestra/error.hpp',
+		'audio/orchestra/base.hpp',
+		'audio/orchestra/Interface.hpp',
+		'audio/orchestra/Flags.hpp',
+		'audio/orchestra/Api.hpp',
+		'audio/orchestra/DeviceInfo.hpp',
+		'audio/orchestra/StreamOptions.hpp',
+		'audio/orchestra/CallbackInfo.hpp',
+		'audio/orchestra/StreamParameters.hpp'
 		])
 	my_module.add_depend([
 	    'audio',

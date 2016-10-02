@@ -9,7 +9,7 @@
 #if defined(ORCHESTRA_BUILD_PULSE)
 
 #include <unistd.h>
-#include <limits.h>
+#include <climits>
 #include <audio/orchestra/Interface.hpp>
 #include <audio/orchestra/debug.hpp>
 #include <pulse/error.h>
