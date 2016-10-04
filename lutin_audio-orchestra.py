@@ -1,5 +1,4 @@
 #!/usr/bin/python
-import lutin.module as module
 import lutin.tools as tools
 import lutin.debug as debug
 
@@ -25,8 +24,7 @@ def get_maintainer():
 def get_version():
 	return "version.txt"
 
-def create(target, module_name):
-	my_module = module.Module(__file__, module_name, get_type())
+def configure(target, my_module):
 	my_module.add_src_file([
 		'audio/orchestra/debug.cpp',
 		'audio/orchestra/status.cpp',
@@ -68,27 +66,27 @@ def create(target, module_name):
 	
 	if "Windows" in target.get_type():
 		my_module.add_src_file([
-			'audio/orchestra/api/Asio.cpp',
-			'audio/orchestra/api/Ds.cpp',
-			])
+		    'audio/orchestra/api/Asio.cpp',
+		    'audio/orchestra/api/Ds.cpp',
+		    ])
 		# load optionnal API:
 		my_module.add_optionnal_depend('asio', ["c++", "-DORCHESTRA_BUILD_ASIO"])
 		my_module.add_optionnal_depend('ds', ["c++", "-DORCHESTRA_BUILD_DS"])
 		my_module.add_optionnal_depend('wasapi', ["c++", "-DORCHESTRA_BUILD_WASAPI"])
 	elif "Linux" in target.get_type():
 		my_module.add_src_file([
-			'audio/orchestra/api/Alsa.cpp',
-			'audio/orchestra/api/Jack.cpp',
-			'audio/orchestra/api/Pulse.cpp',
-			'audio/orchestra/api/PulseDeviceList.cpp'
-			])
+		    'audio/orchestra/api/Alsa.cpp',
+		    'audio/orchestra/api/Jack.cpp',
+		    'audio/orchestra/api/Pulse.cpp',
+		    'audio/orchestra/api/PulseDeviceList.cpp'
+		    ])
 		my_module.add_optionnal_depend('alsa', ["c++", "-DORCHESTRA_BUILD_ALSA"])
 		my_module.add_optionnal_depend('jack', ["c++", "-DORCHESTRA_BUILD_JACK"])
 		my_module.add_optionnal_depend('pulse', ["c++", "-DORCHESTRA_BUILD_PULSE"])
 	elif "MacOs" in target.get_type():
 		my_module.add_src_file([
-							   'audio/orchestra/api/Core.cpp'
-							   ])
+		    'audio/orchestra/api/Core.cpp'
+		    ])
 		# MacOsX core
 		my_module.add_optionnal_depend('CoreAudio', ["c++", "-DORCHESTRA_BUILD_MACOSX_CORE"])
 	elif "IOs" in target.get_type():
@@ -104,7 +102,7 @@ def create(target, module_name):
 		my_module.add_src_file('android/org/musicdsp/orchestra/OrchestraManager.java')
 		# create inter language interfacef
 		my_module.add_src_file('org.musicdsp.orchestra.OrchestraConstants.javah')
-		my_module.add_path(tools.get_current_path(__file__) + '/android/', type='java')
+		my_module.add_path('android', type='java')
 		my_module.add_depend(['SDK', 'jvm-basics', 'ejson'])
 		my_module.add_flag('c++', ['-DORCHESTRA_BUILD_JAVA'], export=True)
 		
@@ -115,9 +113,9 @@ def create(target, module_name):
 	else:
 		debug.warning("unknow target for audio_orchestra : " + target.name);
 	
-	my_module.add_path(tools.get_current_path(__file__))
+	my_module.add_path(".")
 	
-	return my_module
+	return True
 
 
 
