@@ -125,13 +125,13 @@ def configure(target, my_module):
 ##
 ##################################################################
 def tool_generate_add_java_section_in_class(target, module, package_name):
-	module.pkg_add("GENERATE_SECTION__IMPORT", [
+	module.add_pkg("GENERATE_SECTION__IMPORT", [
 		"import org.musicdsp.orchestra.OrchestraManager;"
 		])
-	module.pkg_add("GENERATE_SECTION__DECLARE", [
+	module.add_pkg("GENERATE_SECTION__DECLARE", [
 		"private OrchestraManager m_audioManagerHandle;"
 		])
-	module.pkg_add("GENERATE_SECTION__CONSTRUCTOR", [
+	module.add_pkg("GENERATE_SECTION__CONSTRUCTOR", [
 		"// load audio maneger if it does not work, it is not critical ...",
 		"try {",
 		"	m_audioManagerHandle = new OrchestraManager();",
@@ -139,37 +139,37 @@ def tool_generate_add_java_section_in_class(target, module, package_name):
 		"	Log.e(\"" + package_name + "\", \"Can not load Audio interface (maybe not really needed) :\" + e);",
 		"}"
 		])
-	module.pkg_add("GENERATE_SECTION__ON_CREATE", [
+	module.add_pkg("GENERATE_SECTION__ON_CREATE", [
 		"if (m_audioManagerHandle != null) {",
 		"	m_audioManagerHandle.onCreate();",
 		"}"
 		])
-	module.pkg_add("GENERATE_SECTION__ON_START", [
+	module.add_pkg("GENERATE_SECTION__ON_START", [
 		"if (m_audioManagerHandle != null) {",
 		"	m_audioManagerHandle.onStart();",
 		"}"
 		])
-	module.pkg_add("GENERATE_SECTION__ON_RESTART", [
+	module.add_pkg("GENERATE_SECTION__ON_RESTART", [
 		"if (m_audioManagerHandle != null) {",
 		"	m_audioManagerHandle.onRestart();",
 		"}"
 		])
-	module.pkg_add("GENERATE_SECTION__ON_RESUME", [
+	module.add_pkg("GENERATE_SECTION__ON_RESUME", [
 		"if (m_audioManagerHandle != null) {",
 		"	m_audioManagerHandle.onResume();",
 		"}"
 		])
-	module.pkg_add("GENERATE_SECTION__ON_PAUSE", [
+	module.add_pkg("GENERATE_SECTION__ON_PAUSE", [
 		"if (m_audioManagerHandle != null) {",
 		"	m_audioManagerHandle.onPause();",
 		"}"
 		])
-	module.pkg_add("GENERATE_SECTION__ON_STOP", [
+	module.add_pkg("GENERATE_SECTION__ON_STOP", [
 		"if (m_audioManagerHandle != null) {",
 		"	m_audioManagerHandle.onStop();",
 		"}"
 		])
-	module.pkg_add("GENERATE_SECTION__ON_DESTROY", [
+	module.add_pkg("GENERATE_SECTION__ON_DESTROY", [
 		"// Destroy the AdView.",
 		"if (m_audioManagerHandle != null) {",
 		"	m_audioManagerHandle.onDestroy();",
