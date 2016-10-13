@@ -9,7 +9,7 @@
 #if defined(ORCHESTRA_BUILD_ALSA)
 
 #include <alsa/asoundlib.h>
-#include <unistd.h>
+
 #include <audio/orchestra/Interface.hpp>
 #include <audio/orchestra/debug.hpp>
 #include <etk/stdTools.hpp>
@@ -1167,7 +1167,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleRead() {
 			}
 		} else {
 			ATA_ERROR("audio read error, " << snd_strerror(result) << ".");
-			usleep(10000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 		// TODO : Notify application ... audio::orchestra::error_warning;
 		goto noInput;
@@ -1521,7 +1521,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
 				}
 			} else {
 				ATA_ERROR("audio read error, " << snd_strerror(result) << ".");
-				usleep(10000);
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
 			}
 			// TODO : Notify application ... audio::orchestra::error_warning;
 			goto noInput;

@@ -8,7 +8,7 @@
 #ifdef ORCHESTRA_BUILD_JAVA
 
 //#include <ewol/context/Context.h>
-#include <unistd.h>
+
 #include <audio/orchestra/Interface.hpp>
 #include <audio/orchestra/debug.hpp>
 #include <audio/orchestra/api/AndroidNativeInterface.hpp>

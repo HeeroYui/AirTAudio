@@ -635,7 +635,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 			if (microCounter > 5000000) {
 				break;
 			}
-			usleep(5000);
+			std::this_thread::sleep_for(std::chrono::milliseconds(5));
 		}
 		// Remove the property listener.
 		AudioObjectRemovePropertyListener(id, &tmp, &rateListener, (void *) &reportedRate);

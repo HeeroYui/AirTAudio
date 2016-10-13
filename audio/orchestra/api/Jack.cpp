@@ -7,7 +7,7 @@
 
 // must run before :          
 #if defined(ORCHESTRA_BUILD_JACK)
-#include <unistd.h>
+
 #include <climits>
 #include <iostream>
 #include <audio/orchestra/Interface.hpp>
@@ -52,7 +52,7 @@ ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Jack::create() 
 // stream cannot be opened.
 
 #include <jack/jack.h>
-#include <unistd.h>
+
 #include <cstdio>
 
 
