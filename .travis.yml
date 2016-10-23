@@ -1,0 +1,50 @@
+language:
+  - cpp
+
+sudo: false
+
+os:
+  - linux
+  - osx
+
+branches:
+  only:
+    - master
+    - dev
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.9
+
+install:
+  - pip install --user lutin
+
+env:
+  - CONF=debug   BOARD=Linux BUILDER=clang GCOV=
+  - CONF=release BOARD=Linux BUILDER=clang GCOV=
+  - CONF=debug   BOARD=Linux BUILDER=gcc   GCOV=
+  - CONF=release BOARD=Linux BUILDER=gcc   GCOV=
+  - CONF=debug   BOARD=Linux BUILDER=gcc   GCOV=--gcov
+
+before_script:
+  - cd ..
+  - wget http://atria-soft.com/ci/coverage_send.py
+  - wget http://atria-soft.com/ci/test_send.py
+  - wget http://atria-soft.com/ci/warning_send.py
+  - git clone https://github.com/atria-soft/etk.git
+  - git clone https://github.com/musicdsp/audio.git
+  - pwd
+  - ls -l
+  - if [ "$BUILDER" == "gcc" ]; then COMPILATOR_OPTION="--compilator-version=4.9"; else COMPILATOR_OPTION=""; fi
+
+script:
+  - lutin -w -j4 -C -P -c $BUILDER $COMPILATOR_OPTION -m $CONF $GCOV -p audio-orchestra
+#  - ./out/Linux_x86_64/$CONF/staging/$BUILDER/audio-orchestra/usr/bin/audio-orchestra -l6
+
+notifications:
+  email:
+    - yui.heero@gmail.com
+
