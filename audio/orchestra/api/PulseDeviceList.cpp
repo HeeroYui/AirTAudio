@@ -9,7 +9,7 @@
 
 #include <cstdio>
 #include <cstring>
-#include <pulse/pulseaudio.hpp>
+#include <pulse/pulseaudio.h>
 #include <audio/orchestra/api/PulseDeviceList.hpp>
 #include <audio/orchestra/debug.hpp>
 #include <audio/Time.hpp>
