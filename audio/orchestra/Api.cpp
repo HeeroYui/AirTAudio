@@ -14,26 +14,26 @@
 #include <climits>
 
 // Static variable definitions.
-const std::vector<uint32_t>& audio::orchestra::genericSampleRate() {
-	static std::vector<uint32_t> list;
+const etk::Vector<uint32_t>& audio::orchestra::genericSampleRate() {
+	static etk::Vector<uint32_t> list;
 	if (list.size() == 0) {
-		list.push_back(4000);
-		list.push_back(5512);
-		list.push_back(8000);
-		list.push_back(9600);
-		list.push_back(11025);
-		list.push_back(16000);
-		list.push_back(22050);
-		list.push_back(32000);
-		list.push_back(44100);
-		list.push_back(48000);
-		list.push_back(64000);
-		list.push_back(88200);
-		list.push_back(96000);
-		list.push_back(128000);
-		list.push_back(176400);
-		list.push_back(192000);
-		list.push_back(256000);
+		list.pushBack(4000);
+		list.pushBack(5512);
+		list.pushBack(8000);
+		list.pushBack(9600);
+		list.pushBack(11025);
+		list.pushBack(16000);
+		list.pushBack(22050);
+		list.pushBack(32000);
+		list.pushBack(44100);
+		list.pushBack(48000);
+		list.pushBack(64000);
+		list.pushBack(88200);
+		list.pushBack(96000);
+		list.pushBack(128000);
+		list.pushBack(176400);
+		list.pushBack(192000);
+		list.pushBack(256000);
 	}
 	return list;
 };
@@ -295,21 +295,21 @@ void audio::orchestra::Api::setConvertInfo(audio::orchestra::mode _mode, uint32_
 	if (m_deviceInterleaved[idTable] == false) {
 		if (_mode == audio::orchestra::mode_input) {
 			for (int32_t kkk=0; kkk<m_convertInfo[idTable].channels; ++kkk) {
-				m_convertInfo[idTable].inOffset.push_back(kkk * m_bufferSize);
-				m_convertInfo[idTable].outOffset.push_back(kkk);
+				m_convertInfo[idTable].inOffset.pushBack(kkk * m_bufferSize);
+				m_convertInfo[idTable].outOffset.pushBack(kkk);
 				m_convertInfo[idTable].inJump = 1;
 			}
 		} else {
 			for (int32_t kkk=0; kkk<m_convertInfo[idTable].channels; ++kkk) {
-				m_convertInfo[idTable].inOffset.push_back(kkk);
-				m_convertInfo[idTable].outOffset.push_back(kkk * m_bufferSize);
+				m_convertInfo[idTable].inOffset.pushBack(kkk);
+				m_convertInfo[idTable].outOffset.pushBack(kkk * m_bufferSize);
 				m_convertInfo[idTable].outJump = 1;
 			}
 		}
 	} else { // no (de)interleaving
 		for (int32_t kkk=0; kkk<m_convertInfo[idTable].channels; ++kkk) {
-			m_convertInfo[idTable].inOffset.push_back(kkk);
-			m_convertInfo[idTable].outOffset.push_back(kkk);
+			m_convertInfo[idTable].inOffset.pushBack(kkk);
+			m_convertInfo[idTable].outOffset.pushBack(kkk);
 		}
 	}
 

@@ -59,7 +59,7 @@ class DsDevice {
 	public:
 		LPGUID id;
 		bool input;
-		std::string name;
+		etk::String name;
 		DsDevice() :
 		  id(0),
 		  input(false) {
@@ -83,7 +83,7 @@ namespace audio {
 					DWORD dsBufferSize[2];
 					DWORD dsPointerLeadTime[2]; // the number of bytes ahead of the safe pointer to lead by.
 					HANDLE condition;
-					std::vector<DsDevice> dsDevices;
+					etk::Vector<DsDevice> dsDevices;
 					DsPrivate() :
 					  threadRunning(false),
 					  drainCounter(0),
@@ -107,7 +107,7 @@ static const char* getErrorString(int32_t _code);
 
 struct DsProbeData {
 	bool isInput;
-	std::vector<DsDevice>* dsDevices;
+	etk::Vector<DsDevice>* dsDevices;
 };
 
 audio::orchestra::api::Ds::Ds() :
@@ -132,13 +132,13 @@ audio::orchestra::api::Ds::~Ds() {
 
 
 #include "tchar.h"
-static std::string convertTChar(LPCTSTR _name) {
+static etk::String convertTChar(LPCTSTR _name) {
 #if defined(UNICODE) || defined(_UNICODE)
 	int32_t length = WideCharToMultiByte(CP_UTF8, 0, _name, -1, nullptr, 0, nullptr, nullptr);
-	std::string s(length-1, '\0');
+	etk::String s(length-1, '\0');
 	WideCharToMultiByte(CP_UTF8, 0, _name, -1, &s[0], length, nullptr, nullptr);
 #else
-	std::string s(_name);
+	etk::String s(_name);
 #endif
 	return s;
 }
@@ -148,7 +148,7 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
                                          LPCTSTR _module,
                                          LPVOID _lpContext) {
 	struct DsProbeData& probeInfo = *(struct DsProbeData*) _lpContext;
-	std::vector<DsDevice>& dsDevices = *probeInfo.dsDevices;
+	etk::Vector<DsDevice>& dsDevices = *probeInfo.dsDevices;
 	HRESULT hr;
 	bool validDevice = false;
 	if (probeInfo.isInput == true) {
@@ -187,7 +187,7 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
 		return TRUE;
 	}
 	// If good device, then save its name and guid.
-	std::string name = convertTChar(_description);
+	etk::String name = convertTChar(_description);
 	//if (name == "Primary Sound Driver" || name == "Primary Sound Capture Driver")
 	if (_lpguid == nullptr) {
 		name = "Default Device";
@@ -196,7 +196,7 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
 	device.name = name;
 	device.input = probeInfo.isInput;
 	device.id = _lpguid;
-	dsDevices.push_back(device);
+	dsDevices.pushBack(device);
 	return TRUE;
 }
 
@@ -250,24 +250,24 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 		}
 		// Get output channel information.
 		if (outCaps.dwFlags & DSCAPS_PRIMARYSTEREO) {
-			info.channels.push_back(audio::channel_unknow);
-			info.channels.push_back(audio::channel_unknow);
+			info.channels.pushBack(audio::channel_unknow);
+			info.channels.pushBack(audio::channel_unknow);
 		} else {
-			info.channels.push_back(audio::channel_unknow);
+			info.channels.pushBack(audio::channel_unknow);
 		}
 		// Get sample rate information.
 		for (auto &it : audio::orchestra::genericSampleRate()) {
 			if (    it >= outCaps.dwMinSecondarySampleRate
 			     && it <= outCaps.dwMaxSecondarySampleRate) {
-				info.sampleRates.push_back(it);
+				info.sampleRates.pushBack(it);
 			}
 		}
 		// Get format information.
 		if (outCaps.dwFlags & DSCAPS_PRIMARY16BIT) {
-			info.nativeFormats.push_back(audio::format_int16);
+			info.nativeFormats.pushBack(audio::format_int16);
 		}
 		if (outCaps.dwFlags & DSCAPS_PRIMARY8BIT) {
-			info.nativeFormats.push_back(audio::format_int8);
+			info.nativeFormats.pushBack(audio::format_int8);
 		}
 		output->Release();
 		info.name = m_private->dsDevices[_device].name;
@@ -292,67 +292,67 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 		}
 		// Get input channel information.
 		for (int32_t iii=0; iii<inCaps.dwChannels; ++iii) {
-			info.channels.push_back(audio::channel_unknow);
+			info.channels.pushBack(audio::channel_unknow);
 		}
 		// Get sample rate and format information.
-		std::vector<uint32_t> rates;
+		etk::Vector<uint32_t> rates;
 		if (inCaps.dwChannels >= 2) {
 			if (    (inCaps.dwFormats & WAVE_FORMAT_1S16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_2S16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_4S16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_96S16) ) {
-				info.nativeFormats.push_back(audio::format_int16);
+				info.nativeFormats.pushBack(audio::format_int16);
 			}
 			if (    (inCaps.dwFormats & WAVE_FORMAT_1S08)
 			     || (inCaps.dwFormats & WAVE_FORMAT_2S08)
 			     || (inCaps.dwFormats & WAVE_FORMAT_4S08)
 			     || (inCaps.dwFormats & WAVE_FORMAT_96S08) ) {
-				info.nativeFormats.push_back(audio::format_int8);
+				info.nativeFormats.pushBack(audio::format_int8);
 			}
 			if (    (inCaps.dwFormats & WAVE_FORMAT_1S16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_1S08) ){
-				rates.push_back(11025);
+				rates.pushBack(11025);
 			}
 			if (    (inCaps.dwFormats & WAVE_FORMAT_2S16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_2S08) ){
-				rates.push_back(22050);
+				rates.pushBack(22050);
 			}
 			if (    (inCaps.dwFormats & WAVE_FORMAT_4S16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_4S08) ){
-				rates.push_back(44100);
+				rates.pushBack(44100);
 			}
 			if (    (inCaps.dwFormats & WAVE_FORMAT_96S16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_96S08) ){
-				rates.push_back(96000);
+				rates.pushBack(96000);
 			}
 		} else if (inCaps.dwChannels == 1) {
 			if (    (inCaps.dwFormats & WAVE_FORMAT_1M16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_2M16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_4M16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_96M16) ) {
-				info.nativeFormats.push_back(audio::format_int16);
+				info.nativeFormats.pushBack(audio::format_int16);
 			}
 			if (    (inCaps.dwFormats & WAVE_FORMAT_1M08)
 			     || (inCaps.dwFormats & WAVE_FORMAT_2M08)
 			     || (inCaps.dwFormats & WAVE_FORMAT_4M08)
 			     || (inCaps.dwFormats & WAVE_FORMAT_96M08) ) {
-				info.nativeFormats.push_back(audio::format_int8);
+				info.nativeFormats.pushBack(audio::format_int8);
 			}
 			if (    (inCaps.dwFormats & WAVE_FORMAT_1M16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_1M08) ){
-				rates.push_back(11025);
+				rates.pushBack(11025);
 			}
 			if (    (inCaps.dwFormats & WAVE_FORMAT_2M16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_2M08) ){
-				rates.push_back(22050);
+				rates.pushBack(22050);
 			}
 			if (    (inCaps.dwFormats & WAVE_FORMAT_4M16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_4M08) ){
-				rates.push_back(44100);
+				rates.pushBack(44100);
 			}
 			if (    (inCaps.dwFormats & WAVE_FORMAT_96M16)
 			     || (inCaps.dwFormats & WAVE_FORMAT_96M08) ){
-				rates.push_back(96000);
+				rates.pushBack(96000);
 			}
 		} else {
 			// technically, this would be an error
@@ -374,7 +374,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 				}
 			}
 			if (found == false) {
-				info.sampleRates.push_back(rates[i]);
+				info.sampleRates.pushBack(rates[i]);
 			}
 		}
 		std::sort(info.sampleRates.begin(), info.sampleRates.end());
@@ -763,7 +763,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
 		ememory::SharedPtr<std::thread> tmpThread(new std::thread(&audio::orchestra::api::Ds::dsCallbackEvent, this));
-		m_private->thread =	std::move(tmpThread);
+		m_private->thread =	etk::move(tmpThread);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating callback thread!");
 			goto error;
@@ -1009,15 +1009,15 @@ void audio::orchestra::api::Ds::callbackEvent() {
 	// draining stream.
 	if (m_private->drainCounter == 0) {
 		audio::Time streamTime = getStreamTime();
-		std::vector<audio::orchestra::status> status;
+		etk::Vector<audio::orchestra::status> status;
 		if (    m_mode != audio::orchestra::mode_input
 		     && m_private->xrun[0] == true) {
-			status.push_back(audio::orchestra::status::underflow);
+			status.pushBack(audio::orchestra::status::underflow);
 			m_private->xrun[0] = false;
 		}
 		if (    m_mode != audio::orchestra::mode_output
 		     && m_private->xrun[1] == true) {
-			status.push_back(audio::orchestra::status::overflow);
+			status.pushBack(audio::orchestra::status::overflow);
 			m_private->xrun[1] = false;
 		}
 		int32_t cbReturnValue = m_callback(&m_userBuffer[1][0],

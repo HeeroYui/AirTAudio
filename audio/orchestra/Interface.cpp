@@ -19,19 +19,19 @@
 #include <audio/orchestra/api/Jack.hpp>
 #include <audio/orchestra/api/Pulse.hpp>
 
-std::vector<std::string> audio::orchestra::Interface::getListApi() {
-	std::vector<std::string> apis;
+etk::Vector<etk::String> audio::orchestra::Interface::getListApi() {
+	etk::Vector<etk::String> apis;
 	// The order here will control the order of RtAudio's API search in
 	// the constructor.
 	for (size_t iii=0; iii<m_apiAvaillable.size(); ++iii) {
-		apis.push_back(m_apiAvaillable[iii].first);
+		apis.pushBack(m_apiAvaillable[iii].first);
 	}
 	return apis;
 }
 
 
 
-void audio::orchestra::Interface::openApi(const std::string& _api) {
+void audio::orchestra::Interface::openApi(const etk::String& _api) {
 	m_api.reset();
 	for (size_t iii=0; iii<m_apiAvaillable.size(); ++iii) {
 		ATA_INFO("try open " << m_apiAvaillable[iii].first);
@@ -80,8 +80,8 @@ audio::orchestra::Interface::Interface() :
 #endif
 }
 
-void audio::orchestra::Interface::addInterface(const std::string& _api, ememory::SharedPtr<Api> (*_callbackCreate)()) {
-	m_apiAvaillable.push_back(std::pair<std::string, ememory::SharedPtr<Api> (*)()>(_api, _callbackCreate));
+void audio::orchestra::Interface::addInterface(const etk::String& _api, ememory::SharedPtr<Api> (*_callbackCreate)()) {
+	m_apiAvaillable.pushBack(etk::Pair<etk::String, ememory::SharedPtr<Api> (*)()>(_api, _callbackCreate));
 }
 
 enum audio::orchestra::error audio::orchestra::Interface::clear() {
@@ -94,7 +94,7 @@ enum audio::orchestra::error audio::orchestra::Interface::clear() {
 	return audio::orchestra::error_none;
 }
 
-enum audio::orchestra::error audio::orchestra::Interface::instanciate(const std::string& _api) {
+enum audio::orchestra::error audio::orchestra::Interface::instanciate(const etk::String& _api) {
 	ATA_INFO("Instanciate API ...");
 	if (m_api != nullptr) {
 		ATA_WARNING("Interface already started!");
@@ -118,7 +118,7 @@ enum audio::orchestra::error audio::orchestra::Interface::instanciate(const std:
 	ATA_INFO("Auto choice API :");
 	// Iterate through the compiled APIs and return as soon as we find
 	// one with at least one device or we reach the end of the list.
-	std::vector<std::string> apis = getListApi();
+	etk::Vector<etk::String> apis = getListApi();
 	ATA_INFO(" find : " << apis.size() << " apis.");
 	for (size_t iii=0; iii<apis.size(); ++iii) {
 		ATA_INFO("try open ...");

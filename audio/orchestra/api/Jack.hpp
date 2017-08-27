@@ -19,7 +19,7 @@ namespace audio {
 				public:
 					Jack();
 					virtual ~Jack();
-					const std::string& getCurrentApi() {
+					const etk::String& getCurrentApi() {
 						return audio::orchestra::typeJack;
 					}
 					uint32_t getDeviceCount();

@@ -18,19 +18,19 @@ namespace audio {
 				public:
 					Alsa();
 					virtual ~Alsa();
-					const std::string& getCurrentApi() {
+					const etk::String& getCurrentApi() {
 						return audio::orchestra::typeAlsa;
 					}
 					uint32_t getDeviceCount();
 				private:
-					bool getNamedDeviceInfoLocal(const std::string& _deviceName,
+					bool getNamedDeviceInfoLocal(const etk::String& _deviceName,
 					                             audio::orchestra::DeviceInfo& _info,
 					                             int32_t _cardId=-1, // Alsa card ID
 					                             int32_t _subdevice=-1, // alsa subdevice ID
 					                             int32_t _localDeviceId=-1,// local ID of device find
 					                             bool _input=false);
 				public:
-					bool getNamedDeviceInfo(const std::string& _deviceName, audio::orchestra::DeviceInfo& _info) {
+					bool getNamedDeviceInfo(const etk::String& _deviceName, audio::orchestra::DeviceInfo& _info) {
 						return getNamedDeviceInfoLocal(_deviceName, _info);
 					}
 					audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device);
@@ -51,7 +51,7 @@ namespace audio {
 					static void alsaCallbackEvent(void* _userData);
 				private:
 					ememory::SharedPtr<AlsaPrivate> m_private;
-					std::vector<audio::orchestra::DeviceInfo> m_devices;
+					etk::Vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool open(uint32_t _device,
 					          enum audio::orchestra::mode _mode,
@@ -62,7 +62,7 @@ namespace audio {
 					          uint32_t *_bufferSize,
 					          const audio::orchestra::StreamOptions& _options);
 					
-					bool openName(const std::string& _deviceName,
+					bool openName(const etk::String& _deviceName,
 					              audio::orchestra::mode _mode,
 					              uint32_t _channels,
 					              uint32_t _firstChannel,

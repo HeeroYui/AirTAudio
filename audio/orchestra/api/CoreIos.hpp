@@ -17,7 +17,7 @@ namespace audio {
 				public:
 					CoreIos();
 					virtual ~CoreIos();
-					const std::string& getCurrentApi() {
+					const etk::String& getCurrentApi() {
 						return audio::orchestra::typeCoreIOS;
 					}
 					uint32_t getDeviceCount();
@@ -32,7 +32,7 @@ namespace audio {
 					// will most likely produce highly undesireable results!
 					void callbackEvent();
 				private:
-					std::vector<audio::orchestra::DeviceInfo> m_devices;
+					etk::Vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool open(uint32_t _device,
 					          audio::orchestra::mode _mode,

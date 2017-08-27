@@ -22,7 +22,7 @@ namespace audio {
 	 * @brief Audio-orchestra library namespace
 	 */
 	namespace orchestra {
-		const std::vector<uint32_t>& genericSampleRate();
+		const etk::Vector<uint32_t>& genericSampleRate();
 		/**
 		 * @brief airtaudio callback function prototype.
 		 * @param _inputBuffer For input (or duplex) streams, this buffer will hold _nbChunk of input audio chunk (nullptr if no data).
@@ -37,7 +37,7 @@ namespace audio {
 		                                 void* _outputBuffer,
 		                                 const audio::Time& _timeOutput,
 		                                 uint32_t _nbChunk,
-		                                 const std::vector<audio::orchestra::status>& _status)> AirTAudioCallback;
+		                                 const etk::Vector<audio::orchestra::status>& _status)> AirTAudioCallback;
 		// A protected structure used for buffer conversion.
 		class ConvertInfo {
 			public:
@@ -46,24 +46,24 @@ namespace audio {
 				int32_t outJump;
 				enum audio::format inFormat;
 				enum audio::format outFormat;
-				std::vector<int> inOffset;
-				std::vector<int> outOffset;
+				etk::Vector<int> inOffset;
+				etk::Vector<int> outOffset;
 		};
 	
 		class Api : public ememory::EnableSharedFromThis<Api>{
 			protected:
-				std::string m_name;
+				etk::String m_name;
 			public:
 				Api();
 				virtual ~Api();
-				void setName(const std::string& _name) {
+				void setName(const etk::String& _name) {
 					m_name = _name;
 				}
-				virtual const std::string& getCurrentApi() = 0;
+				virtual const etk::String& getCurrentApi() = 0;
 				virtual uint32_t getDeviceCount() = 0;
 				virtual audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device) = 0;
 				// TODO : Check API ...
-				virtual	bool getNamedDeviceInfo(const std::string& _deviceName, audio::orchestra::DeviceInfo& _info) {
+				virtual	bool getNamedDeviceInfo(const etk::String& _deviceName, audio::orchestra::DeviceInfo& _info) {
 					return false;
 				}
 				virtual uint32_t getDefaultInputDevice();
@@ -95,7 +95,7 @@ namespace audio {
 				uint32_t m_device[2]; // Playback and record, respectively.
 				enum audio::orchestra::mode m_mode; // audio::orchestra::mode_output, audio::orchestra::mode_input, or audio::orchestra::mode_duplex.
 				enum audio::orchestra::state m_state; // STOPPED, RUNNING, or CLOSED
-				std::vector<char> m_userBuffer[2]; // Playback and record, respectively.
+				etk::Vector<char> m_userBuffer[2]; // Playback and record, respectively.
 				char *m_deviceBuffer;
 				bool m_doConvertBuffer[2]; // Playback and record, respectively.
 				bool m_deviceInterleaved[2]; // Playback and record, respectively.
@@ -130,7 +130,7 @@ namespace audio {
 				                  enum audio::format _format,
 				                  uint32_t *_bufferSize,
 				                  const audio::orchestra::StreamOptions& _options);
-				virtual bool openName(const std::string& _deviceName,
+				virtual bool openName(const etk::String& _deviceName,
 				                      audio::orchestra::mode _mode,
 				                      uint32_t _channels,
 				                      uint32_t _firstChannel,

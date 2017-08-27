@@ -18,7 +18,7 @@ namespace audio {
 					static ememory::SharedPtr<audio::orchestra::Api> create();
 				public:
 					Dummy();
-					const std::string& getCurrentApi() {
+					const etk::String& getCurrentApi() {
 						return audio::orchestra::typeDummy;
 					}
 					uint32_t getDeviceCount();

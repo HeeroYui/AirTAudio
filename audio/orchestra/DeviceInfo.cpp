@@ -12,7 +12,7 @@
 #include <iostream>
 
 void audio::orchestra::DeviceInfo::display(int32_t _tabNumber) const {
-	std::string space;
+	etk::String space;
 	for (int32_t iii=0; iii<_tabNumber; ++iii) {
 		space += "    ";
 	}
@@ -42,7 +42,7 @@ void audio::orchestra::DeviceInfo::clear() {
 	isDefault = false;
 }
 
-std::ostream& audio::orchestra::operator <<(std::ostream& _os, const audio::orchestra::DeviceInfo& _obj) {
+etk::Stream& audio::orchestra::operator <<(etk::Stream& _os, const audio::orchestra::DeviceInfo& _obj) {
 	_os << "{";
 	if (_obj.isCorrect == false) {
 		_os << "NOT CORRECT INFORAMATIONS";

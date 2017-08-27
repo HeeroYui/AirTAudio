@@ -18,11 +18,11 @@ namespace audio {
 			public:
 				bool isCorrect; //!< the information is correct (the system can return information incorect).
 				bool input; //!< true if the device in an input; false: output.
-				std::string name; //!< Character string device identifier.
-				std::string desc; //!< description of the device
-				std::vector<audio::channel> channels; //!< Channels interfaces.
-				std::vector<uint32_t> sampleRates; //!< Supported sample rates (queried from list of standard rates).
-				std::vector<audio::format> nativeFormats; //!< Bit mask of supported data formats.
+				etk::String name; //!< Character string device identifier.
+				etk::String desc; //!< description of the device
+				etk::Vector<audio::channel> channels; //!< Channels interfaces.
+				etk::Vector<uint32_t> sampleRates; //!< Supported sample rates (queried from list of standard rates).
+				etk::Vector<audio::format> nativeFormats; //!< Bit mask of supported data formats.
 				bool isDefault; //! is default input/output
 				// Default constructor.
 				DeviceInfo() :
@@ -43,7 +43,7 @@ namespace audio {
 				 */
 				void clear();
 		};
-		std::ostream& operator <<(std::ostream& _os, const audio::orchestra::DeviceInfo& _obj);
+		etk::Stream& operator <<(etk::Stream& _os, const audio::orchestra::DeviceInfo& _obj);
 	}
 }
 

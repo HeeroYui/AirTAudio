@@ -17,7 +17,7 @@ namespace audio {
 				public:
 					Pulse();
 					virtual ~Pulse();
-					const std::string& getCurrentApi() {
+					const etk::String& getCurrentApi() {
 						return audio::orchestra::typePulse;
 					}
 					uint32_t getDeviceCount();
@@ -34,7 +34,7 @@ namespace audio {
 					void callbackEvent();
 				private:
 					ememory::SharedPtr<PulsePrivate> m_private;
-					std::vector<audio::orchestra::DeviceInfo> m_devices;
+					etk::Vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool open(uint32_t _device,
 					          audio::orchestra::mode _mode,

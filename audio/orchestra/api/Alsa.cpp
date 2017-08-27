@@ -45,7 +45,7 @@ namespace audio {
 					bool threadRunning;
 					bool mmapInterface; //!< enable or disable mmap mode...
 					enum timestampMode timeMode; //!< the timestamp of the flow came from the harware.
-					std::vector<snd_pcm_channel_area_t> areas;
+					etk::Vector<snd_pcm_channel_area_t> areas;
 					AlsaPrivate() :
 					  handle(nullptr),
 					  runnable(false),
@@ -112,7 +112,7 @@ nextcard:
 	return nDevices;
 }
 
-bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _deviceName, audio::orchestra::DeviceInfo& _info, int32_t _cardId, int32_t _subdevice, int32_t _localDeviceId, bool _input) {
+bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const etk::String& _deviceName, audio::orchestra::DeviceInfo& _info, int32_t _cardId, int32_t _subdevice, int32_t _localDeviceId, bool _input) {
 	int32_t result;
 	snd_ctl_t *chandle;
 	int32_t openMode = SND_PCM_ASYNC;
@@ -130,7 +130,7 @@ bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _de
 		stream = SND_PCM_STREAM_PLAYBACK;
 	}
 	snd_pcm_info_set_stream(pcminfo, stream);
-	std::vector<std::string> listElement = etk::split(_deviceName, ',');
+	etk::Vector<etk::String> listElement = etk::split(_deviceName, ',');
 	if (listElement.size() == 0) {
 		ATA_ERROR("can not get control interface = '" << _deviceName << "' Can not plit at ',' ...");
 		return false;
@@ -190,15 +190,15 @@ bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _de
 	}
 	ATA_DEBUG("Input channel = " << value);
 	for (int32_t iii=0; iii<value; ++iii) {
-		_info.channels.push_back(audio::channel_unknow);
+		_info.channels.pushBack(audio::channel_unknow);
 	}
 	// Test our discrete set of sample rate values.
 	_info.sampleRates.clear();
-	for (std::vector<uint32_t>::const_iterator it(audio::orchestra::genericSampleRate().begin()); 
+	for (etk::Vector<uint32_t>::const_iterator it(audio::orchestra::genericSampleRate().begin()); 
 	     it != audio::orchestra::genericSampleRate().end();
 	     ++it ) {
 		if (snd_pcm_hw_params_test_rate(phandle, params, *it, 0) == 0) {
-			_info.sampleRates.push_back(*it);
+			_info.sampleRates.pushBack(*it);
 		}
 	}
 	if (_info.sampleRates.size() == 0) {
@@ -211,27 +211,27 @@ bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const std::string& _de
 	_info.nativeFormats.clear();
 	format = SND_PCM_FORMAT_S8;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		_info.nativeFormats.push_back(audio::format_int8);
+		_info.nativeFormats.pushBack(audio::format_int8);
 	}
 	format = SND_PCM_FORMAT_S16;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		_info.nativeFormats.push_back(audio::format_int16);
+		_info.nativeFormats.pushBack(audio::format_int16);
 	}
 	format = SND_PCM_FORMAT_S24;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		_info.nativeFormats.push_back(audio::format_int24);
+		_info.nativeFormats.pushBack(audio::format_int24);
 	}
 	format = SND_PCM_FORMAT_S32;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		_info.nativeFormats.push_back(audio::format_int32);
+		_info.nativeFormats.pushBack(audio::format_int32);
 	}
 	format = SND_PCM_FORMAT_FLOAT;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		_info.nativeFormats.push_back(audio::format_float);
+		_info.nativeFormats.pushBack(audio::format_float);
 	}
 	format = SND_PCM_FORMAT_FLOAT64;
 	if (snd_pcm_hw_params_test_format(phandle, params, format) == 0) {
-		_info.nativeFormats.push_back(audio::format_double);
+		_info.nativeFormats.pushBack(audio::format_double);
 	}
 	// Check that we have at least one supported format
 	if (_info.nativeFormats.size() == 0) {
@@ -406,7 +406,7 @@ foundDevice:
 	return openName(name, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options);
 }
 
-bool audio::orchestra::api::Alsa::openName(const std::string& _deviceName,
+bool audio::orchestra::api::Alsa::openName(const etk::String& _deviceName,
                                            audio::orchestra::mode _mode,
                                            uint32_t _channels,
                                            uint32_t _firstChannel,
@@ -989,7 +989,7 @@ void audio::orchestra::api::Alsa::callbackEvent() {
 	}
 	ethread::setName("Alsa IO-" + m_name);
 	//Wait data with poll
-	std::vector<struct pollfd> ufds;
+	etk::Vector<struct pollfd> ufds;
 	signed short *ptr;
 	int32_t err, count, cptr, init;
 	count = snd_pcm_poll_descriptors_count(m_private->handle);
@@ -1106,9 +1106,9 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleRead() {
 	}
 	int32_t doStopStream = 0;
 	audio::Time streamTime;
-	std::vector<enum audio::orchestra::status> status;
+	etk::Vector<enum audio::orchestra::status> status;
 	if (m_private->xrun[0] == true) {
-		status.push_back(audio::orchestra::status::underflow);
+		status.pushBack(audio::orchestra::status::underflow);
 		m_private->xrun[0] = false;
 	}
 	int32_t result;
@@ -1223,9 +1223,9 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleWrite() {
 	}
 	int32_t doStopStream = 0;
 	audio::Time streamTime;
-	std::vector<enum audio::orchestra::status> status;
+	etk::Vector<enum audio::orchestra::status> status;
 	if (m_private->xrun[1] == true) {
-		status.push_back(audio::orchestra::status::overflow);
+		status.pushBack(audio::orchestra::status::overflow);
 		m_private->xrun[1] = false;
 	}
 	int32_t result;
@@ -1325,9 +1325,9 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
 	}
 	int32_t doStopStream = 0;
 	audio::Time streamTime;
-	std::vector<enum audio::orchestra::status> status;
+	etk::Vector<enum audio::orchestra::status> status;
 	if (m_private->xrun[1] == true) {
-		status.push_back(audio::orchestra::status::overflow);
+		status.pushBack(audio::orchestra::status::overflow);
 		m_private->xrun[1] = false;
 	}
 	int32_t result;
@@ -1459,9 +1459,9 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
 	}
 	int32_t doStopStream = 0;
 	audio::Time streamTime;
-	std::vector<enum audio::orchestra::status> status;
+	etk::Vector<enum audio::orchestra::status> status;
 	if (m_private->xrun[0] == true) {
-		status.push_back(audio::orchestra::status::underflow);
+		status.pushBack(audio::orchestra::status::underflow);
 		m_private->xrun[0] = false;
 	}
 	int32_t result;

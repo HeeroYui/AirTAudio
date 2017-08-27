@@ -6,8 +6,8 @@
  */
 #pragma once
 
-#include <string>
-#include <vector>
+#include <etk/String.hpp>
+#include <etk/Vector.hpp>
 #include <audio/orchestra/base.hpp>
 #include <audio/orchestra/CallbackInfo.hpp>
 #include <audio/orchestra/Api.hpp>
@@ -26,11 +26,11 @@ namespace audio {
 		 */
 		class Interface {
 			protected:
-				std::vector<std::pair<std::string, ememory::SharedPtr<Api> (*)()> > m_apiAvaillable;
+				etk::Vector<etk::Pair<etk::String, ememory::SharedPtr<Api> (*)()> > m_apiAvaillable;
 			protected:
 				ememory::SharedPtr<audio::orchestra::Api> m_api;
 			public:
-				void setName(const std::string& _name) {
+				void setName(const etk::String& _name) {
 					if (m_api == nullptr) {
 						return;
 					}
@@ -40,13 +40,13 @@ namespace audio {
 				 * @brief Get the list of all availlable API in the system.
 				 * @return the list of all APIs
 				 */
-				std::vector<std::string> getListApi();
+				etk::Vector<etk::String> getListApi();
 				/**
 				 * @brief Add an interface of the Possible List.
 				 * @param[in] _api Type of the interface.
 				 * @param[in] _callbackCreate API creation callback.
 				 */
-				void addInterface(const std::string& _api, ememory::SharedPtr<Api> (*_callbackCreate)());
+				void addInterface(const etk::String& _api, ememory::SharedPtr<Api> (*_callbackCreate)());
 				/**
 				 * @brief The class constructor.
 				 * @note the creating of the basic instance is done by Instanciate
@@ -66,11 +66,11 @@ namespace audio {
 				/**
 				 * @brief Create an interface instance
 				 */
-				enum audio::orchestra::error instanciate(const std::string& _api = audio::orchestra::typeUndefined);
+				enum audio::orchestra::error instanciate(const etk::String& _api = audio::orchestra::typeUndefined);
 				/**
 				 * @return the audio API specifier for the current instance of airtaudio.
 				 */
-				const std::string& getCurrentApi() {
+				const etk::String& getCurrentApi() {
 					if (m_api == nullptr) {
 						return audio::orchestra::typeUndefined;
 					}
@@ -106,7 +106,7 @@ namespace audio {
 					}
 					return m_api->getDeviceInfo(_device);
 				}
-				audio::orchestra::DeviceInfo getDeviceInfo(const std::string& _deviceName) {
+				audio::orchestra::DeviceInfo getDeviceInfo(const etk::String& _deviceName) {
 					if (m_api == nullptr) {
 						return audio::orchestra::DeviceInfo();
 					}
@@ -300,7 +300,7 @@ namespace audio {
 				}
 				bool isMasterOf(audio::orchestra::Interface& _interface);
 			protected:
-				void openApi(const std::string& _api);
+				void openApi(const etk::String& _api);
 		};
 	}
 }

@@ -15,13 +15,13 @@ namespace audio {
 			timestampMode_trigered, //!< get harware triger time stamp and increment with duration
 			timestampMode_soft, //!< Simulate all timestamp.
 		};
-		std::ostream& operator <<(std::ostream& _os, enum audio::orchestra::timestampMode _obj);
+		etk::Stream& operator <<(etk::Stream& _os, enum audio::orchestra::timestampMode _obj);
 		
 		class StreamOptions {
 			public:
 				audio::orchestra::Flags flags; //!< A bit-mask of stream flags
 				uint32_t numberOfBuffers; //!< Number of stream buffers.
-				std::string streamName; //!< A stream name (currently used only in Jack).
+				etk::String streamName; //!< A stream name (currently used only in Jack).
 				enum timestampMode mode; //!< mode of timestamping data...
 				// Default constructor.
 				StreamOptions() :

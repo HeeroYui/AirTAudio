@@ -63,7 +63,7 @@ namespace audio {
 				public:
 					jack_client_t *client;
 					jack_port_t **ports[2];
-					std::string deviceName[2];
+					etk::String deviceName[2];
 					bool xrun[2];
 					std::condition_variable condition;
 					int32_t drainCounter; // Tracks callback counts when draining
@@ -103,7 +103,7 @@ uint32_t audio::orchestra::api::Jack::getDeviceCount() {
 		return 0;
 	}
 	const char **ports;
-	std::string port, previousPort;
+	etk::String port, previousPort;
 	uint32_t nChannels = 0, nDevices = 0;
 	ports = jack_get_ports(client, nullptr, nullptr, 0);
 	if (ports) {
@@ -112,7 +112,7 @@ uint32_t audio::orchestra::api::Jack::getDeviceCount() {
 		do {
 			port = (char *) ports[ nChannels ];
 			iColon = port.find(":");
-			if (iColon != std::string::npos) {
+			if (iColon != etk::String::npos) {
 				port = port.substr(0, iColon + 1);
 				if (port != previousPort) {
 					nDevices++;
@@ -138,7 +138,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 		return info;
 	}
 	const char **ports;
-	std::string port, previousPort;
+	etk::String port, previousPort;
 	uint32_t nPorts = 0, nDevices = 0;
 	ports = jack_get_ports(client, nullptr, nullptr, 0);
 	int32_t deviceID = _device/2;
@@ -149,7 +149,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 		do {
 			port = (char *) ports[nPorts];
 			iColon = port.find(":");
-			if (iColon != std::string::npos) {
+			if (iColon != etk::String::npos) {
 				port = port.substr(0, iColon);
 				if (port != previousPort) {
 					if (nDevices == deviceID) {
@@ -170,14 +170,14 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 	}
 	// Get the current jack server sample rate.
 	info.sampleRates.clear();
-	info.sampleRates.push_back(jack_get_sample_rate(client));
+	info.sampleRates.pushBack(jack_get_sample_rate(client));
 	if (info.input == true) {
 		ports = jack_get_ports(client, info.name.c_str(), nullptr, JackPortIsOutput);
 		if (ports) {
 			int32_t iii=0;
 			while (ports[iii]) {
 				ATA_ERROR(" ploppp='" << ports[iii] << "'");
-				info.channels.push_back(audio::channel_unknow);
+				info.channels.pushBack(audio::channel_unknow);
 				iii++;
 			}
 			free(ports);
@@ -188,7 +188,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 			int32_t iii=0;
 			while (ports[iii]) {
 				ATA_ERROR(" ploppp='" << ports[iii] << "'");
-				info.channels.push_back(audio::channel_unknow);
+				info.channels.pushBack(audio::channel_unknow);
 				iii++;
 			}
 			free(ports);
@@ -202,7 +202,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 		return info;
 	}
 	// Jack always uses 32-bit floats.
-	info.nativeFormats.push_back(audio::format_float);
+	info.nativeFormats.pushBack(audio::format_float);
 	// Jack doesn't provide default devices so we'll use the first available one.
 	if (deviceID == 0) {
 		info.isDefault = true;
@@ -287,7 +287,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 		client = m_private->client;
 	}
 	const char **ports;
-	std::string port, previousPort, deviceName;
+	etk::String port, previousPort, deviceName;
 	uint32_t nPorts = 0, nDevices = 0;
 	int32_t deviceID = _device/2;
 	bool isInput = _device%2==0?true:false;
@@ -298,7 +298,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 		do {
 			port = (char *) ports[ nPorts ];
 			iColon = port.find(":");
-			if (iColon != std::string::npos) {
+			if (iColon != etk::String::npos) {
 				port = port.substr(0, iColon);
 				if (port != previousPort) {
 					if (nDevices == deviceID) {
@@ -655,13 +655,13 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 	// Invoke user callback first, to get fresh output data.
 	if (m_private->drainCounter == 0) {
 		audio::Time streamTime = getStreamTime();
-		std::vector<enum audio::orchestra::status> status;
+		etk::Vector<enum audio::orchestra::status> status;
 		if (m_mode != audio::orchestra::mode_input && m_private->xrun[0] == true) {
-			status.push_back(audio::orchestra::status::underflow);
+			status.pushBack(audio::orchestra::status::underflow);
 			m_private->xrun[0] = false;
 		}
 		if (m_mode != audio::orchestra::mode_output && m_private->xrun[1] == true) {
-			status.push_back(audio::orchestra::status::overflow);
+			status.pushBack(audio::orchestra::status::overflow);
 			m_private->xrun[1] = false;
 		}
 		int32_t cbReturnValue = m_callback(&m_userBuffer[1][0],

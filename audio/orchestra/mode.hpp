@@ -18,6 +18,6 @@ namespace audio {
 		};
 		int32_t modeToIdTable(enum mode _mode);
 	}
-	std::ostream& operator <<(std::ostream& _os, enum audio::orchestra::mode _obj);
+	etk::Stream& operator <<(etk::Stream& _os, enum audio::orchestra::mode _obj);
 }
 

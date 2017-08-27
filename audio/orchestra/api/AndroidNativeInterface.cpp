@@ -235,7 +235,7 @@ class AndroidOrchestraContext {
 			//Call java ...
 			jstring returnString = (jstring) m_JavaVirtualMachinePointer->CallObjectMethod(m_javaObjectOrchestraCallback, m_javaMethodOrchestraActivityAudioGetDeviceProperty, _idDevice);
 			const char *js = m_JavaVirtualMachinePointer->GetStringUTFChars(returnString, nullptr);
-			std::string retString(js);
+			etk::String retString(js);
 			m_JavaVirtualMachinePointer->ReleaseStringUTFChars(returnString, js);
 			//m_JavaVirtualMachinePointer->DeleteLocalRef(returnString);
 			// manage execption : 
@@ -256,19 +256,19 @@ class AndroidOrchestraContext {
 			ejson::Array list = doc["sample-rate"].toArray();
 			if (list.exist() == true) {
 				for (auto it : list) {
-					info.sampleRates.push_back(int32_t(it.toNumber().get(48000)));
+					info.sampleRates.pushBack(int32_t(it.toNumber().get(48000)));
 				}
 			}
 			list = doc["channels"].toArray();
 			if (list.exist() == true) {
 				for (auto it : list) {
-					info.channels.push_back(audio::getChannelFromString(it.toString().get("???")));
+					info.channels.pushBack(audio::getChannelFromString(it.toString().get("???")));
 				}
 			}
 			list = doc["format"].toArray();
 			if (list.exist() == true) {
 				for (auto it : list) {
-					info.nativeFormats.push_back(audio::getFormatFromString(it.toString().get("???")));
+					info.nativeFormats.pushBack(audio::getFormatFromString(it.toString().get("???")));
 				}
 			}
 			info.isDefault = doc["default"].toBoolean().get(false);
@@ -276,7 +276,7 @@ class AndroidOrchestraContext {
 			return info;
 		}
 	private:
-		std::vector<ememory::WeakPtr<audio::orchestra::api::Android> > m_instanceList; // list of connected handle ...
+		etk::Vector<ememory::WeakPtr<audio::orchestra::api::Android> > m_instanceList; // list of connected handle ...
 		//AndroidAudioCallback m_audioCallBack;
 		//void* m_audioCallBackUserData;
 	public:
@@ -305,7 +305,7 @@ class AndroidOrchestraContext {
 			jvm_basics::checkExceptionJavaVM(m_JavaVirtualMachinePointer);
 			java_detach_current_thread(status);
 			if (int32_t(ret) >= 0) {
-				m_instanceList.push_back(_instance);
+				m_instanceList.pushBack(_instance);
 				return int32_t(ret);
 			}
 			return -1;

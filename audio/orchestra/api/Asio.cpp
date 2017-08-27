@@ -154,7 +154,7 @@ rtaudio::DeviceInfo audio::orchestra::api::Asio::getDeviceInfo(uint32_t _device)
 	for (uint32_t i=0; i<MAX_SAMPLE_RATES; i++) {
 		result = ASIOCanSampleRate((ASIOSampleRate) SAMPLE_RATES[i]);
 		if (result == ASE_OK) {
-			info.sampleRates.push_back(SAMPLE_RATES[i]);
+			info.sampleRates.pushBack(SAMPLE_RATES[i]);
 		}
 	}
 	// Determine supported data types ... just check first channel and assume rest are the same.
@@ -173,19 +173,19 @@ rtaudio::DeviceInfo audio::orchestra::api::Asio::getDeviceInfo(uint32_t _device)
 	info.nativeFormats.clear();
 	if (    channelInfo.type == ASIOSTInt16MSB
 	     || channelInfo.type == ASIOSTInt16LSB) {
-		info.nativeFormats.push_back(audio::format_int16);
+		info.nativeFormats.pushBack(audio::format_int16);
 	} else if (    channelInfo.type == ASIOSTInt32MSB
 	            || channelInfo.type == ASIOSTInt32LSB) {
-		info.nativeFormats.push_back(audio::format_int32);
+		info.nativeFormats.pushBack(audio::format_int32);
 	} else if (    channelInfo.type == ASIOSTFloat32MSB
 	            || channelInfo.type == ASIOSTFloat32LSB) {
-		info.nativeFormats.push_back(audio::format_float);
+		info.nativeFormats.pushBack(audio::format_float);
 	} else if (    channelInfo.type == ASIOSTFloat64MSB
 	            || channelInfo.type == ASIOSTFloat64LSB) {
-		info.nativeFormats.push_back(audio::format_double);
+		info.nativeFormats.pushBack(audio::format_double);
 	} else if (    channelInfo.type == ASIOSTInt24MSB
 	            || channelInfo.type == ASIOSTInt24LSB) {
-		info.nativeFormats.push_back(audio::format_int24);
+		info.nativeFormats.pushBack(audio::format_int24);
 	}
 	if (info.outputChannels > 0){
 		if (getDefaultOutputDevice() == _device) {
@@ -692,13 +692,13 @@ bool audio::orchestra::api::Asio::callbackEvent(long bufferIndex) {
 	// draining stream.
 	if (m_private->drainCounter == 0) {
 		audio::Time streamTime = getStreamTime();
-		std::vector<enum audio::orchestra::status status;
+		etk::Vector<enum audio::orchestra::status status;
 		if (m_mode != audio::orchestra::mode_input && asioXRun == true) {
-			status.push_back(audio::orchestra::status::underflow);
+			status.pushBack(audio::orchestra::status::underflow);
 			asioXRun = false;
 		}
 		if (m_mode != audio::orchestra::mode_output && asioXRun == true) {
-			status.push_back(audio::orchestra::status::underflow;
+			status.pushBack(audio::orchestra::status::underflow;
 			asioXRun = false;
 		}
 		int32_t cbReturnValue = info->callback(m_userBuffer[1],

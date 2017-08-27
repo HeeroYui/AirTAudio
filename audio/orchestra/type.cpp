@@ -12,14 +12,14 @@
 #include <cstring>
 #include <climits>
 
-const std::string audio::orchestra::typeUndefined = "undefined";
-const std::string audio::orchestra::typeAlsa = "alsa";
-const std::string audio::orchestra::typePulse = "pulse";
-const std::string audio::orchestra::typeOss = "oss";
-const std::string audio::orchestra::typeJack = "jack";
-const std::string audio::orchestra::typeCoreOSX = "coreOSX";
-const std::string audio::orchestra::typeCoreIOS = "coreIOS";
-const std::string audio::orchestra::typeAsio = "asio";
-const std::string audio::orchestra::typeDs = "ds";
-const std::string audio::orchestra::typeJava = "java";
-const std::string audio::orchestra::typeDummy = "dummy";
+const etk::String audio::orchestra::typeUndefined = "undefined";
+const etk::String audio::orchestra::typeAlsa = "alsa";
+const etk::String audio::orchestra::typePulse = "pulse";
+const etk::String audio::orchestra::typeOss = "oss";
+const etk::String audio::orchestra::typeJack = "jack";
+const etk::String audio::orchestra::typeCoreOSX = "coreOSX";
+const etk::String audio::orchestra::typeCoreIOS = "coreIOS";
+const etk::String audio::orchestra::typeAsio = "asio";
+const etk::String audio::orchestra::typeDs = "ds";
+const etk::String audio::orchestra::typeJava = "java";
+const etk::String audio::orchestra::typeDummy = "dummy";

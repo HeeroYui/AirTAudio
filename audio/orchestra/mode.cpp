@@ -20,7 +20,7 @@ int32_t audio::orchestra::modeToIdTable(enum mode _mode) {
 	return 0;
 }
 
-std::ostream& audio::operator <<(std::ostream& _os, enum audio::orchestra::mode _obj) {
+etk::Stream& audio::operator <<(etk::Stream& _os, enum audio::orchestra::mode _obj) {
 	switch (_obj) {
 		case audio::orchestra::mode_unknow:
 			_os << "unknow";

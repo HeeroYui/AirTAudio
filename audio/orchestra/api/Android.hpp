@@ -18,7 +18,7 @@ namespace audio {
 				public:
 					Android();
 					virtual ~Android();
-					const std::string& getCurrentApi() {
+					const etk::String& getCurrentApi() {
 						return audio::orchestra::typeJava;
 					}
 					uint32_t getDeviceCount();
@@ -39,7 +39,7 @@ namespace audio {
 						return m_uid;
 					}
 				private:
-					std::vector<audio::orchestra::DeviceInfo> m_devices;
+					etk::Vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool open(uint32_t _device,
 					          audio::orchestra::mode _mode,

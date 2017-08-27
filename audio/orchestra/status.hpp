@@ -15,8 +15,8 @@ namespace audio {
 			overflow, //!< Internal buffer has more data than they can accept
 			underflow //!< The internal buffer is empty
 		};
-		std::ostream& operator <<(std::ostream& _os, enum audio::orchestra::status _obj);
-		std::ostream& operator <<(std::ostream& _os, const std::vector<enum audio::orchestra::status>& _obj);
+		etk::Stream& operator <<(etk::Stream& _os, enum audio::orchestra::status _obj);
+		etk::Stream& operator <<(etk::Stream& _os, const etk::Vector<enum audio::orchestra::status>& _obj);
 	}
 }
 

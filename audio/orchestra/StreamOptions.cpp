@@ -15,13 +15,13 @@ static const char* listValue[] = {
 	"soft"
 };
 
-std::ostream& audio::orchestra::operator <<(std::ostream& _os, enum audio::orchestra::timestampMode _obj) {
+etk::Stream& audio::orchestra::operator <<(etk::Stream& _os, enum audio::orchestra::timestampMode _obj) {
 	_os << listValue[_obj];
 	return _os;
 }
 
 namespace etk {
-	template <> bool from_string<enum audio::orchestra::timestampMode>(enum audio::orchestra::timestampMode& _variableRet, const std::string& _value) {
+	template <> bool from_string<enum audio::orchestra::timestampMode>(enum audio::orchestra::timestampMode& _variableRet, const etk::String& _value) {
 		if (_value == "hardware") {
 			_variableRet = audio::orchestra::timestampMode_Hardware;
 			return true;
@@ -37,7 +37,7 @@ namespace etk {
 		return false;
 	}
 	
-	template <enum audio::orchestra::timestampMode> std::string to_string(const enum audio::orchestra::timestampMode& _variable) {
+	template <enum audio::orchestra::timestampMode> etk::String toString(const enum audio::orchestra::timestampMode& _variable) {
 		return listValue[_variable];
 	}
 }

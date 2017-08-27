@@ -17,7 +17,7 @@ namespace audio {
 				public:
 					Asio();
 					virtual ~Asio();
-					const std::string& getCurrentApi() {
+					const etk::String& getCurrentApi() {
 						return audio::orchestra::typeAsio;
 					}
 					uint32_t getDeviceCount();
@@ -34,7 +34,7 @@ namespace audio {
 					bool callbackEvent(long _bufferIndex);
 				private:
 					ememory::SharedPtr<AsioPrivate> m_private;
-					std::vector<audio::orchestra::DeviceInfo> m_devices;
+					etk::Vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();
 					bool m_coInitialized;
 					bool open(uint32_t _device,

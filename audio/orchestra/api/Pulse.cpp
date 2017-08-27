@@ -80,7 +80,7 @@ audio::orchestra::api::Pulse::~Pulse() {
 
 uint32_t audio::orchestra::api::Pulse::getDeviceCount() {
 	#if 1
-		std::vector<audio::orchestra::DeviceInfo> list = audio::orchestra::api::pulse::getDeviceList();
+		etk::Vector<audio::orchestra::DeviceInfo> list = audio::orchestra::api::pulse::getDeviceList();
 		return list.size();
 	#else
 		return 1;
@@ -88,7 +88,7 @@ uint32_t audio::orchestra::api::Pulse::getDeviceCount() {
 }
 
 audio::orchestra::DeviceInfo audio::orchestra::api::Pulse::getDeviceInfo(uint32_t _device) {
-	std::vector<audio::orchestra::DeviceInfo> list = audio::orchestra::api::pulse::getDeviceList();
+	etk::Vector<audio::orchestra::DeviceInfo> list = audio::orchestra::api::pulse::getDeviceList();
 	if (_device >= list.size()) {
 		ATA_ERROR("Request device out of IDs:" << _device << " >= " << list.size());
 		return audio::orchestra::DeviceInfo();
@@ -145,7 +145,7 @@ void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 		return;
 	}
 	audio::Time streamTime = getStreamTime();
-	std::vector<enum audio::orchestra::status> status;
+	etk::Vector<enum audio::orchestra::status> status;
 	int32_t doStopStream = m_callback(&m_userBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)][0],
 	                                  streamTime,
 	                                  &m_userBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_output)][0],

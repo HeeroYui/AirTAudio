@@ -14,7 +14,7 @@ namespace audio {
 	namespace orchestra {
 		namespace api {
 			namespace pulse {
-				std::vector<audio::orchestra::DeviceInfo> getDeviceList();
+				etk::Vector<audio::orchestra::DeviceInfo> getDeviceList();
 			}
 		}
 	}

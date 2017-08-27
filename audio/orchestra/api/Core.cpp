@@ -247,7 +247,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	}
 	//const char *mname = CFStringGetCStringPtr(cfname, CFStringGetSystemEncoding());
 	int32_t length = CFStringGetLength(cfname);
-	std::vector<char> name;
+	etk::Vector<char> name;
 	name.resize(length * 3 + 1, '\0');
 	CFStringGetCString(cfname, &name[0], length * 3 + 1, CFStringGetSystemEncoding());
 	info.name.append(&name[0], strlen(&name[0]));
@@ -302,7 +302,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	// Get channel information.
 	for (size_t iii=0; iii<bufferList->mNumberBuffers; ++iii) {
 		for (size_t jjj=0; jjj<bufferList->mBuffers[iii].mNumberChannels; ++jjj) {
-			info.channels.push_back(audio::channel_unknow);
+			info.channels.pushBack(audio::channel_unknow);
 		}
 	}
 	free(bufferList);
@@ -344,7 +344,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	for (auto &it : audio::orchestra::genericSampleRate()) {
 		if (    it >= minimumRate
 			 && it <= maximumRate) {
-			info.sampleRates.push_back(it);
+			info.sampleRates.pushBack(it);
 		}
 	}
 	if (info.sampleRates.size() == 0) {
@@ -358,7 +358,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	// CoreAudio always uses 32-bit floating point data for PCM streams.
 	// Thus, any other "physical" formats supported by the device are of
 	// no interest to the client.
-	info.nativeFormats.push_back(audio::format_float);
+	info.nativeFormats.pushBack(audio::format_float);
 	// ------------------------------------------------
 	// Determine the default channel.
 	// ------------------------------------------------
@@ -692,19 +692,19 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 		AudioStreamBasicDescription	testDescription = description;
 		uint32_t formatFlags;
 		// We'll try higher bit rates first and then work our way down.
-		std::vector< std::pair<uint32_t, uint32_t>	> physicalFormats;
+		etk::Vector< etk::Pair<uint32_t, uint32_t>	> physicalFormats;
 		formatFlags = (description.mFormatFlags | kLinearPCMFormatFlagIsFloat) & ~kLinearPCMFormatFlagIsSignedInteger;
-		physicalFormats.push_back(std::pair<float, uint32_t>(32, formatFlags));
+		physicalFormats.pushBack(etk::Pair<float, uint32_t>(32, formatFlags));
 		formatFlags = (description.mFormatFlags | kLinearPCMFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked) & ~kLinearPCMFormatFlagIsFloat;
-		physicalFormats.push_back(std::pair<float, uint32_t>(32, formatFlags));
-		physicalFormats.push_back(std::pair<float, uint32_t>(24, formatFlags));	 // 24-bit packed
+		physicalFormats.pushBack(etk::Pair<float, uint32_t>(32, formatFlags));
+		physicalFormats.pushBack(etk::Pair<float, uint32_t>(24, formatFlags));	 // 24-bit packed
 		formatFlags &= ~(kAudioFormatFlagIsPacked | kAudioFormatFlagIsAlignedHigh);
-		physicalFormats.push_back(std::pair<float, uint32_t>(24.2, formatFlags)); // 24-bit in 4 bytes, aligned low
+		physicalFormats.pushBack(etk::Pair<float, uint32_t>(24.2, formatFlags)); // 24-bit in 4 bytes, aligned low
 		formatFlags |= kAudioFormatFlagIsAlignedHigh;
-		physicalFormats.push_back(std::pair<float, uint32_t>(24.4, formatFlags)); // 24-bit in 4 bytes, aligned high
+		physicalFormats.pushBack(etk::Pair<float, uint32_t>(24.4, formatFlags)); // 24-bit in 4 bytes, aligned high
 		formatFlags = (description.mFormatFlags | kLinearPCMFormatFlagIsSignedInteger | kAudioFormatFlagIsPacked) & ~kLinearPCMFormatFlagIsFloat;
-		physicalFormats.push_back(std::pair<float, uint32_t>(16, formatFlags));
-		physicalFormats.push_back(std::pair<float, uint32_t>(8, formatFlags));
+		physicalFormats.pushBack(etk::Pair<float, uint32_t>(16, formatFlags));
+		physicalFormats.pushBack(etk::Pair<float, uint32_t>(8, formatFlags));
 		bool setPhysicalFormat = false;
 		for(uint32_t i=0; i<physicalFormats.size(); i++) {
 			testDescription = description;
@@ -1048,15 +1048,15 @@ bool audio::orchestra::api::Core::callbackEvent(AudioDeviceID _deviceId,
 	// draining stream or duplex mode AND the input/output devices are
 	// different AND this function is called for the input device.
 	if (m_private->drainCounter == 0 && (m_mode != audio::orchestra::mode_duplex || _deviceId == outputDevice)) {
-		std::vector<enum audio::orchestra::status> status;
+		etk::Vector<enum audio::orchestra::status> status;
 		if (    m_mode != audio::orchestra::mode_input
 		     && m_private->xrun[0] == true) {
-			status.push_back(audio::orchestra::status::underflow);
+			status.pushBack(audio::orchestra::status::underflow);
 			m_private->xrun[0] = false;
 		}
 		if (    m_mode != audio::orchestra::mode_output
 		     && m_private->xrun[1] == true) {
-			status.push_back(audio::orchestra::status::overflow);
+			status.pushBack(audio::orchestra::status::overflow);
 			m_private->xrun[1] = false;
 		}
 		int32_t cbReturnValue = m_callback(&m_userBuffer[1][0],
