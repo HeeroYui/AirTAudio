@@ -6,7 +6,7 @@
 
 #include <jni.h>
 #include <pthread.h>
-#include <mutex>
+#include <ethread/Mutex.hpp>
 #include <audio/orchestra/debug.hpp>
 #include <audio/orchestra/error.hpp>
 #include <audio/orchestra/api/AndroidNativeInterface.hpp>
@@ -461,7 +461,7 @@ extern "C" {
 	void Java_org_musicdsp_orchestra_OrchestraNative_NNsetJavaManager(JNIEnv* _env,
 	                                                                  jclass _classBase,
 	                                                                  jobject _objCallback) {
-		std::unique_lock<std::mutex> lock(jvm_basics::getMutexJavaVM());
+		std::unique_lock<ethread::Mutex> lock(jvm_basics::getMutexJavaVM());
 		ATA_INFO("*******************************************");
 		ATA_INFO("** Creating Orchestra context            **");
 		ATA_INFO("*******************************************");
@@ -477,7 +477,7 @@ extern "C" {
 	}
 	
 	void Java_org_musicdsp_orchestra_OrchestraNative_NNsetJavaManagerRemove(JNIEnv* _env, jclass _cls) {
-		std::unique_lock<std::mutex> lock(jvm_basics::getMutexJavaVM());
+		std::unique_lock<ethread::Mutex> lock(jvm_basics::getMutexJavaVM());
 		ATA_INFO("*******************************************");
 		ATA_INFO("** remove Orchestra Pointer              **");
 		ATA_INFO("*******************************************");
@@ -495,7 +495,7 @@ extern "C" {
 	                                                            jint _id,
 	                                                            jshortArray _location,
 	                                                            jint _nbChunk) {
-		std::unique_lock<std::mutex> lock(jvm_basics::getMutexJavaVM());
+		std::unique_lock<ethread::Mutex> lock(jvm_basics::getMutexJavaVM());
 		if (s_localContext == nullptr) {
 			ATA_ERROR("Call audio with no more Low level interface");
 			return;
@@ -518,7 +518,7 @@ extern "C" {
 	                                                          jint _id,
 	                                                          jshortArray _location,
 	                                                          jint _nbChunk) {
-		std::unique_lock<std::mutex> lock(jvm_basics::getMutexJavaVM());
+		std::unique_lock<ethread::Mutex> lock(jvm_basics::getMutexJavaVM());
 		if (s_localContext == nullptr) {
 			ATA_ERROR("Call audio with no more Low level interface");
 			return;

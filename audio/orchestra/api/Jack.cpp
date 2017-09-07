@@ -243,7 +243,7 @@ void audio::orchestra::api::Jack::jackShutdown(void* _userData) {
 	if (myClass->isStreamRunning() == false) {
 		return;
 	}
-	new std::thread(&audio::orchestra::api::Jack::jackCloseStream, _userData);
+	new ethread::Thread(&audio::orchestra::api::Jack::jackCloseStream, _userData);
 	ATA_ERROR("The Jack server is shutting down this client ... stream stopped and closed!!");
 }
 
@@ -597,7 +597,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::stopStream() {
 	     || m_mode == audio::orchestra::mode_duplex) {
 		if (m_private->drainCounter == 0) {
 			m_private->drainCounter = 2;
-			std::unique_lock<std::mutex> lck(m_mutex);
+			std::unique_lock<ethread::Mutex> lck(m_mutex);
 			m_private->condition.wait(lck);
 		}
 	}
@@ -646,7 +646,7 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 	if (m_private->drainCounter > 3) {
 		m_state = audio::orchestra::state::stopping;
 		if (m_private->internalDrain == true) {
-			new std::thread(jackStopStream, this);
+			new ethread::Thread(jackStopStream, this);
 		} else {
 			m_private->condition.notify_one();
 		}
@@ -673,7 +673,7 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 		if (cbReturnValue == 2) {
 			m_state = audio::orchestra::state::stopping;
 			m_private->drainCounter = 2;
-			new std::thread(jackStopStream, this);
+			new ethread::Thread(jackStopStream, this);
 			return true;
 		}
 		else if (cbReturnValue == 1) {

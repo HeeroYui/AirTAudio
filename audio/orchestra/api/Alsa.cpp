@@ -41,7 +41,7 @@ namespace audio {
 					bool xrun[2];
 					std::condition_variable runnable_cv;
 					bool runnable;
-					std::thread* thread;
+					ethread::Thread* thread;
 					bool threadRunning;
 					bool mmapInterface; //!< enable or disable mmap mode...
 					enum timestampMode timeMode; //!< the timestamp of the flow came from the harware.
@@ -803,7 +803,7 @@ bool audio::orchestra::api::Alsa::openName(const etk::String& _deviceName,
 	// Setup callback thread.
 	m_private->threadRunning = true;
 	ATA_INFO("create thread ...");
-	m_private->thread = new std::thread(&audio::orchestra::api::Alsa::alsaCallbackEvent, this);
+	m_private->thread = new ethread::Thread(&audio::orchestra::api::Alsa::alsaCallbackEvent, this);
 	if (m_private->thread == nullptr) {
 		m_private->threadRunning = false;
 		ATA_ERROR("creating callback thread!");
@@ -875,7 +875,7 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::startStream() {
 		ATA_ERROR("the stream is already running!");
 		return audio::orchestra::error_warning;
 	}
-	std::unique_lock<std::mutex> lck(m_mutex);
+	std::unique_lock<ethread::Mutex> lck(m_mutex);
 	int32_t result = 0;
 	snd_pcm_state_t state;
 	if (m_private->handle == nullptr) {
@@ -909,7 +909,7 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::stopStream() {
 		return audio::orchestra::error_warning;
 	}
 	m_state = audio::orchestra::state::stopped;
-	std::unique_lock<std::mutex> lck(m_mutex);
+	std::unique_lock<ethread::Mutex> lck(m_mutex);
 	int32_t result = 0;
 	if (m_mode == audio::orchestra::mode_output) {
 		result = snd_pcm_drain(m_private->handle);
@@ -936,7 +936,7 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::abortStream() {
 		return audio::orchestra::error_warning;
 	}
 	m_state = audio::orchestra::state::stopped;
-	std::unique_lock<std::mutex> lck(m_mutex);
+	std::unique_lock<ethread::Mutex> lck(m_mutex);
 	int32_t result = 0;
 	result = snd_pcm_drop(m_private->handle);
 	if (result < 0) {
@@ -979,7 +979,7 @@ static int32_t wait_for_poll(snd_pcm_t* _handle, struct pollfd* _ufds, unsigned 
 void audio::orchestra::api::Alsa::callbackEvent() {
 	// Lock while the system is not started ...
 	if (m_state == audio::orchestra::state::stopped) {
-		std::unique_lock<std::mutex> lck(m_mutex);
+		std::unique_lock<ethread::Mutex> lck(m_mutex);
 		while (!m_private->runnable) {
 			m_private->runnable_cv.wait(lck);
 		}
@@ -1121,7 +1121,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleRead() {
 		// !!! goto unlock;
 	}
 	
-	std::unique_lock<std::mutex> lck(m_mutex);
+	std::unique_lock<ethread::Mutex> lck(m_mutex);
 	// Setup parameters.
 	if (m_doConvertBuffer[1]) {
 		buffer = m_deviceBuffer;
@@ -1258,7 +1258,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleWrite() {
 		abortStream();
 		return;
 	}
-	std::unique_lock<std::mutex> lck(m_mutex);
+	std::unique_lock<ethread::Mutex> lck(m_mutex);
 	// Setup parameters and do buffer conversion if necessary.
 	if (m_doConvertBuffer[0]) {
 		buffer = m_deviceBuffer;
@@ -1365,7 +1365,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
 		return;
 	}
 	{
-		std::unique_lock<std::mutex> lck(m_mutex);
+		std::unique_lock<ethread::Mutex> lck(m_mutex);
 		// Setup parameters and do buffer conversion if necessary.
 		if (m_doConvertBuffer[0]) {
 			buffer = m_deviceBuffer;
@@ -1474,7 +1474,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPRead() {
 		goto unlock;
 	}
 	{
-		std::unique_lock<std::mutex> lck(m_mutex);
+		std::unique_lock<ethread::Mutex> lck(m_mutex);
 		// Setup parameters.
 		if (m_doConvertBuffer[1]) {
 			buffer = m_deviceBuffer;

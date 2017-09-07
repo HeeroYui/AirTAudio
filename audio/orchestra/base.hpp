@@ -6,9 +6,9 @@
  */
 #pragma once
 
-#include <thread>
+#include <ethread/Thread.hpp>
 #include <condition_variable>
-#include <mutex>
+#include <ethread/Mutex.hpp>
 #include <chrono>
 #include <functional>
 #include <ememory/memory.hpp>

@@ -16,7 +16,7 @@
 
 #include <audio/orchestra/Interface.hpp>
 #include <audio/orchestra/debug.hpp>
-#include <thread>
+#include <ethread/Thread.hpp>
 #include <ethread/tools.hpp>
 #include <audio/orchestra/api/Core.hpp>
 
@@ -967,7 +967,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::stopStream() {
 	if (    m_mode == audio::orchestra::mode_output
 	     || m_mode == audio::orchestra::mode_duplex) {
 		if (m_private->drainCounter == 0) {
-			std::unique_lock<std::mutex> lck(m_mutex);
+			std::unique_lock<ethread::Mutex> lck(m_mutex);
 			m_private->drainCounter = 2;
 			m_private->condition.wait(lck);
 		}
@@ -1036,7 +1036,7 @@ bool audio::orchestra::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		m_state = audio::orchestra::state::stopping;
 		ATA_VERBOSE("Set state as stopping");
 		if (m_private->internalDrain == true) {
-			new std::thread(&audio::orchestra::api::Core::coreStopStream, this);
+			new ethread::Thread(&audio::orchestra::api::Core::coreStopStream, this);
 		} else {
 			// external call to stopStream()
 			m_private->condition.notify_one();

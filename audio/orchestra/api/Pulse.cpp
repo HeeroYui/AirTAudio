@@ -53,7 +53,7 @@ namespace audio {
 			class PulsePrivate {
 				public:
 					pa_simple* handle;
-					ememory::SharedPtr<std::thread> thread;
+					ememory::SharedPtr<ethread::Thread> thread;
 					bool threadRunning;
 					std::condition_variable runnable_cv;
 					bool runnable;
@@ -131,7 +131,7 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::closeStream() {
 
 void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 	if (m_state == audio::orchestra::state::stopped) {
-		std::unique_lock<std::mutex> lck(m_mutex);
+		std::unique_lock<ethread::Mutex> lck(m_mutex);
 		while (!m_private->runnable) {
 			m_private->runnable_cv.wait(lck);
 		}
@@ -393,7 +393,7 @@ bool audio::orchestra::api::Pulse::open(uint32_t _device,
 	}
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
-		m_private->thread = ememory::makeShared<std::thread>(&pulseaudio_callback, this);
+		m_private->thread = ememory::makeShared<ethread::Thread>(&pulseaudio_callback, this);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating thread.");
 			goto error;
