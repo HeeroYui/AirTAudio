@@ -378,10 +378,10 @@ bool audio::orchestra::api::Asio::open(uint32_t _device,
 				log2_of_max_size = i;
 			}
 		}
-		long min_delta = std::abs((long)*_bufferSize - ((long)1 << log2_of_min_size));
+		long min_delta = etk::abs((long)*_bufferSize - ((long)1 << log2_of_min_size));
 		int32_t min_delta_num = log2_of_min_size;
 		for (int32_t i = log2_of_min_size + 1; i <= log2_of_max_size; i++) {
-			long current_delta = std::abs((long)*_bufferSize - ((long)1 << i));
+			long current_delta = etk::abs((long)*_bufferSize - ((long)1 << i));
 			if (current_delta < min_delta) {
 				min_delta = current_delta;
 				min_delta_num = i;

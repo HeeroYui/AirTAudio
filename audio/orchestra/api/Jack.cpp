@@ -597,7 +597,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::stopStream() {
 	     || m_mode == audio::orchestra::mode_duplex) {
 		if (m_private->drainCounter == 0) {
 			m_private->drainCounter = 2;
-			std::unique_lock<ethread::Mutex> lck(m_mutex);
+			ethread::UniqueLock lck(m_mutex);
 			m_private->condition.wait(lck);
 		}
 	}

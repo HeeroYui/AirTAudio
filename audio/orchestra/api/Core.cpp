@@ -635,7 +635,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 			if (microCounter > 5000000) {
 				break;
 			}
-			std::this_thread::sleep_for(std::chrono::milliseconds(5));
+			ethread::sleepMilliSeconds((5));
 		}
 		// Remove the property listener.
 		AudioObjectRemovePropertyListener(id, &tmp, &rateListener, (void *) &reportedRate);
@@ -967,7 +967,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::stopStream() {
 	if (    m_mode == audio::orchestra::mode_output
 	     || m_mode == audio::orchestra::mode_duplex) {
 		if (m_private->drainCounter == 0) {
-			std::unique_lock<ethread::Mutex> lck(m_mutex);
+			ethread::UniqueLock lck(m_mutex);
 			m_private->drainCounter = 2;
 			m_private->condition.wait(lck);
 		}

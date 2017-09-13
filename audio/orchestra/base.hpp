@@ -10,7 +10,7 @@
 #include <condition_variable>
 #include <ethread/Mutex.hpp>
 #include <chrono>
-#include <functional>
+#include <etk/Function.hpp>
 #include <ememory/memory.hpp>
 #include <audio/channel.hpp>
 #include <audio/format.hpp>

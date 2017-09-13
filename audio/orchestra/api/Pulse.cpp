@@ -131,7 +131,7 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::closeStream() {
 
 void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 	if (m_state == audio::orchestra::state::stopped) {
-		std::unique_lock<ethread::Mutex> lck(m_mutex);
+		ethread::UniqueLock lck(m_mutex);
 		while (!m_private->runnable) {
 			m_private->runnable_cv.wait(lck);
 		}
