@@ -8,7 +8,6 @@
 //#include <etk/types.hpp>
 #include <audio/orchestra/Interface.hpp>
 #include <audio/orchestra/debug.hpp>
-#include <iostream>
 #include <audio/orchestra/api/Alsa.hpp>
 #include <audio/orchestra/api/Android.hpp>
 #include <audio/orchestra/api/Asio.hpp>

@@ -48,8 +48,6 @@ namespace audio {
 					void callbackEventOneCycleMMAPRead();
 					void callbackEventOneCycleMMAPWrite();
 				private:
-					static void alsaCallbackEvent(void* _userData);
-				private:
 					ememory::SharedPtr<AlsaPrivate> m_private;
 					etk::Vector<audio::orchestra::DeviceInfo> m_devices;
 					void saveDeviceInfo();

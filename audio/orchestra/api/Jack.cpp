@@ -7,12 +7,12 @@
 
 // must run before :          
 #if defined(ORCHESTRA_BUILD_JACK)
-
-#include <climits>
-#include <iostream>
+extern "C" {
+	#include <limits.h>
+	#include <string.h>
+}
 #include <audio/orchestra/Interface.hpp>
 #include <audio/orchestra/debug.hpp>
-#include <cstring>
 #include <ethread/tools.hpp>
 #include <audio/orchestra/api/Jack.hpp>
 
@@ -52,9 +52,9 @@ ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Jack::create() 
 // stream cannot be opened.
 
 #include <jack/jack.h>
-
-#include <cstdio>
-
+extern "C" {
+#include <stdio.h>
+}
 
 namespace audio {
 	namespace orchestra {
@@ -65,7 +65,7 @@ namespace audio {
 					jack_port_t **ports[2];
 					etk::String deviceName[2];
 					bool xrun[2];
-					std::condition_variable condition;
+					ethread::Semaphore m_semaphore;
 					int32_t drainCounter; // Tracks callback counts when draining
 					bool internalDrain; // Indicates if stop is initiated from callback or not.
 					
@@ -113,7 +113,7 @@ uint32_t audio::orchestra::api::Jack::getDeviceCount() {
 			port = (char *) ports[ nChannels ];
 			iColon = port.find(":");
 			if (iColon != etk::String::npos) {
-				port = port.substr(0, iColon + 1);
+				port = port.extract(0, iColon + 1);
 				if (port != previousPort) {
 					nDevices++;
 					previousPort = port;
@@ -121,6 +121,7 @@ uint32_t audio::orchestra::api::Jack::getDeviceCount() {
 			}
 		} while (ports[++nChannels]);
 		free(ports);
+		ports = nullptr;
 	}
 	jack_client_close(client);
 	return nDevices*2;
@@ -150,7 +151,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 			port = (char *) ports[nPorts];
 			iColon = port.find(":");
 			if (iColon != etk::String::npos) {
-				port = port.substr(0, iColon);
+				port = port.extract(0, iColon);
 				if (port != previousPort) {
 					if (nDevices == deviceID) {
 						info.name = port;
@@ -223,15 +224,6 @@ int32_t audio::orchestra::api::Jack::jackCallbackHandler(jack_nframes_t _nframes
 	return 0;
 }
 
-// This function will be called by a spawned thread when the Jack
-// server signals that it is shutting down.	It is necessary to handle
-// it this way because the jackShutdown() function must return before
-// the jack_deactivate() function (in closeStream()) will return.
-void audio::orchestra::api::Jack::jackCloseStream(void* _userData) {
-	ethread::setName("Jack_closeStream");
-	audio::orchestra::api::Jack* myClass = reinterpret_cast<audio::orchestra::api::Jack*>(_userData);
-	myClass->closeStream();
-}
 
 void audio::orchestra::api::Jack::jackShutdown(void* _userData) {
 	audio::orchestra::api::Jack* myClass = reinterpret_cast<audio::orchestra::api::Jack*>(_userData);
@@ -243,7 +235,7 @@ void audio::orchestra::api::Jack::jackShutdown(void* _userData) {
 	if (myClass->isStreamRunning() == false) {
 		return;
 	}
-	new ethread::Thread(&audio::orchestra::api::Jack::jackCloseStream, _userData);
+	new ethread::Thread([=](){myClass->closeStream();});
 	ATA_ERROR("The Jack server is shutting down this client ... stream stopped and closed!!");
 }
 
@@ -273,7 +265,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 	          && m_mode != audio::orchestra::mode_output)) {
 		jack_options_t jackoptions = (jack_options_t) (JackNoStartServer); //JackNullOption;
 		jack_status_t *status = nullptr;
-		if (!_options.streamName.empty()) {
+		if (_options.streamName.size() != 0) {
 			client = jack_client_open(_options.streamName.c_str(), jackoptions, status);
 		} else {
 			client = jack_client_open("orchestraJack", jackoptions, status);
@@ -299,7 +291,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 			port = (char *) ports[ nPorts ];
 			iColon = port.find(":");
 			if (iColon != etk::String::npos) {
-				port = port.substr(0, iColon);
+				port = port.extract(0, iColon);
 				if (port != previousPort) {
 					if (nDevices == deviceID) {
 						deviceName = port;
@@ -597,8 +589,7 @@ enum audio::orchestra::error audio::orchestra::api::Jack::stopStream() {
 	     || m_mode == audio::orchestra::mode_duplex) {
 		if (m_private->drainCounter == 0) {
 			m_private->drainCounter = 2;
-			ethread::UniqueLock lck(m_mutex);
-			m_private->condition.wait(lck);
+			m_private->m_semaphore.wait();
 		}
 	}
 	jack_deactivate(m_private->client);
@@ -618,17 +609,6 @@ enum audio::orchestra::error audio::orchestra::api::Jack::abortStream() {
 	return stopStream();
 }
 
-// This function will be called by a spawned thread when the user
-// callback function signals that the stream should be stopped or
-// aborted.	It is necessary to handle it this way because the
-// callbackEvent() function must return before the jack_deactivate()
-// function will return.
-static void jackStopStream(void* _userData) {
-	ethread::setName("Jack_stopStream");
-	audio::orchestra::api::Jack* myClass = reinterpret_cast<audio::orchestra::api::Jack*>(_userData);
-	myClass->stopStream();
-}
-
 bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 	if (    m_state == audio::orchestra::state::stopped
 	     || m_state == audio::orchestra::state::stopping) {
@@ -646,9 +626,9 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 	if (m_private->drainCounter > 3) {
 		m_state = audio::orchestra::state::stopping;
 		if (m_private->internalDrain == true) {
-			new ethread::Thread(jackStopStream, this);
+			new ethread::Thread([&](){stopStream();}, "Jack_stopStream");
 		} else {
-			m_private->condition.notify_one();
+			m_private->m_semaphore.post();
 		}
 		return true;
 	}
@@ -673,7 +653,7 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 		if (cbReturnValue == 2) {
 			m_state = audio::orchestra::state::stopping;
 			m_private->drainCounter = 2;
-			new ethread::Thread(jackStopStream, this);
+			new ethread::Thread([&](){stopStream();}, "Jack_stopStream2");
 			return true;
 		}
 		else if (cbReturnValue == 1) {

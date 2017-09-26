@@ -7,10 +7,6 @@
 
 #include <audio/orchestra/type.hpp>
 #include <audio/orchestra/debug.hpp>
-#include <iostream>
-#include <cstdlib>
-#include <cstring>
-#include <climits>
 
 const etk::String audio::orchestra::typeUndefined = "undefined";
 const etk::String audio::orchestra::typeAlsa = "alsa";

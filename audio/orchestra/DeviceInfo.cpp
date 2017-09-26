@@ -9,7 +9,6 @@
 #include <audio/orchestra/debug.hpp>
 #include <audio/orchestra/DeviceInfo.hpp>
 #include <etk/stdTools.hpp>
-#include <iostream>
 
 void audio::orchestra::DeviceInfo::display(int32_t _tabNumber) const {
 	etk::String space;

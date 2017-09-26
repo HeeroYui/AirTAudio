@@ -7,9 +7,9 @@
 #pragma once
 
 #include <ethread/Thread.hpp>
-#include <condition_variable>
+#include <ethread/Semaphore.hpp>
 #include <ethread/Mutex.hpp>
-#include <chrono>
+#include <echrono/Steady.hpp>
 #include <etk/Function.hpp>
 #include <ememory/memory.hpp>
 #include <audio/channel.hpp>

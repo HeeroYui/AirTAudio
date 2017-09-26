@@ -8,13 +8,14 @@
 
 #if defined(ORCHESTRA_BUILD_PULSE)
 
-
-#include <climits>
+extern "C" {
+	#include <limits.h>
+	#include <stdio.h>
+}
 #include <audio/orchestra/Interface.hpp>
 #include <audio/orchestra/debug.hpp>
 #include <pulse/error.h>
 #include <pulse/simple.h>
-#include <cstdio>
 #include <ethread/tools.hpp>
 #include <audio/orchestra/api/PulseDeviceList.hpp>
 #include <audio/orchestra/api/Pulse.hpp>
@@ -55,7 +56,7 @@ namespace audio {
 					pa_simple* handle;
 					ememory::SharedPtr<ethread::Thread> thread;
 					bool threadRunning;
-					std::condition_variable runnable_cv;
+					ethread::Semaphore m_semaphore;
 					bool runnable;
 					PulsePrivate() :
 					  handle(0),
@@ -96,10 +97,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Pulse::getDeviceInfo(uint32_
 	return list[_device];
 }
 
-static void pulseaudio_callback(void* _userData) {
-	audio::orchestra::api::Pulse* myClass = reinterpret_cast<audio::orchestra::api::Pulse*>(_userData);
-	myClass->callbackEvent();
-}
+
 
 void audio::orchestra::api::Pulse::callbackEvent() {
 	ethread::setName("Pulse IO-" + m_name);
@@ -113,9 +111,9 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::closeStream() {
 	m_mutex.lock();
 	if (m_state == audio::orchestra::state::stopped) {
 		m_private->runnable = true;
-		m_private->runnable_cv.notify_one();;
+		m_private->m_semaphore.post();;
 	}
-	m_mutex.unlock();
+	m_mutex.unLock();
 	m_private->thread->join();
 	if (m_mode == audio::orchestra::mode_output) {
 		pa_simple_flush(m_private->handle, nullptr);
@@ -131,12 +129,11 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::closeStream() {
 
 void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 	if (m_state == audio::orchestra::state::stopped) {
-		ethread::UniqueLock lck(m_mutex);
 		while (!m_private->runnable) {
-			m_private->runnable_cv.wait(lck);
+			m_private->m_semaphore.wait();
 		}
 		if (m_state != audio::orchestra::state::running) {
-			m_mutex.unlock();
+			m_mutex.unLock();
 			return;
 		}
 	}
@@ -160,7 +157,7 @@ void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 	void *pulse_in = m_doConvertBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)] ? m_deviceBuffer : &m_userBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)][0];
 	void *pulse_out = m_doConvertBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_output)] ? m_deviceBuffer : &m_userBuffer[audio::orchestra::modeToIdTable(audio::orchestra::mode_output)][0];
 	if (m_state != audio::orchestra::state::running) {
-		goto unlock;
+		goto unLock;
 	}
 	int32_t pa_error;
 	size_t bytes;
@@ -194,8 +191,8 @@ void audio::orchestra::api::Pulse::callbackEventOneCycle() {
 			              m_convertInfo[audio::orchestra::modeToIdTable(audio::orchestra::mode_input)]);
 		}
 	}
-unlock:
-	m_mutex.unlock();
+unLock:
+	m_mutex.unLock();
 	audio::orchestra::Api::tickStreamTime();
 	if (doStopStream == 1) {
 		stopStream();
@@ -218,8 +215,8 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::startStream() {
 	m_mutex.lock();
 	m_state = audio::orchestra::state::running;
 	m_private->runnable = true;
-	m_private->runnable_cv.notify_one();
-	m_mutex.unlock();
+	m_private->m_semaphore.post();
+	m_mutex.unLock();
 	return audio::orchestra::error_none;
 }
 
@@ -240,12 +237,12 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::stopStream() {
 		int32_t pa_error;
 		if (pa_simple_drain(m_private->handle, &pa_error) < 0) {
 			ATA_ERROR("error draining output device, " << pa_strerror(pa_error) << ".");
-			m_mutex.unlock();
+			m_mutex.unLock();
 			return audio::orchestra::error_systemError;
 		}
 	}
 	m_state = audio::orchestra::state::stopped;
-	m_mutex.unlock();
+	m_mutex.unLock();
 	return audio::orchestra::error_none;
 }
 
@@ -266,12 +263,12 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::abortStream() {
 		int32_t pa_error;
 		if (pa_simple_flush(m_private->handle, &pa_error) < 0) {
 			ATA_ERROR("error flushing output device, " << pa_strerror(pa_error) << ".");
-			m_mutex.unlock();
+			m_mutex.unLock();
 			return audio::orchestra::error_systemError;
 		}
 	}
 	m_state = audio::orchestra::state::stopped;
-	m_mutex.unlock();
+	m_mutex.unLock();
 	return audio::orchestra::error_none;
 }
 
@@ -393,7 +390,7 @@ bool audio::orchestra::api::Pulse::open(uint32_t _device,
 	}
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
-		m_private->thread = ememory::makeShared<ethread::Thread>(&pulseaudio_callback, this);
+		m_private->thread = ememory::makeShared<ethread::Thread>([&](){callbackEvent();}, "pulseCallback");
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating thread.");
 			goto error;

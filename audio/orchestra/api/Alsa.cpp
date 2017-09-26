@@ -14,19 +14,19 @@
 #include <audio/orchestra/debug.hpp>
 #include <etk/stdTools.hpp>
 #include <ethread/tools.hpp>
-#include <climits>
 #include <audio/orchestra/api/Alsa.hpp>
 extern "C" {
-#include <sched.h>
-#include <getopt.h>
-#include <sys/time.h>
-#include <poll.h>
+	#include <sched.h>
+	#include <getopt.h>
+	#include <sys/time.h>
+	#include <poll.h>
+	#include <errno.h>
+	#include <stdio.h>
+	#include <stdlib.h>
+	#include <string.h>
+	#include <math.h>
+	#include <limits.h>
 }
-#include <cerrno>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <cmath>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Alsa::create() {
 	return ememory::SharedPtr<audio::orchestra::api::Alsa>(new audio::orchestra::api::Alsa());
@@ -39,7 +39,7 @@ namespace audio {
 				public:
 					snd_pcm_t *handle;
 					bool xrun[2];
-					std::condition_variable runnable_cv;
+					ethread::Semaphore m_semaphore;
 					bool runnable;
 					ethread::Thread* thread;
 					bool threadRunning;
@@ -194,11 +194,9 @@ bool audio::orchestra::api::Alsa::getNamedDeviceInfoLocal(const etk::String& _de
 	}
 	// Test our discrete set of sample rate values.
 	_info.sampleRates.clear();
-	for (etk::Vector<uint32_t>::const_iterator it(audio::orchestra::genericSampleRate().begin()); 
-	     it != audio::orchestra::genericSampleRate().end();
-	     ++it ) {
-		if (snd_pcm_hw_params_test_rate(phandle, params, *it, 0) == 0) {
-			_info.sampleRates.pushBack(*it);
+	for (auto &it: audio::orchestra::genericSampleRate()) {
+		if (snd_pcm_hw_params_test_rate(phandle, params, it, 0) == 0) {
+			_info.sampleRates.pushBack(it);
 		}
 	}
 	if (_info.sampleRates.size() == 0) {
@@ -803,7 +801,7 @@ bool audio::orchestra::api::Alsa::openName(const etk::String& _deviceName,
 	// Setup callback thread.
 	m_private->threadRunning = true;
 	ATA_INFO("create thread ...");
-	m_private->thread = new ethread::Thread(&audio::orchestra::api::Alsa::alsaCallbackEvent, this);
+	m_private->thread = new ethread::Thread([=]() {callbackEvent();});
 	if (m_private->thread == nullptr) {
 		m_private->threadRunning = false;
 		ATA_ERROR("creating callback thread!");
@@ -836,9 +834,9 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::closeStream() {
 	m_mutex.lock();
 	if (m_state == audio::orchestra::state::stopped) {
 		m_private->runnable = true;
-		m_private->runnable_cv.notify_one();
+		m_private->m_semaphore.post();
 	}
-	m_mutex.unlock();
+	m_mutex.unLock();
 	if (m_private->thread != nullptr) {
 		m_private->thread->join();
 		m_private->thread = nullptr;
@@ -865,23 +863,29 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::closeStream() {
 }
 
 enum audio::orchestra::error audio::orchestra::api::Alsa::startStream() {
+	ATA_DEBUG("Start stream (DEGIN)");
 	// TODO : Check return ...
 	//audio::orchestra::Api::startStream();
 	// This method calls snd_pcm_prepare if the device isn't already in that state.
 	if (verifyStream() != audio::orchestra::error_none) {
+		ATA_WARNING("the stream not prepared!");
 		return audio::orchestra::error_fail;
 	}
 	if (m_state == audio::orchestra::state::running) {
 		ATA_ERROR("the stream is already running!");
 		return audio::orchestra::error_warning;
 	}
+	ATA_DEBUG("Lock");
 	ethread::UniqueLock lck(m_mutex);
+	ATA_DEBUG("Lock (done)");
 	int32_t result = 0;
 	snd_pcm_state_t state;
 	if (m_private->handle == nullptr) {
 		ATA_ERROR("send nullptr to alsa ...");
 	}
+	ATA_DEBUG("snd_pcm_state");
 	state = snd_pcm_state(m_private->handle);
+	ATA_DEBUG("snd_pcm_state (done)");
 	if (state != SND_PCM_STATE_PREPARED) {
 		ATA_ERROR("prepare stream");
 		result = snd_pcm_prepare(m_private->handle);
@@ -893,10 +897,12 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::startStream() {
 	m_state = audio::orchestra::state::running;
 unlock:
 	m_private->runnable = true;
-	m_private->runnable_cv.notify_one();
+	m_private->m_semaphore.post();
 	if (result >= 0) {
+		ATA_DEBUG("Start stream (END2)");
 		return audio::orchestra::error_none;
 	}
+	ATA_DEBUG("Start stream (END)");
 	return audio::orchestra::error_systemError;
 }
 
@@ -950,12 +956,6 @@ unlock:
 	return audio::orchestra::error_systemError;
 }
 
-
-void audio::orchestra::api::Alsa::alsaCallbackEvent(void *_userData) {
-	audio::orchestra::api::Alsa* myClass = reinterpret_cast<audio::orchestra::api::Alsa*>(_userData);
-	myClass->callbackEvent();
-}
-
 /**
  * @briefTransfer method - write and wait for room in buffer using poll
  */
@@ -979,9 +979,8 @@ static int32_t wait_for_poll(snd_pcm_t* _handle, struct pollfd* _ufds, unsigned 
 void audio::orchestra::api::Alsa::callbackEvent() {
 	// Lock while the system is not started ...
 	if (m_state == audio::orchestra::state::stopped) {
-		ethread::UniqueLock lck(m_mutex);
 		while (!m_private->runnable) {
-			m_private->runnable_cv.wait(lck);
+			m_private->m_semaphore.wait();
 		}
 		if (m_state != audio::orchestra::state::running) {
 			return;
@@ -1055,7 +1054,7 @@ audio::Time audio::orchestra::api::Alsa::getStreamTime() {
 		ATA_VERBOSE("snd_pcm_status_get_htstamp : " << m_startTime);
 		snd_pcm_sframes_t delay = snd_pcm_status_get_delay(status);
 		audio::Duration timeDelay = audio::Duration(0, delay*1000000000LL/int64_t(m_sampleRate));
-		ATA_VERBOSE("delay : " << timeDelay.count() << " ns");
+		ATA_VERBOSE("delay : " << timeDelay);
 		//return m_startTime + m_duration;
 		if (m_mode == audio::orchestra::mode_output) {
 			// output
@@ -1201,7 +1200,7 @@ noInput:
 		audio::Duration timeDelay(0, m_bufferSize*1000000000LL/int64_t(m_sampleRate));
 		audio::Duration timeProcess = stopCall - startCall;
 		if (timeDelay <= timeProcess) {
-			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay.count() << " < " << timeProcess.count() << " (process time) ns");
+			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay << " < " << timeProcess << " (process time)");
 		}
 	}
 	if (doStopStream == 2) {
@@ -1251,7 +1250,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleWrite() {
 		audio::Duration timeDelay(0, m_bufferSize*1000000000LL/int64_t(m_sampleRate));
 		audio::Duration timeProcess = stopCall - startCall;
 		if (timeDelay <= timeProcess) {
-			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay.count() << " < " << timeProcess.count() << " (process time) ns");
+			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay << " < " << timeProcess << " (process time)");
 		}
 	}
 	if (doStopStream == 2) {
@@ -1357,7 +1356,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
 		audio::Duration timeDelay(0, m_bufferSize*1000000000LL/int64_t(m_sampleRate));
 		audio::Duration timeProcess = stopCall - startCall;
 		if (timeDelay <= timeProcess) {
-			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay.count() << " < " << timeProcess.count() << " (process time) ns");
+			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay << " < " << timeProcess << " (process time)");
 		}
 	}
 	if (doStopStream == 2) {
@@ -1557,7 +1556,7 @@ noInput:
 		audio::Duration timeDelay(0, m_bufferSize*1000000000LL/int64_t(m_sampleRate));
 		audio::Duration timeProcess = stopCall - startCall;
 		if (timeDelay <= timeProcess) {
-			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay.count() << " < " << timeProcess.count() << " (process time) ns");
+			ATA_ERROR("SOFT XRUN ... : (bufferTime) " << timeDelay << " < " << timeProcess << " (process time) ns");
 		}
 	}
 	if (doStopStream == 2) {

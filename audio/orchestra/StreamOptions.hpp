@@ -7,6 +7,7 @@
 #pragma once
 
 #include <audio/orchestra/Flags.hpp>
+#include <etk/String.hpp>
 
 namespace audio {
 	namespace orchestra {

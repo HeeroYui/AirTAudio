@@ -36,7 +36,6 @@ namespace audio {
 					bool callbackEvent(uint64_t _nframes);
 				private:
 					static int32_t jackXrun(void* _userData);
-					static void jackCloseStream(void* _userData);
 					static void jackShutdown(void* _userData);
 					static int32_t jackCallbackHandler(jack_nframes_t _nframes, void* _userData);
 				private:

@@ -7,6 +7,7 @@
 #pragma once
 
 #include <etk/types.hpp>
+#include <etk/Stream.hpp>
 
 namespace audio {
 	namespace orchestra {

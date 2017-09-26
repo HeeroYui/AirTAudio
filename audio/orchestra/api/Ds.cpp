@@ -23,11 +23,10 @@ ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Ds::create() {
 // - Auto-call CoInitialize for DSOUND and ASIO platforms.
 // Various revisions for RtAudio 4.0 by Gary Scavone, April 2007
 // Changed device query structure for RtAudio 4.0.7, January 2010
-
-#include <dsound.h>
-#include <cassert>
-#include <algorithm>
-
+extern "C" {
+	#include <dsound.h>
+	#include <assert.h>
+}
 #if defined(__MINGW32__)
 	// missing from latest mingw winapi
 #define WAVE_FORMAT_96M08 0x00010000 /* 96 kHz, Mono, 8-bit */
@@ -377,7 +376,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 				info.sampleRates.pushBack(rates[i]);
 			}
 		}
-		std::sort(info.sampleRates.begin(), info.sampleRates.end());
+		info.sampleRates.sort(0, info.sampleRates.size(), [](const uint32_t& _left, const uint32_t& _right) { return _left < _right;});
 		// Copy name and return.
 		info.name = m_private->dsDevices[_device].name;
 		info.isCorrect = true;
@@ -762,7 +761,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 	// Setup the callback thread.
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
-		ememory::SharedPtr<ethread::Thread> tmpThread(new std::thread(&audio::orchestra::api::Ds::dsCallbackEvent, this));
+		ememory::SharedPtr<ethread::Thread> tmpThread(new ethread::Thread([=](){audio::orchestra::api::Ds::dsCallbackEvent();});
 		m_private->thread =	etk::move(tmpThread);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating callback thread!");
@@ -1154,7 +1153,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 			// safeWritePointer and leadPointer.	If leadPointer is not
 			// beyond the next endWrite position, wait until it is.
 			leadPointer = safeWritePointer + m_private->dsPointerLeadTime[0];
-			//std::cout << "safeWritePointer = " << safeWritePointer << ", leadPointer = " << leadPointer << ", nextWritePointer = " << nextWritePointer << std::endl;
+			//ATA_DEBUG("safeWritePointer = " << safeWritePointer << ", leadPointer = " << leadPointer << ", nextWritePointer = " << nextWritePointer);
 			if (leadPointer > dsBufferSize) {
 				leadPointer -= dsBufferSize;
 			}

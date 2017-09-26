@@ -32,12 +32,13 @@ ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Asio::create() 
 // on information found in
 // http://www.cs.wustl.edu/~schmidt/win32-cv-1.html.
 
-#include "asiosys.h"
-#include "asio.h"
-#include "iasiothiscallresolver.h"
-#include "asiodrivers.h"
-#include <cmath>
-
+extern "C" {
+	#include "asiosys.h"
+	#include "asio.h"
+	#include "iasiothiscallresolver.h"
+	#include "asiodrivers.h"
+	#include <math.h>
+}
 static AsioDrivers drivers;
 static ASIOCallbacks asioCallbacks;
 static ASIODriverInfo driverInfo;

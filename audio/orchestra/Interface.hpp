@@ -8,6 +8,7 @@
 
 #include <etk/String.hpp>
 #include <etk/Vector.hpp>
+#include <etk/Pair.hpp>
 #include <audio/orchestra/base.hpp>
 #include <audio/orchestra/CallbackInfo.hpp>
 #include <audio/orchestra/Api.hpp>
@@ -183,12 +184,12 @@ namespace audio {
 				 *           when an error has occured.
 				 */
 				enum audio::orchestra::error openStream(audio::orchestra::StreamParameters *_outputParameters,
-				                                 audio::orchestra::StreamParameters *_inputParameters,
-				                                 enum audio::format _format,
-				                                 uint32_t _sampleRate,
-				                                 uint32_t* _bufferFrames,
-				                                 audio::orchestra::AirTAudioCallback _callback,
-				                                 const audio::orchestra::StreamOptions& _options = audio::orchestra::StreamOptions());
+				                                        audio::orchestra::StreamParameters *_inputParameters,
+				                                        enum audio::format _format,
+				                                        uint32_t _sampleRate,
+				                                        uint32_t* _bufferFrames,
+				                                        audio::orchestra::AirTAudioCallback _callback,
+				                                        const audio::orchestra::StreamOptions& _options = audio::orchestra::StreamOptions());
 				
 				/**
 				 * @brief A function that closes a stream and frees any associated stream memory.

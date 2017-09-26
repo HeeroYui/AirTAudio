@@ -6,7 +6,7 @@
  */
 #pragma once
 
-#include <sstream>
+#include <etk/Stream.hpp>
 #include <audio/orchestra/debug.hpp>
 #include <audio/orchestra/type.hpp>
 #include <audio/orchestra/state.hpp>
@@ -33,11 +33,11 @@ namespace audio {
 		 * @param _status List of error that occured in the laps of time.
 		 */
 		typedef etk::Function<int32_t (const void* _inputBuffer,
-		                                 const audio::Time& _timeInput,
-		                                 void* _outputBuffer,
-		                                 const audio::Time& _timeOutput,
-		                                 uint32_t _nbChunk,
-		                                 const etk::Vector<audio::orchestra::status>& _status)> AirTAudioCallback;
+		                               const audio::Time& _timeInput,
+		                               void* _outputBuffer,
+		                               const audio::Time& _timeOutput,
+		                               uint32_t _nbChunk,
+		                               const etk::Vector<audio::orchestra::status>& _status)> AirTAudioCallback;
 		// A protected structure used for buffer conversion.
 		class ConvertInfo {
 			public:

@@ -6,9 +6,10 @@
  */
 
 #if defined(ORCHESTRA_BUILD_PULSE)
-
-#include <cstdio>
-#include <cstring>
+extern "C" {
+	#include <stdio.h>
+	#include <string.h>
+}
 #include <pulse/pulseaudio.h>
 #include <audio/orchestra/api/PulseDeviceList.hpp>
 #include <audio/orchestra/debug.hpp>

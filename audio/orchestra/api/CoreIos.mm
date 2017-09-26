@@ -13,7 +13,9 @@
 
 #include <audio/orchestra/Interface.hpp>
 #include <audio/orchestra/debug.hpp>
-#include <climits>
+extern "C" {
+	#include <limits.h>
+}
 #include <audio/orchestra/api/CoreIos.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::CoreIos::create() {
@@ -132,7 +134,7 @@ void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
                                                    int32_t _nbChunk,
                                                    const audio::Time& _time) {
 	int32_t doStopStream = 0;
-	std::vector<enum audio::orchestra::status> status;
+	etk::Vector<enum audio::orchestra::status> status;
 	if (    m_mode == audio::orchestra::mode_output
 	     || m_mode == audio::orchestra::mode_duplex) {
 		if (m_doConvertBuffer[modeToIdTable(audio::orchestra::mode_output)] == true) {

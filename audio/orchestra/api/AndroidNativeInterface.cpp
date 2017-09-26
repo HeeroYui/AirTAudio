@@ -4,8 +4,10 @@
  * @license APACHE v2.0 (see license file)
  */
 
-#include <jni.h>
-#include <pthread.h>
+extern "C" {
+	#include <jni.h>
+	#include <pthread.h>
+}
 #include <ethread/Mutex.hpp>
 #include <audio/orchestra/debug.hpp>
 #include <audio/orchestra/error.hpp>

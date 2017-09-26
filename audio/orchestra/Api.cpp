@@ -8,10 +8,7 @@
 //#include <etk/types.hpp>
 #include <audio/orchestra/Interface.hpp>
 #include <audio/orchestra/debug.hpp>
-#include <iostream>
-#include <cstdlib>
-#include <cstring>
-#include <climits>
+#include <etk/types.hpp>
 
 // Static variable definitions.
 const etk::Vector<uint32_t>& audio::orchestra::genericSampleRate() {
@@ -55,7 +52,7 @@ audio::orchestra::Api::~Api() {
 enum audio::orchestra::error audio::orchestra::Api::startStream() {
 	ATA_VERBOSE("Start Stream");
 	m_startTime = audio::Time::now();
-	m_duration = std::chrono::microseconds(0);
+	m_duration = echrono::microseconds(0);
 	return audio::orchestra::error_none;
 }
 

@@ -16,8 +16,8 @@ int main(int _argc, const char **_argv) {
 		etk::String data = _argv[iii];
 		if (    data == "-h"
 		     || data == "--help") {
-			std::cout << "Help : " << std::endl;
-			std::cout << "    ./xxx ---" << std::endl;
+			TEST_PRINT("Help : ");
+			TEST_PRINT("    ./xxx ---");
 			exit(0);
 		}
 	}

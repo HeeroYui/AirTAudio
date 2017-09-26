@@ -37,7 +37,7 @@ namespace audio {
 					uint32_t nStreams[2]; // number of streams to use
 					bool xrun[2];
 					char *deviceBuffer;
-					std::condition_variable condition;
+					ethread::Semaphore m_semaphore;
 					int32_t drainCounter; // Tracks callback counts when draining
 					bool internalDrain; // Indicates if stop is initiated from callback or not.
 					CorePrivate() :
@@ -680,11 +680,11 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting stream physical format for device (" << _device << ").");
 		return false;
 	}
-	//std::cout << "Current physical stream format:" << std::endl;
-	//std::cout << "	 mBitsPerChan = " << description.mBitsPerChannel << std::endl;
-	//std::cout << "	 aligned high = " << (description.mFormatFlags & kAudioFormatFlagIsAlignedHigh) << ", isPacked = " << (description.mFormatFlags & kAudioFormatFlagIsPacked) << std::endl;
-	//std::cout << "	 bytesPerFrame = " << description.mBytesPerFrame << std::endl;
-	//std::cout << "	 sample rate = " << description.mSampleRate << std::endl;
+	//ATA_DEBUG("Current physical stream format:");
+	//ATA_DEBUG("	 mBitsPerChan = " << description.mBitsPerChannel);
+	//ATA_DEBUG("	 aligned high = " << (description.mFormatFlags & kAudioFormatFlagIsAlignedHigh) << ", isPacked = " << (description.mFormatFlags & kAudioFormatFlagIsPacked));
+	//ATA_DEBUG("	 bytesPerFrame = " << description.mBytesPerFrame);
+	//ATA_DEBUG("	 sample rate = " << description.mSampleRate);
 	if (    description.mFormatID != kAudioFormatLinearPCM
 	     || description.mBitsPerChannel < 16) {
 		description.mFormatID = kAudioFormatLinearPCM;
@@ -720,11 +720,11 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 			result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &testDescription);
 			if (result == noErr) {
 				setPhysicalFormat = true;
-				//std::cout << "Updated physical stream format:" << std::endl;
-				//std::cout << "	 mBitsPerChan = " << testDescription.mBitsPerChannel << std::endl;
-				//std::cout << "	 aligned high = " << (testDescription.mFormatFlags & kAudioFormatFlagIsAlignedHigh) << ", isPacked = " << (testDescription.mFormatFlags & kAudioFormatFlagIsPacked) << std::endl;
-				//std::cout << "	 bytesPerFrame = " << testDescription.mBytesPerFrame << std::endl;
-				//std::cout << "	 sample rate = " << testDescription.mSampleRate << std::endl;
+				//ATA_DEBUG("Updated physical stream format:");
+				//ATA_DEBUG("	 mBitsPerChan = " << testDescription.mBitsPerChannel);
+				//ATA_DEBUG("	 aligned high = " << (testDescription.mFormatFlags & kAudioFormatFlagIsAlignedHigh) << ", isPacked = " << (testDescription.mFormatFlags & kAudioFormatFlagIsPacked));
+				//ATA_DEBUG("	 bytesPerFrame = " << testDescription.mBytesPerFrame);
+				//ATA_DEBUG("	 sample rate = " << testDescription.mSampleRate);
 				break;
 			}
 		}
@@ -969,7 +969,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::stopStream() {
 		if (m_private->drainCounter == 0) {
 			ethread::UniqueLock lck(m_mutex);
 			m_private->drainCounter = 2;
-			m_private->condition.wait(lck);
+			m_private->m_semaphore.wait();
 		}
 		result = AudioDeviceStop(m_private->id[0], &audio::orchestra::api::Core::callbackEvent);
 		if (result != noErr) {
@@ -1039,7 +1039,7 @@ bool audio::orchestra::api::Core::callbackEvent(AudioDeviceID _deviceId,
 			new ethread::Thread(&audio::orchestra::api::Core::coreStopStream, this);
 		} else {
 			// external call to stopStream()
-			m_private->condition.notify_one();
+			m_private->m_semaphore.post();
 		}
 		return true;
 	}
