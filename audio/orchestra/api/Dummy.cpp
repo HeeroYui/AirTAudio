@@ -10,7 +10,7 @@
 #include <audio/orchestra/debug.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Dummy::create() {
-	return ememory::SharedPtr<audio::orchestra::api::Dummy>(new audio::orchestra::api::Dummy());
+	return ememory::SharedPtr<audio::orchestra::api::Dummy>(ETK_NEW(audio::orchestra::api::Dummy));
 }
 
 

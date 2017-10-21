@@ -19,7 +19,7 @@ extern "C" {
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Android::create() {
 	ATA_INFO("Create Android device ... ");
-	return ememory::SharedPtr<audio::orchestra::api::Android>(new audio::orchestra::api::Android());
+	return ememory::SharedPtr<audio::orchestra::api::Android>(ETK_NEW(audio::orchestra::api::Android));
 }
 
 

@@ -20,7 +20,7 @@ extern "C" {
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::CoreIos::create() {
 	ATA_INFO("Create CoreIos device ... ");
-	return ememory::SharedPtr<audio::orchestra::api::CoreIos>(new audio::orchestra::api::CoreIos());
+	return ememory::SharedPtr<audio::orchestra::api::CoreIos>(ETK_NEW(audio::orchestra::api::CoreIos));
 }
 
 #define kOutputBus 0
@@ -40,7 +40,7 @@ namespace audio {
 
 
 audio::orchestra::api::CoreIos::CoreIos() :
-  m_private(new audio::orchestra::api::CoreIosPrivate()) {
+  m_private(ETK_NEW(audio::orchestra::api::CoreIosPrivate)) {
 	ATA_INFO("new CoreIos");
 	int32_t deviceCount = 2;
 	ATA_ERROR("Get count devices : " << 2);

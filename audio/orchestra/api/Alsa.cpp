@@ -29,7 +29,7 @@ extern "C" {
 }
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Alsa::create() {
-	return ememory::SharedPtr<audio::orchestra::api::Alsa>(new audio::orchestra::api::Alsa());
+	return ememory::SharedPtr<audio::orchestra::api::Alsa>(ETK_NEW(audio::orchestra::api::Alsa));
 }
 
 namespace audio {
@@ -801,7 +801,7 @@ bool audio::orchestra::api::Alsa::openName(const etk::String& _deviceName,
 	// Setup callback thread.
 	m_private->threadRunning = true;
 	ATA_INFO("create thread ...");
-	m_private->thread = new ethread::Thread([=]() {callbackEvent();});
+	m_private->thread = ETK_NEW(ethread::Thread, [=]() {callbackEvent();});
 	if (m_private->thread == nullptr) {
 		m_private->threadRunning = false;
 		ATA_ERROR("creating callback thread!");

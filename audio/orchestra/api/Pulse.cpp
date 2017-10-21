@@ -21,7 +21,7 @@ extern "C" {
 #include <audio/orchestra/api/Pulse.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Pulse::create() {
-	return ememory::SharedPtr<audio::orchestra::api::Pulse>(new audio::orchestra::api::Pulse());
+	return ememory::SharedPtr<audio::orchestra::api::Pulse>(ETK_NEW(audio::orchestra::api::Pulse));
 }
 
 
@@ -69,7 +69,7 @@ namespace audio {
 	}
 }
 audio::orchestra::api::Pulse::Pulse() :
-  m_private(new audio::orchestra::api::PulsePrivate()) {
+  m_private(ETK_NEW(audio::orchestra::api::PulsePrivate)) {
 	
 }
 

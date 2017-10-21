@@ -12,7 +12,7 @@
 #include <audio/orchestra/debug.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Asio::create() {
-	return ememory::SharedPtr<audio::orchestra::api::Asio>(new audio::orchestra::api::Asio());
+	return ememory::SharedPtr<audio::orchestra::api::Asio>(ETK_NEW(audio::orchestra::api::Asio));
 }
 
 
@@ -71,7 +71,7 @@ static void sampleRateChanged(ASIOSampleRate _sRate);
 static long asioMessages(long _selector, long _value, void* _message, double* _opt);
 
 audio::orchestra::api::Asio::Asio() :
-  m_private(new audio::orchestra::api::AsioPrivate()) {
+  m_private(ETK_NEW(audio::orchestra::api::AsioPrivate)) {
 	// ASIO cannot run on a multi-threaded appartment. You can call
 	// CoInitialize beforehand, but it must be for appartment threading
 	// (in which case, CoInitilialize will return S_FALSE here).

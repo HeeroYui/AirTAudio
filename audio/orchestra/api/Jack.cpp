@@ -17,7 +17,7 @@ extern "C" {
 #include <audio/orchestra/api/Jack.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Jack::create() {
-	return ememory::SharedPtr<audio::orchestra::api::Jack>(new audio::orchestra::api::Jack());
+	return ememory::SharedPtr<audio::orchestra::api::Jack>(ETK_NEW(audio::orchestra::api::Jack));
 }
 
 
@@ -84,7 +84,7 @@ namespace audio {
 }
 
 audio::orchestra::api::Jack::Jack() :
-  m_private(new audio::orchestra::api::JackPrivate()) {
+  m_private(ETK_NEW(audio::orchestra::api::JackPrivate)) {
 	// Nothing to do here.
 }
 
@@ -235,7 +235,7 @@ void audio::orchestra::api::Jack::jackShutdown(void* _userData) {
 	if (myClass->isStreamRunning() == false) {
 		return;
 	}
-	new ethread::Thread([=](){myClass->closeStream();});
+	ETK_NEW(ethread::Thread, [=](){myClass->closeStream();});
 	ATA_ERROR("The Jack server is shutting down this client ... stream stopped and closed!!");
 }
 
@@ -626,7 +626,7 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 	if (m_private->drainCounter > 3) {
 		m_state = audio::orchestra::state::stopping;
 		if (m_private->internalDrain == true) {
-			new ethread::Thread([&](){stopStream();}, "Jack_stopStream");
+			ETK_NEW(ethread::Thread, [&](){stopStream();}, "Jack_stopStream");
 		} else {
 			m_private->m_semaphore.post();
 		}
@@ -653,7 +653,7 @@ bool audio::orchestra::api::Jack::callbackEvent(uint64_t _nframes) {
 		if (cbReturnValue == 2) {
 			m_state = audio::orchestra::state::stopping;
 			m_private->drainCounter = 2;
-			new ethread::Thread([&](){stopStream();}, "Jack_stopStream2");
+			ETK_NEW(ethread::Thread, [&](){stopStream();}, "Jack_stopStream2");
 			return true;
 		}
 		else if (cbReturnValue == 1) {

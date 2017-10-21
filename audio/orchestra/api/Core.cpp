@@ -21,7 +21,7 @@
 #include <audio/orchestra/api/Core.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Core::create() {
-	return ememory::SharedPtr<audio::orchestra::api::Core>(new audio::orchestra::api::Core());
+	return ememory::SharedPtr<audio::orchestra::api::Core>(ETK_NEW(audio::orchestra::api::Core));
 }
 
 namespace audio {
@@ -57,7 +57,7 @@ namespace audio {
 }
 
 audio::orchestra::api::Core::Core() :
-  m_private(new audio::orchestra::api::CorePrivate()) {
+  m_private(ETK_NEW(audio::orchestra::api::CorePrivate)) {
 #if defined(AVAILABLE_MAC_OS_X_VERSION_10_6_AND_LATER)
 	// This is a largely undocumented but absolutely necessary
 	// requirement starting with OS-X 10.6.	If not called, queries and
@@ -1036,7 +1036,7 @@ bool audio::orchestra::api::Core::callbackEvent(AudioDeviceID _deviceId,
 		m_state = audio::orchestra::state::stopping;
 		ATA_VERBOSE("Set state as stopping");
 		if (m_private->internalDrain == true) {
-			new ethread::Thread(&audio::orchestra::api::Core::coreStopStream, this);
+			ETK_NEW(ethread::Thread, &audio::orchestra::api::Core::coreStopStream, this);
 		} else {
 			// external call to stopStream()
 			m_private->m_semaphore.post();

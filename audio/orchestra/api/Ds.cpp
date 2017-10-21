@@ -13,7 +13,7 @@
 #include <audio/orchestra/api/Ds.hpp>
 
 ememory::SharedPtr<audio::orchestra::Api> audio::orchestra::api::Ds::create() {
-	return ememory::SharedPtr<audio::orchestra::api::Ds>(new audio::orchestra::api::Ds());
+	return ememory::SharedPtr<audio::orchestra::api::Ds>(ETK_NEW(audio::orchestra::api::Ds));
 }
 
 
@@ -110,7 +110,7 @@ struct DsProbeData {
 };
 
 audio::orchestra::api::Ds::Ds() :
-  m_private(new audio::orchestra::api::DsPrivate()) {
+  m_private(ETK_NEW(audio::orchestra::api::DsPrivate)) {
 	// Dsound will run both-threaded. If CoInitialize fails, then just
 	// accept whatever the mainline chose for a threading model.
 	m_coInitialized = false;
@@ -761,7 +761,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 	// Setup the callback thread.
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
-		ememory::SharedPtr<ethread::Thread> tmpThread(new ethread::Thread([=](){audio::orchestra::api::Ds::dsCallbackEvent();});
+		ememory::SharedPtr<ethread::Thread> tmpThread(ETK_NEW(ethread::Thread, [=](){audio::orchestra::api::Ds::dsCallbackEvent();});
 		m_private->thread =	etk::move(tmpThread);
 		if (m_private->thread == nullptr) {
 			ATA_ERROR("error creating callback thread!");
