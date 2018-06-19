@@ -97,15 +97,15 @@ audio::orchestra::api::Jack::~Jack() {
 uint32_t audio::orchestra::api::Jack::getDeviceCount() {
 	// See if we can become a jack client.
 	jack_options_t options = (jack_options_t) (JackNoStartServer); //JackNullOption;
-	jack_status_t *status = nullptr;
+	jack_status_t *status = null;
 	jack_client_t *client = jack_client_open("orchestraJackCount", options, status);
-	if (client == nullptr) {
+	if (client == null) {
 		return 0;
 	}
 	const char **ports;
 	etk::String port, previousPort;
 	uint32_t nChannels = 0, nDevices = 0;
-	ports = jack_get_ports(client, nullptr, nullptr, 0);
+	ports = jack_get_ports(client, null, null, 0);
 	if (ports) {
 		// Parse the port names up to the first colon (:).
 		size_t iColon = 0;
@@ -121,7 +121,7 @@ uint32_t audio::orchestra::api::Jack::getDeviceCount() {
 			}
 		} while (ports[++nChannels]);
 		free(ports);
-		ports = nullptr;
+		ports = null;
 	}
 	jack_client_close(client);
 	return nDevices*2;
@@ -130,9 +130,9 @@ uint32_t audio::orchestra::api::Jack::getDeviceCount() {
 audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t _device) {
 	audio::orchestra::DeviceInfo info;
 	jack_options_t options = (jack_options_t) (JackNoStartServer); //JackNullOption
-	jack_status_t *status = nullptr;
+	jack_status_t *status = null;
 	jack_client_t *client = jack_client_open("orchestraJackInfo", options, status);
-	if (client == nullptr) {
+	if (client == null) {
 		ATA_ERROR("Jack server not found or connection error!");
 		// TODO : audio::orchestra::error_warning;
 		info.clear();
@@ -141,7 +141,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 	const char **ports;
 	etk::String port, previousPort;
 	uint32_t nPorts = 0, nDevices = 0;
-	ports = jack_get_ports(client, nullptr, nullptr, 0);
+	ports = jack_get_ports(client, null, null, 0);
 	int32_t deviceID = _device/2;
 	info.input = _device%2==0?true:false; // note that jack sens are inverted
 	if (ports) {
@@ -173,7 +173,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 	info.sampleRates.clear();
 	info.sampleRates.pushBack(jack_get_sample_rate(client));
 	if (info.input == true) {
-		ports = jack_get_ports(client, info.name.c_str(), nullptr, JackPortIsOutput);
+		ports = jack_get_ports(client, info.name.c_str(), null, JackPortIsOutput);
 		if (ports) {
 			int32_t iii=0;
 			while (ports[iii]) {
@@ -184,7 +184,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Jack::getDeviceInfo(uint32_t
 			free(ports);
 		}
 	} else {
-		ports = jack_get_ports(client, info.name.c_str(), nullptr, JackPortIsInput);
+		ports = jack_get_ports(client, info.name.c_str(), null, JackPortIsInput);
 		if (ports) {
 			int32_t iii=0;
 			while (ports[iii]) {
@@ -264,7 +264,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 	     || (    _mode == audio::orchestra::mode_input
 	          && m_mode != audio::orchestra::mode_output)) {
 		jack_options_t jackoptions = (jack_options_t) (JackNoStartServer); //JackNullOption;
-		jack_status_t *status = nullptr;
+		jack_status_t *status = null;
 		if (_options.streamName.size() != 0) {
 			client = jack_client_open(_options.streamName.c_str(), jackoptions, status);
 		} else {
@@ -283,7 +283,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 	uint32_t nPorts = 0, nDevices = 0;
 	int32_t deviceID = _device/2;
 	bool isInput = _device%2==0?true:false;
-	ports = jack_get_ports(client, nullptr, nullptr, 0);
+	ports = jack_get_ports(client, null, null, 0);
 	if (ports) {
 		// Parse the port names up to the first colon (:).
 		size_t iColon = 0;
@@ -314,7 +314,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 	if (_mode == audio::orchestra::mode_input) {
 		flag = JackPortIsOutput;
 	}
-	ports = jack_get_ports(client, deviceName.c_str(), nullptr, flag);
+	ports = jack_get_ports(client, deviceName.c_str(), null, flag);
 	if (ports) {
 		while (ports[ nChannels ]) {
 			nChannels++;
@@ -335,7 +335,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 	}
 	m_sampleRate = jackRate;
 	// Get the latency of the JACK port.
-	ports = jack_get_ports(client, deviceName.c_str(), nullptr, flag);
+	ports = jack_get_ports(client, deviceName.c_str(), null, flag);
 	if (ports[ _firstChannel ]) {
 		// Added by Ge Wang
 		jack_latency_callback_mode_t cbmode = (_mode == audio::orchestra::mode_input ? JackCaptureLatency : JackPlaybackLatency);
@@ -401,7 +401,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 			bufferBytes *= *_bufferSize;
 			if (m_deviceBuffer) free(m_deviceBuffer);
 			m_deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_deviceBuffer == nullptr) {
+			if (m_deviceBuffer == null) {
 				ATA_ERROR("error allocating device buffer memory.");
 				goto error;
 			}
@@ -409,7 +409,7 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 	}
 	// Allocate memory for the Jack ports (channels) identifiers.
 	m_private->ports[modeToIdTable(_mode)] = (jack_port_t **) malloc (sizeof (jack_port_t *) * _channels);
-	if (m_private->ports[modeToIdTable(_mode)] == nullptr)	{
+	if (m_private->ports[modeToIdTable(_mode)] == null)	{
 		ATA_ERROR("error allocating port memory.");
 		goto error;
 	}
@@ -456,20 +456,20 @@ bool audio::orchestra::api::Jack::open(uint32_t _device,
 	return true;
 error:
 	jack_client_close(m_private->client);
-	if (m_private->ports[0] != nullptr) {
+	if (m_private->ports[0] != null) {
 		free(m_private->ports[0]);
-		m_private->ports[0] = nullptr;
+		m_private->ports[0] = null;
 	}
-	if (m_private->ports[1] != nullptr) {
+	if (m_private->ports[1] != null) {
 		free(m_private->ports[1]);
-		m_private->ports[1] = nullptr;
+		m_private->ports[1] = null;
 	}
 	for (int32_t iii=0; iii<2; ++iii) {
 		m_userBuffer[iii].clear();
 	}
 	if (m_deviceBuffer) {
 		free(m_deviceBuffer);
-		m_deviceBuffer = nullptr;
+		m_deviceBuffer = null;
 	}
 	return false;
 }
@@ -479,26 +479,26 @@ enum audio::orchestra::error audio::orchestra::api::Jack::closeStream() {
 		ATA_ERROR("no open stream to close!");
 		return audio::orchestra::error_warning;
 	}
-	if (m_private != nullptr) {
+	if (m_private != null) {
 		if (m_state == audio::orchestra::state::running) {
 			jack_deactivate(m_private->client);
 		}
 		jack_client_close(m_private->client);
 	}
-	if (m_private->ports[0] != nullptr) {
+	if (m_private->ports[0] != null) {
 		free(m_private->ports[0]);
-		m_private->ports[0] = nullptr;
+		m_private->ports[0] = null;
 	}
-	if (m_private->ports[1] != nullptr) {
+	if (m_private->ports[1] != null) {
 		free(m_private->ports[1]);
-		m_private->ports[1] = nullptr;
+		m_private->ports[1] = null;
 	}
 	for (int32_t i=0; i<2; i++) {
 		m_userBuffer[i].clear();
 	}
 	if (m_deviceBuffer) {
 		free(m_deviceBuffer);
-		m_deviceBuffer = nullptr;
+		m_deviceBuffer = null;
 	}
 	m_mode = audio::orchestra::mode_unknow;
 	m_state = audio::orchestra::state::closed;
@@ -525,8 +525,8 @@ enum audio::orchestra::error audio::orchestra::api::Jack::startStream() {
 	if (    m_mode == audio::orchestra::mode_output
 	     || m_mode == audio::orchestra::mode_duplex) {
 		result = 1;
-		ports = jack_get_ports(m_private->client, m_private->deviceName[0].c_str(), nullptr, JackPortIsInput);
-		if (ports == nullptr) {
+		ports = jack_get_ports(m_private->client, m_private->deviceName[0].c_str(), null, JackPortIsInput);
+		if (ports == null) {
 			ATA_ERROR("error determining available JACK input ports!");
 			goto unlock;
 		}
@@ -548,8 +548,8 @@ enum audio::orchestra::error audio::orchestra::api::Jack::startStream() {
 	if (    m_mode == audio::orchestra::mode_input
 	     || m_mode == audio::orchestra::mode_duplex) {
 		result = 1;
-		ports = jack_get_ports(m_private->client, m_private->deviceName[1].c_str(), nullptr, JackPortIsOutput);
-		if (ports == nullptr) {
+		ports = jack_get_ports(m_private->client, m_private->deviceName[1].c_str(), null, JackPortIsOutput);
+		if (ports == null) {
 			ATA_ERROR("error determining available JACK output ports!");
 			goto unlock;
 		}

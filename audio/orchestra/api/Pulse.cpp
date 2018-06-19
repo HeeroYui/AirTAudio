@@ -116,10 +116,10 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::closeStream() {
 	m_mutex.unLock();
 	m_private->thread->join();
 	if (m_mode == audio::orchestra::mode_output) {
-		pa_simple_flush(m_private->handle, nullptr);
+		pa_simple_flush(m_private->handle, null);
 	}
 	pa_simple_free(m_private->handle);
-	m_private->handle = nullptr;
+	m_private->handle = null;
 	m_userBuffer[0].clear();
 	m_userBuffer[1].clear();
 	m_state = audio::orchestra::state::closed;
@@ -231,8 +231,8 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::stopStream() {
 	}
 	m_state = audio::orchestra::state::stopped;
 	m_mutex.lock();
-	if (    m_private != nullptr
-	     && m_private->handle != nullptr
+	if (    m_private != null
+	     && m_private->handle != null
 	     && m_mode == audio::orchestra::mode_output) {
 		int32_t pa_error;
 		if (pa_simple_drain(m_private->handle, &pa_error) < 0) {
@@ -257,8 +257,8 @@ enum audio::orchestra::error audio::orchestra::api::Pulse::abortStream() {
 	}
 	m_state = audio::orchestra::state::stopped;
 	m_mutex.lock();
-	if (    m_private != nullptr
-	     && m_private->handle != nullptr
+	if (    m_private != null
+	     && m_private->handle != null
 	     && m_mode == audio::orchestra::mode_output) {
 		int32_t pa_error;
 		if (pa_simple_flush(m_private->handle, &pa_error) < 0) {
@@ -353,7 +353,7 @@ bool audio::orchestra::api::Pulse::open(uint32_t _device,
 			bufferBytes *= *_bufferSize;
 			if (m_deviceBuffer) free(m_deviceBuffer);
 			m_deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_deviceBuffer == nullptr) {
+			if (m_deviceBuffer == null) {
 				ATA_ERROR("error allocating device buffer memory.");
 				goto error;
 			}
@@ -367,15 +367,15 @@ bool audio::orchestra::api::Pulse::open(uint32_t _device,
 	int32_t error;
 	switch (_mode) {
 		case audio::orchestra::mode_input:
-			m_private->handle = pa_simple_new(nullptr, "orchestra", PA_STREAM_RECORD, nullptr, "Record", &ss, nullptr, nullptr, &error);
-			if (m_private->handle == nullptr) {
+			m_private->handle = pa_simple_new(null, "orchestra", PA_STREAM_RECORD, null, "Record", &ss, null, null, &error);
+			if (m_private->handle == null) {
 				ATA_ERROR("error connecting input to PulseAudio server.");
 				goto error;
 			}
 			break;
 		case audio::orchestra::mode_output:
-			m_private->handle = pa_simple_new(nullptr, "orchestra", PA_STREAM_PLAYBACK, nullptr, "Playback", &ss, nullptr, nullptr, &error);
-			if (m_private->handle == nullptr) {
+			m_private->handle = pa_simple_new(null, "orchestra", PA_STREAM_PLAYBACK, null, "Playback", &ss, null, null, &error);
+			if (m_private->handle == null) {
 				ATA_ERROR("error connecting output to PulseAudio server.");
 				goto error;
 			}
@@ -391,7 +391,7 @@ bool audio::orchestra::api::Pulse::open(uint32_t _device,
 	if (m_private->threadRunning == false) {
 		m_private->threadRunning = true;
 		m_private->thread = ememory::makeShared<ethread::Thread>([&](){callbackEvent();}, "pulseCallback");
-		if (m_private->thread == nullptr) {
+		if (m_private->thread == null) {
 			ATA_ERROR("error creating thread.");
 			goto error;
 		}

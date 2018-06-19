@@ -32,7 +32,7 @@ namespace audio {
 				ememory::SharedPtr<audio::orchestra::Api> m_api;
 			public:
 				void setName(const etk::String& _name) {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return;
 					}
 					m_api->setName(_name);
@@ -72,7 +72,7 @@ namespace audio {
 				 * @return the audio API specifier for the current instance of airtaudio.
 				 */
 				const etk::String& getCurrentApi() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return audio::orchestra::typeUndefined;
 					}
 					return m_api->getCurrentApi();
@@ -85,7 +85,7 @@ namespace audio {
 				 * a system error occurs during processing, a warning will be issued. 
 				 */
 				uint32_t getDeviceCount() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return 0;
 					}
 					return m_api->getDeviceCount();
@@ -102,13 +102,13 @@ namespace audio {
 				 * @return An audio::orchestra::DeviceInfo structure for a specified device number.
 				 */
 				audio::orchestra::DeviceInfo getDeviceInfo(uint32_t _device) {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return audio::orchestra::DeviceInfo();
 					}
 					return m_api->getDeviceInfo(_device);
 				}
 				audio::orchestra::DeviceInfo getDeviceInfo(const etk::String& _deviceName) {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return audio::orchestra::DeviceInfo();
 					}
 					audio::orchestra::DeviceInfo info;
@@ -125,7 +125,7 @@ namespace audio {
 				 * before attempting to open a stream.
 				 */
 				uint32_t getDefaultOutputDevice() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return 0;
 					}
 					return m_api->getDefaultOutputDevice();
@@ -140,7 +140,7 @@ namespace audio {
 				 * before attempting to open a stream.
 				 */
 				uint32_t getDefaultInputDevice() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return 0;
 					}
 					return m_api->getDefaultInputDevice();
@@ -155,12 +155,12 @@ namespace audio {
 				 * @param _outputParameters Specifies output stream parameters to use
 				 *           when opening a stream, including a device ID, number of channels,
 				 *           and starting channel number. For input-only streams, this
-				 *           argument should be nullptr. The device ID is an index value between
+				 *           argument should be null. The device ID is an index value between
 				 *           0 and getDeviceCount() - 1.
 				 * @param  _inputParameters Specifies input stream parameters to use
 				 *           when opening a stream, including a device ID, number of channels,
 				 *           and starting channel number. For output-only streams, this
-				 *           argument should be nullptr. The device ID is an index value between
+				 *           argument should be null. The device ID is an index value between
 				 *           0 and getDeviceCount() - 1.
 				 * @param  _format An audio::format specifying the desired sample data format.
 				 * @param  _sampleRate The desired sample rate (sample frames per second).
@@ -198,7 +198,7 @@ namespace audio {
 				 * returns (no exception is thrown).
 				 */
 				enum audio::orchestra::error closeStream() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return audio::orchestra::error_inputNull;
 					}
 					return m_api->closeStream();
@@ -212,7 +212,7 @@ namespace audio {
 				 * running.
 				 */
 				enum audio::orchestra::error startStream() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return audio::orchestra::error_inputNull;
 					}
 					return m_api->startStream();
@@ -226,7 +226,7 @@ namespace audio {
 				 * stopped.
 				*/
 				enum audio::orchestra::error stopStream() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return audio::orchestra::error_inputNull;
 					}
 					return m_api->stopStream();
@@ -239,7 +239,7 @@ namespace audio {
 				 * stopped.
 				 */
 				enum audio::orchestra::error abortStream() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return audio::orchestra::error_inputNull;
 					}
 					return m_api->abortStream();
@@ -248,7 +248,7 @@ namespace audio {
 				 * @return true if a stream is open and false if not.
 				 */
 				bool isStreamOpen() const {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return false;
 					}
 					return m_api->isStreamOpen();
@@ -257,7 +257,7 @@ namespace audio {
 				 * @return true if the stream is running and false if it is stopped or not open.
 				 */
 				bool isStreamRunning() const {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return false;
 					}
 					return m_api->isStreamRunning();
@@ -267,7 +267,7 @@ namespace audio {
 				 * @return the number of elapsed seconds since the stream was started.
 				 */
 				audio::Time getStreamTime() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return audio::Time();
 					}
 					return m_api->getStreamTime();
@@ -282,7 +282,7 @@ namespace audio {
 				 * @return The internal stream latency in sample frames.
 				 */
 				long getStreamLatency() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return 0;
 					}
 					return m_api->getStreamLatency();
@@ -294,7 +294,7 @@ namespace audio {
 				 * @return Returns actual sample rate in use by the stream.
 				 */
 				uint32_t getStreamSampleRate() {
-					if (m_api == nullptr) {
+					if (m_api == null) {
 						return 0;
 					}
 					return m_api->getStreamSampleRate();

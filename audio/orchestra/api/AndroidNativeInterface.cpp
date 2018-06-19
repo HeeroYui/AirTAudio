@@ -37,19 +37,19 @@ class AndroidOrchestraContext {
 	private:
 		bool safeInitMethodID(jmethodID& _mid, jclass& _cls, const char* _name, const char* _sign) {
 			_mid = m_JavaVirtualMachinePointer->GetMethodID(_cls, _name, _sign);
-			if(_mid == nullptr) {
+			if(_mid == null) {
 				ATA_ERROR("C->java : Can't find the method " << _name);
 				/* remove access on the virtual machine : */
-				m_JavaVirtualMachinePointer = nullptr;
+				m_JavaVirtualMachinePointer = null;
 				return false;
 			}
 			return true;
 		}
 		bool java_attach_current_thread(int *_rstatus) {
 			ATA_DEBUG("C->java : call java");
-			if (jvm_basics::getJavaVM() == nullptr) {
+			if (jvm_basics::getJavaVM() == null) {
 				ATA_ERROR("C->java : JVM not initialised");
-				m_JavaVirtualMachinePointer = nullptr;
+				m_JavaVirtualMachinePointer = null;
 				return false;
 			}
 			*_rstatus = jvm_basics::getJavaVM()->GetEnv((void **) &m_JavaVirtualMachinePointer, JNI_VERSION_1_6);
@@ -57,12 +57,12 @@ class AndroidOrchestraContext {
 				JavaVMAttachArgs lJavaVMAttachArgs;
 				lJavaVMAttachArgs.version = JNI_VERSION_1_6;
 				lJavaVMAttachArgs.name = "EwolNativeThread";
-				lJavaVMAttachArgs.group = nullptr; 
+				lJavaVMAttachArgs.group = null; 
 				int status = jvm_basics::getJavaVM()->AttachCurrentThread(&m_JavaVirtualMachinePointer, &lJavaVMAttachArgs);
 				jvm_basics::checkExceptionJavaVM(m_JavaVirtualMachinePointer);
 				if (status != JNI_OK) {
 					ATA_ERROR("C->java : AttachCurrentThread failed : " << status);
-					m_JavaVirtualMachinePointer = nullptr;
+					m_JavaVirtualMachinePointer = null;
 					return false;
 				}
 			}
@@ -71,13 +71,13 @@ class AndroidOrchestraContext {
 		void java_detach_current_thread(int _status) {
 			if(_status == JNI_EDETACHED) {
 				jvm_basics::getJavaVM()->DetachCurrentThread();
-				m_JavaVirtualMachinePointer = nullptr;
+				m_JavaVirtualMachinePointer = null;
 			}
 		}
 		
 	public:
 		AndroidOrchestraContext(JNIEnv* _env, jclass _classBase, jobject _objCallback) :
-		  m_JavaVirtualMachinePointer(nullptr),
+		  m_JavaVirtualMachinePointer(null),
 		  m_javaClassOrchestra(0),
 		  m_javaClassOrchestraCallback(0),
 		  m_javaObjectOrchestraCallback(0),
@@ -95,7 +95,7 @@ class AndroidOrchestraContext {
 			ATA_DEBUG("*******************************************");
 			m_JavaVirtualMachinePointer = _env;
 			// get default needed all time elements : 
-			if (m_JavaVirtualMachinePointer == nullptr) {
+			if (m_JavaVirtualMachinePointer == null) {
 				ATA_ERROR("C->java: NULLPTR jvm interface");
 				return;
 			}
@@ -104,15 +104,15 @@ class AndroidOrchestraContext {
 			if (m_javaClassOrchestra == 0) {
 				ATA_ERROR("C->java : Can't find org/musicdsp/orchestra/OrchestraNative class");
 				// remove access on the virtual machine : 
-				m_JavaVirtualMachinePointer = nullptr;
+				m_JavaVirtualMachinePointer = null;
 				return;
 			}
 			/* The object field extends Activity and implement OrchestraCallback */
 			m_javaClassOrchestraCallback = m_JavaVirtualMachinePointer->GetObjectClass(_objCallback);
-			if(m_javaClassOrchestraCallback == nullptr) {
+			if(m_javaClassOrchestraCallback == null) {
 				ATA_ERROR("C->java : Can't find org/musicdsp/orchestra/OrchestraManagerCallback class");
 				// remove access on the virtual machine : 
-				m_JavaVirtualMachinePointer = nullptr;
+				m_JavaVirtualMachinePointer = null;
 				return;
 			}
 			bool functionCallbackIsMissing = false;
@@ -185,7 +185,7 @@ class AndroidOrchestraContext {
 			
 			
 			m_javaObjectOrchestraCallback = _env->NewGlobalRef(_objCallback);
-			if (m_javaObjectOrchestraCallback == nullptr) {
+			if (m_javaObjectOrchestraCallback == null) {
 				functionCallbackIsMissing = true;
 			}
 			
@@ -193,7 +193,7 @@ class AndroidOrchestraContext {
 			if (m_javaDefaultClassString == 0) {
 				ATA_ERROR("C->java : Can't find java/lang/String" );
 				// remove access on the virtual machine : 
-				m_JavaVirtualMachinePointer = nullptr;
+				m_JavaVirtualMachinePointer = null;
 				functionCallbackIsMissing = true;
 			}
 			if (functionCallbackIsMissing == true) {
@@ -207,7 +207,7 @@ class AndroidOrchestraContext {
 		
 		void unInit(JNIEnv* _env) {
 			_env->DeleteGlobalRef(m_javaObjectOrchestraCallback);
-			m_javaObjectOrchestraCallback = nullptr;
+			m_javaObjectOrchestraCallback = null;
 		}
 		
 		uint32_t getDeviceCount() {
@@ -236,7 +236,7 @@ class AndroidOrchestraContext {
 			}
 			//Call java ...
 			jstring returnString = (jstring) m_JavaVirtualMachinePointer->CallObjectMethod(m_javaObjectOrchestraCallback, m_javaMethodOrchestraActivityAudioGetDeviceProperty, _idDevice);
-			const char *js = m_JavaVirtualMachinePointer->GetStringUTFChars(returnString, nullptr);
+			const char *js = m_JavaVirtualMachinePointer->GetStringUTFChars(returnString, null);
 			etk::String retString(js);
 			m_JavaVirtualMachinePointer->ReleaseStringUTFChars(returnString, js);
 			//m_JavaVirtualMachinePointer->DeleteLocalRef(returnString);
@@ -371,7 +371,7 @@ class AndroidOrchestraContext {
 			auto it = m_instanceList.begin();
 			while (it != m_instanceList.end()) {
 				auto elem = it->lock();
-				if (elem == nullptr) {
+				if (elem == null) {
 					it = m_instanceList.erase(it);
 					continue;
 				}
@@ -385,7 +385,7 @@ class AndroidOrchestraContext {
 			auto it = m_instanceList.begin();
 			while (it != m_instanceList.end()) {
 				auto elem = it->lock();
-				if (elem == nullptr) {
+				if (elem == null) {
 					it = m_instanceList.erase(it);
 					continue;
 				}
@@ -402,7 +402,7 @@ static int32_t s_nbContextRequested(0);
 
 
 uint32_t audio::orchestra::api::android::getDeviceCount() {
-	if (s_localContext == nullptr) {
+	if (s_localContext == null) {
 		ATA_ERROR("Have no Orchertra API instanciate in JAVA ...");
 		return 0;
 	}
@@ -410,7 +410,7 @@ uint32_t audio::orchestra::api::android::getDeviceCount() {
 }
 
 audio::orchestra::DeviceInfo audio::orchestra::api::android::getDeviceInfo(uint32_t _device) {
-	if (s_localContext == nullptr) {
+	if (s_localContext == null) {
 		return audio::orchestra::DeviceInfo();
 	}
 	return s_localContext->getDeviceInfo(_device);
@@ -425,35 +425,35 @@ int32_t audio::orchestra::api::android::open(uint32_t _device,
                                              uint32_t *_bufferSize,
                                              const audio::orchestra::StreamOptions& _options,
                                              ememory::SharedPtr<audio::orchestra::api::Android> _instance) {
-	if (s_localContext == nullptr) {
+	if (s_localContext == null) {
 		return -1;
 	}
 	return s_localContext->open(_device, _mode, _channels, _firstChannel, _sampleRate, _format, _bufferSize, _options, _instance);
 }
 
 enum audio::orchestra::error audio::orchestra::api::android::closeStream(int32_t _id) {
-	if (s_localContext == nullptr) {
+	if (s_localContext == null) {
 		return audio::orchestra::error_fail;
 	}
 	return s_localContext->closeStream(_id);
 }
 
 enum audio::orchestra::error audio::orchestra::api::android::startStream(int32_t _id) {
-	if (s_localContext == nullptr) {
+	if (s_localContext == null) {
 		return audio::orchestra::error_fail;
 	}
 	return s_localContext->startStream(_id);
 }
 
 enum audio::orchestra::error audio::orchestra::api::android::stopStream(int32_t _id) {
-	if (s_localContext == nullptr) {
+	if (s_localContext == null) {
 		return audio::orchestra::error_fail;
 	}
 	return s_localContext->stopStream(_id);
 }
 
 enum audio::orchestra::error audio::orchestra::api::android::abortStream(int32_t _id) {
-	if (s_localContext == nullptr) {
+	if (s_localContext == null) {
 		return audio::orchestra::error_fail;
 	}
 	return s_localContext->abortStream(_id);
@@ -467,11 +467,11 @@ extern "C" {
 		ATA_INFO("*******************************************");
 		ATA_INFO("** Creating Orchestra context            **");
 		ATA_INFO("*******************************************");
-		if (s_localContext != nullptr) {
+		if (s_localContext != null) {
 			s_nbContextRequested++;
 		}
 		s_localContext = ememory::makeShared<AndroidOrchestraContext>(_env, _classBase, _objCallback);
-		if (s_localContext == nullptr) {
+		if (s_localContext == null) {
 			ATA_ERROR("Can not allocate the orchestra main context instance");
 			return;
 		}
@@ -498,14 +498,14 @@ extern "C" {
 	                                                            jshortArray _location,
 	                                                            jint _nbChunk) {
 		ethread::UniqueLock lock(jvm_basics::getMutexJavaVM());
-		if (s_localContext == nullptr) {
+		if (s_localContext == null) {
 			ATA_ERROR("Call audio with no more Low level interface");
 			return;
 		}
 		// get the short* pointer from the Java array
 		jboolean isCopy;
 		jshort* dst = _env->GetShortArrayElements(_location, &isCopy);
-		if (dst != nullptr) {
+		if (dst != null) {
 			//ATA_INFO("Need audioData " << int32_t(_nbChunk));
 			s_localContext->playback(int32_t(_id), static_cast<short*>(dst), int32_t(_nbChunk));
 		}
@@ -521,14 +521,14 @@ extern "C" {
 	                                                          jshortArray _location,
 	                                                          jint _nbChunk) {
 		ethread::UniqueLock lock(jvm_basics::getMutexJavaVM());
-		if (s_localContext == nullptr) {
+		if (s_localContext == null) {
 			ATA_ERROR("Call audio with no more Low level interface");
 			return;
 		}
 		// get the short* pointer from the Java array
 		jboolean isCopy;
 		jshort* dst = _env->GetShortArrayElements(_location, &isCopy);
-		if (dst != nullptr) {
+		if (dst != null) {
 			//ATA_INFO("Need audioData " << int32_t(_nbChunk));
 			s_localContext->record(int32_t(_id), static_cast<short*>(dst), int32_t(_nbChunk));
 		}

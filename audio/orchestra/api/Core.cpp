@@ -63,7 +63,7 @@ audio::orchestra::api::Core::Core() :
 	// requirement starting with OS-X 10.6.	If not called, queries and
 	// updates to various audio device properties are not handled
 	// correctly.
-	CFRunLoopRef theRunLoop = nullptr;
+	CFRunLoopRef theRunLoop = null;
 	AudioObjectPropertyAddress property = {
 		kAudioHardwarePropertyRunLoop,
 		kAudioObjectPropertyScopeGlobal,
@@ -72,7 +72,7 @@ audio::orchestra::api::Core::Core() :
 	OSStatus result = AudioObjectSetPropertyData(kAudioObjectSystemObject,
 	                                             &property,
 	                                             0,
-	                                             nullptr,
+	                                             null,
 	                                             sizeof(CFRunLoopRef),
 	                                             &theRunLoop);
 	if (result != noErr) {
@@ -98,7 +98,7 @@ uint32_t audio::orchestra::api::Core::getDeviceCount() {
 		kAudioObjectPropertyScopeGlobal,
 		kAudioObjectPropertyElementMaster
 	};
-	OSStatus result = AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &propertyAddress, 0, nullptr, &dataSize);
+	OSStatus result = AudioObjectGetPropertyDataSize(kAudioObjectSystemObject, &propertyAddress, 0, null, &dataSize);
 	if (result != noErr) {
 		ATA_ERROR("OS-X error getting device info!");
 		return 0;
@@ -121,7 +121,7 @@ uint32_t audio::orchestra::api::Core::getDefaultInputDevice() {
 	OSStatus result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                             &property,
 	                                             0,
-	                                             nullptr,
+	                                             null,
 	                                             &dataSize,
 	                                             &id);
 	if (result != noErr) {
@@ -134,7 +134,7 @@ uint32_t audio::orchestra::api::Core::getDefaultInputDevice() {
 	result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                    &property,
 	                                    0,
-	                                    nullptr,
+	                                    null,
 	                                    &dataSize,
 	                                    (void*)&deviceList);
 	if (result != noErr) {
@@ -165,7 +165,7 @@ uint32_t audio::orchestra::api::Core::getDefaultOutputDevice() {
 	OSStatus result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                             &property,
 	                                             0,
-	                                             nullptr,
+	                                             null,
 	                                             &dataSize,
 	                                             &id);
 	if (result != noErr) {
@@ -178,7 +178,7 @@ uint32_t audio::orchestra::api::Core::getDefaultOutputDevice() {
 	result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                    &property,
 	                                    0,
-	                                    nullptr,
+	                                    null,
 	                                    &dataSize,
 	                                    (void*)&deviceList);
 	if (result != noErr) {
@@ -223,7 +223,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	OSStatus result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                             &property,
 	                                             0,
-	                                             nullptr,
+	                                             null,
 	                                             &dataSize,
 	                                             (void*)&deviceList);
 	if (result != noErr) {
@@ -239,7 +239,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	CFStringRef cfname;
 	dataSize = sizeof(CFStringRef);
 	property.mSelector = kAudioObjectPropertyManufacturer;
-	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &cfname);
+	result = AudioObjectGetPropertyData(id, &property, 0, null, &dataSize, &cfname);
 	if (result != noErr) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting device manufacturer.");
 		info.clear();
@@ -254,7 +254,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	info.name.append(": ");
 	CFRelease(cfname);
 	property.mSelector = kAudioObjectPropertyName;
-	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &cfname);
+	result = AudioObjectGetPropertyData(id, &property, 0, null, &dataSize, &cfname);
 	if (result != noErr) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting device name.");
 		info.clear();
@@ -276,9 +276,9 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	} else {
 		property.mScope = kAudioDevicePropertyScopeInput;
 	}
-	AudioBufferList	*bufferList = nullptr;
+	AudioBufferList	*bufferList = null;
 	dataSize = 0;
-	result = AudioObjectGetPropertyDataSize(id, &property, 0, nullptr, &dataSize);
+	result = AudioObjectGetPropertyDataSize(id, &property, 0, null, &dataSize);
 	if (result != noErr || dataSize == 0) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting stream configuration info for device (" << _device << ").");
 		info.clear();
@@ -286,12 +286,12 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	}
 	// Allocate the AudioBufferList.
 	bufferList = (AudioBufferList *) malloc(dataSize);
-	if (bufferList == nullptr) {
+	if (bufferList == null) {
 		ATA_ERROR("memory error allocating AudioBufferList.");
 		info.clear();
 		return info;
 	}
-	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, bufferList);
+	result = AudioObjectGetPropertyData(id, &property, 0, null, &dataSize, bufferList);
 	if (    result != noErr
 	     || dataSize == 0) {
 		free(bufferList);
@@ -316,7 +316,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	// Determine the supported sample rates.
 	// ------------------------------------------------
 	property.mSelector = kAudioDevicePropertyAvailableNominalSampleRates;
-	result = AudioObjectGetPropertyDataSize(id, &property, 0, nullptr, &dataSize);
+	result = AudioObjectGetPropertyDataSize(id, &property, 0, null, &dataSize);
 	if (    result != kAudioHardwareNoError
 	     || dataSize == 0) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting sample rate info.");
@@ -325,7 +325,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Core::getDeviceInfo(uint32_t
 	}
 	uint32_t nRanges = dataSize / sizeof(AudioValueRange);
 	AudioValueRange rangeList[ nRanges ];
-	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &rangeList);
+	result = AudioObjectGetPropertyData(id, &property, 0, null, &dataSize, &rangeList);
 	if (result != kAudioHardwareNoError) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting sample rates.");
 		info.clear();
@@ -386,10 +386,10 @@ OSStatus audio::orchestra::api::Core::callbackEvent(AudioDeviceID _inDevice,
 	audio::orchestra::api::Core* myClass = reinterpret_cast<audio::orchestra::api::Core*>(_userData);
 	audio::Time inputTime;
 	audio::Time outputTime;
-	if (_inInputTime != nullptr) {
+	if (_inInputTime != null) {
 		inputTime = audio::Time(_inInputTime->mHostTime/1000000000LL, _inInputTime->mHostTime%1000000000LL);
 	}
-	if (_inOutputTime != nullptr) {
+	if (_inOutputTime != null) {
 		outputTime = audio::Time(_inOutputTime->mHostTime/1000000000LL, _inOutputTime->mHostTime%1000000000LL);
 	}
 	if (myClass->callbackEvent(_inDevice, _inInputData, inputTime, _outOutputData, outputTime) == false) {
@@ -427,7 +427,7 @@ static OSStatus rateListener(AudioObjectID _inDevice,
 		kAudioObjectPropertyScopeGlobal,
 		kAudioObjectPropertyElementMaster
 	};
-	AudioObjectGetPropertyData(_inDevice, &property, 0, nullptr, &dataSize, rate);
+	AudioObjectGetPropertyData(_inDevice, &property, 0, null, &dataSize, rate);
 	return kAudioHardwareNoError;
 }
 
@@ -461,7 +461,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 	OSStatus result = AudioObjectGetPropertyData(kAudioObjectSystemObject,
 	                                             &property,
 	                                             0,
-	                                             nullptr,
+	                                             null,
 	                                             &dataSize,
 	                                             (void *) &deviceList);
 	if (result != noErr) {
@@ -481,7 +481,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 	AudioBufferList	*bufferList = nil;
 	dataSize = 0;
 	property.mSelector = kAudioDevicePropertyStreamConfiguration;
-	result = AudioObjectGetPropertyDataSize(id, &property, 0, nullptr, &dataSize);
+	result = AudioObjectGetPropertyDataSize(id, &property, 0, null, &dataSize);
 	if (    result != noErr
 	     || dataSize == 0) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting stream configuration info for device (" << _device << ").");
@@ -489,11 +489,11 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 	}
 	// Allocate the AudioBufferList.
 	bufferList = (AudioBufferList *) malloc(dataSize);
-	if (bufferList == nullptr) {
+	if (bufferList == null) {
 		ATA_ERROR("memory error allocating AudioBufferList.");
 		return false;
 	}
-	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, bufferList);
+	result = AudioObjectGetPropertyData(id, &property, 0, null, &dataSize, bufferList);
 	if (    result != noErr
 	     || dataSize == 0) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting stream configuration for device (" << _device << ").");
@@ -569,7 +569,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 	AudioValueRange	bufferRange;
 	dataSize = sizeof(AudioValueRange);
 	property.mSelector = kAudioDevicePropertyBufferFrameSizeRange;
-	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &bufferRange);
+	result = AudioObjectGetPropertyData(id, &property, 0, null, &dataSize, &bufferRange);
 	if (result != noErr) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting buffer size range for device (" << _device << ").");
 		return false;
@@ -587,7 +587,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 	uint32_t theSize = (uint32_t) *_bufferSize;
 	dataSize = sizeof(uint32_t);
 	property.mSelector = kAudioDevicePropertyBufferFrameSize;
-	result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &theSize);
+	result = AudioObjectSetPropertyData(id, &property, 0, null, dataSize, &theSize);
 	if (result != noErr) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") setting the buffer size for device (" << _device << ").");
 		return false;
@@ -607,7 +607,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 	double nominalRate;
 	dataSize = sizeof(double);
 	property.mSelector = kAudioDevicePropertyNominalSampleRate;
-	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &nominalRate);
+	result = AudioObjectGetPropertyData(id, &property, 0, null, &dataSize, &nominalRate);
 	if (result != noErr) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting current sample rate.");
 		return false;
@@ -623,7 +623,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 			return false;
 		}
 		nominalRate = (double) _sampleRate;
-		result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &nominalRate);
+		result = AudioObjectSetPropertyData(id, &property, 0, null, dataSize, &nominalRate);
 		if (result != noErr) {
 			ATA_ERROR("system error (" << getErrorCode(result) << ") setting sample rate for device (" << _device << ").");
 			return false;
@@ -649,7 +649,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 	AudioStreamBasicDescription	description;
 	dataSize = sizeof(AudioStreamBasicDescription);
 	property.mSelector = kAudioStreamPropertyVirtualFormat;
-	result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &description);
+	result = AudioObjectGetPropertyData(id, &property, 0, null, &dataSize, &description);
 	if (result != noErr) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting stream format for device (" << _device << ").");
 		return false;
@@ -667,7 +667,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 		updateFormat = true;
 	}
 	if (updateFormat) {
-		result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &description);
+		result = AudioObjectSetPropertyData(id, &property, 0, null, dataSize, &description);
 		if (result != noErr) {
 			ATA_ERROR("system error (" << getErrorCode(result) << ") setting sample rate or data format for device (" << _device << ").");
 			return false;
@@ -675,7 +675,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 	}
 	// Now check the physical format.
 	property.mSelector = kAudioStreamPropertyPhysicalFormat;
-	result = AudioObjectGetPropertyData(id, &property, 0, nullptr,	&dataSize, &description);
+	result = AudioObjectGetPropertyData(id, &property, 0, null,	&dataSize, &description);
 	if (result != noErr) {
 		ATA_ERROR("system error (" << getErrorCode(result) << ") getting stream physical format for device (" << _device << ").");
 		return false;
@@ -717,7 +717,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 				testDescription.mBytesPerFrame =	testDescription.mBitsPerChannel/8 * testDescription.mChannelsPerFrame;
 			}
 			testDescription.mBytesPerPacket = testDescription.mBytesPerFrame * testDescription.mFramesPerPacket;
-			result = AudioObjectSetPropertyData(id, &property, 0, nullptr, dataSize, &testDescription);
+			result = AudioObjectSetPropertyData(id, &property, 0, null, dataSize, &testDescription);
 			if (result == noErr) {
 				setPhysicalFormat = true;
 				//ATA_DEBUG("Updated physical stream format:");
@@ -738,7 +738,7 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 	dataSize = sizeof(uint32_t);
 	property.mSelector = kAudioDevicePropertyLatency;
 	if (AudioObjectHasProperty(id, &property) == true) {
-		result = AudioObjectGetPropertyData(id, &property, 0, nullptr, &dataSize, &latency);
+		result = AudioObjectGetPropertyData(id, &property, 0, null, &dataSize, &latency);
 		if (result == kAudioHardwareNoError) {
 			m_latency[ _mode ] = latency;
 		} else {
@@ -814,10 +814,10 @@ bool audio::orchestra::api::Core::open(uint32_t _device,
 			bufferBytes *= *_bufferSize;
 			if (m_deviceBuffer) {
 				free(m_deviceBuffer);
-				m_deviceBuffer = nullptr;
+				m_deviceBuffer = null;
 			}
 			m_deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_deviceBuffer == nullptr) {
+			if (m_deviceBuffer == null) {
 				ATA_ERROR("error allocating device buffer memory.");
 				goto error;
 			}
@@ -908,7 +908,7 @@ enum audio::orchestra::error audio::orchestra::api::Core::closeStream() {
 	m_userBuffer[1].clear();
 	if (m_deviceBuffer) {
 		free(m_deviceBuffer);
-		m_deviceBuffer = nullptr;
+		m_deviceBuffer = null;
 	}
 	m_mode = audio::orchestra::mode_unknow;
 	m_state = audio::orchestra::state::closed;

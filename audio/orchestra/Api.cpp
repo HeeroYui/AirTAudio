@@ -37,8 +37,8 @@ const etk::Vector<uint32_t>& audio::orchestra::genericSampleRate() {
 
 
 audio::orchestra::Api::Api() :
-  m_callback(nullptr),
-  m_deviceBuffer(nullptr) {
+  m_callback(null),
+  m_deviceBuffer(null) {
 	m_device[0] = 11111;
 	m_device[1] = 11111;
 	m_state = audio::orchestra::state::closed;
@@ -67,19 +67,19 @@ enum audio::orchestra::error audio::orchestra::Api::openStream(audio::orchestra:
 		ATA_ERROR("a stream is already open!");
 		return audio::orchestra::error_invalidUse;
 	}
-	if (    _oParams != nullptr
+	if (    _oParams != null
 	     && _oParams->nChannels < 1) {
-		ATA_ERROR("a non-nullptr output StreamParameters structure cannot have an nChannels value less than one.");
+		ATA_ERROR("a non-null output StreamParameters structure cannot have an nChannels value less than one.");
 		return audio::orchestra::error_invalidUse;
 	}
-	if (    _iParams != nullptr
+	if (    _iParams != null
 	     && _iParams->nChannels < 1) {
-		ATA_ERROR("a non-nullptr input StreamParameters structure cannot have an nChannels value less than one.");
+		ATA_ERROR("a non-null input StreamParameters structure cannot have an nChannels value less than one.");
 		return audio::orchestra::error_invalidUse;
 	}
-	if (    _oParams == nullptr
-	     && _iParams == nullptr) {
-		ATA_ERROR("input and output StreamParameters structures are both nullptr!");
+	if (    _oParams == null
+	     && _iParams == null) {
+		ATA_ERROR("input and output StreamParameters structures are both null!");
 		return audio::orchestra::error_invalidUse;
 	}
 	if (audio::getFormatBytes(_format) == 0) {
@@ -88,7 +88,7 @@ enum audio::orchestra::error audio::orchestra::Api::openStream(audio::orchestra:
 	}
 	uint32_t nDevices = getDeviceCount();
 	uint32_t oChannels = 0;
-	if (_oParams != nullptr) {
+	if (_oParams != null) {
 		oChannels = _oParams->nChannels;
 		if (    _oParams->deviceId >= nDevices
 		     && _oParams->deviceName == "") {
@@ -97,7 +97,7 @@ enum audio::orchestra::error audio::orchestra::Api::openStream(audio::orchestra:
 		}
 	}
 	uint32_t iChannels = 0;
-	if (_iParams != nullptr) {
+	if (_iParams != null) {
 		iChannels = _iParams->nChannels;
 		if (    _iParams->deviceId >= nDevices
 		     && _iParams->deviceName == "") {
@@ -247,8 +247,8 @@ void audio::orchestra::Api::clearStreamInfo() {
 	m_userFormat = audio::format_unknow;
 	m_startTime = audio::Time();
 	m_duration = audio::Duration(0);
-	m_deviceBuffer = nullptr;
-	m_callback = nullptr;
+	m_deviceBuffer = null;
+	m_callback = null;
 	for (int32_t iii=0; iii<2; ++iii) {
 		m_device[iii] = 11111;
 		m_doConvertBuffer[iii] = false;

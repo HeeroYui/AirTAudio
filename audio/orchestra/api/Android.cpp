@@ -71,7 +71,7 @@ enum audio::orchestra::error audio::orchestra::api::Android::abortStream() {
 
 void audio::orchestra::api::Android::playback(int16_t* _dst, int32_t _nbChunk) {
 	// clear output buffer:
-	if (_dst != nullptr) {
+	if (_dst != null) {
 		memset(_dst, 0, _nbChunk*audio::getFormatBytes(m_deviceFormat[modeToIdTable(m_mode)])*m_nDeviceChannels[modeToIdTable(m_mode)]);
 	}
 	int32_t doStopStream = 0;
@@ -79,7 +79,7 @@ void audio::orchestra::api::Android::playback(int16_t* _dst, int32_t _nbChunk) {
 	etk::Vector<enum audio::orchestra::status> status;
 	if (m_doConvertBuffer[modeToIdTable(m_mode)] == true) {
 		ATA_VERBOSE("Need playback data " << int32_t(_nbChunk) << " userbuffer size = " << m_userBuffer[audio::orchestra::mode_output].size() << "pointer=" << int64_t(&m_userBuffer[audio::orchestra::mode_output][0]));
-		doStopStream = m_callback(nullptr,
+		doStopStream = m_callback(null,
 		                          audio::Time(),
 		                          &m_userBuffer[m_mode][0],
 		                          streamTime,
@@ -88,7 +88,7 @@ void audio::orchestra::api::Android::playback(int16_t* _dst, int32_t _nbChunk) {
 		convertBuffer((char*)_dst, (char*)&m_userBuffer[audio::orchestra::mode_output][0], m_convertInfo[audio::orchestra::mode_output]);
 	} else {
 		ATA_VERBOSE("Need playback data " << int32_t(_nbChunk) << " pointer=" << int64_t(_dst));
-		doStopStream = m_callback(nullptr,
+		doStopStream = m_callback(null,
 		                          audio::Time(),
 		                          _dst,
 		                          streamTime,
@@ -112,7 +112,7 @@ void audio::orchestra::api::Android::record(int16_t* _dst, int32_t _nbChunk) {
 		convertBuffer((char*)&m_userBuffer[audio::orchestra::mode_input][0], (char*)_dst, m_convertInfo[audio::orchestra::mode_input]);
 		doStopStream = m_callback(&m_userBuffer[m_mode][0],
 		                          streamTime,
-		                          nullptr,
+		                          null,
 		                          audio::Time(),
 		                          uint32_t(_nbChunk),
 		                          status);
@@ -120,7 +120,7 @@ void audio::orchestra::api::Android::record(int16_t* _dst, int32_t _nbChunk) {
 		ATA_VERBOSE("Need playback data " << int32_t(_nbChunk) << " pointer=" << int64_t(_dst));
 		doStopStream = m_callback(_dst,
 		                          streamTime,
-		                          nullptr,
+		                          null,
 		                          audio::Time(),
 		                          uint32_t(_nbChunk),
 		                          status);

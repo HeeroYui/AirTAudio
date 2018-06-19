@@ -25,9 +25,9 @@ namespace audio {
 		const etk::Vector<uint32_t>& genericSampleRate();
 		/**
 		 * @brief airtaudio callback function prototype.
-		 * @param _inputBuffer For input (or duplex) streams, this buffer will hold _nbChunk of input audio chunk (nullptr if no data).
+		 * @param _inputBuffer For input (or duplex) streams, this buffer will hold _nbChunk of input audio chunk (null if no data).
 		 * @param _timeInput Timestamp of the first buffer sample (recording time).
-		 * @param _outputBuffer For output (or duplex) streams, the client should write _nbChunk of audio chunk into this buffer (nullptr if no data).
+		 * @param _outputBuffer For output (or duplex) streams, the client should write _nbChunk of audio chunk into this buffer (null if no data).
 		 * @param _timeOutput Timestamp of the first buffer sample (playing time).
 		 * @param _nbChunk The number of chunk of input or output chunk in the buffer (same size).
 		 * @param _status List of error that occured in the laps of time.

@@ -139,7 +139,7 @@ void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
 	     || m_mode == audio::orchestra::mode_duplex) {
 		if (m_doConvertBuffer[modeToIdTable(audio::orchestra::mode_output)] == true) {
 			ATA_INFO("get output DATA : " << uint64_t(&m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0]));
-			doStopStream = m_callback(nullptr,
+			doStopStream = m_callback(null,
 			                          audio::Time(),
 			                          &m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0],
 			                          _time,
@@ -148,7 +148,7 @@ void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
 			convertBuffer((char*)_data, &m_userBuffer[modeToIdTable(audio::orchestra::mode_output)][0], m_convertInfo[modeToIdTable(audio::orchestra::mode_output)]);
 		} else {
 			ATA_INFO("have output DATA : " << uint64_t(_data));
-			doStopStream = m_callback(nullptr,
+			doStopStream = m_callback(null,
 			                          _time,
 			                          _data,
 			                          audio::Time(),
@@ -161,7 +161,7 @@ void audio::orchestra::api::CoreIos::callBackEvent(void* _data,
 		ATA_INFO("have input DATA : " << uint64_t(_data));
 		doStopStream = m_callback(_data,
 		                          _time,
-		                          nullptr,
+		                          null,
 		                          audio::Time(),
 		                          _nbChunk,
 		                          status);
@@ -180,12 +180,12 @@ static OSStatus playbackCallback(void *_userData,
                                  uint32_t _inBusNumber,
                                  uint32_t _inNumberFrames,
                                  AudioBufferList* _ioData) {
-	if (_userData == nullptr) {
-		ATA_ERROR("callback event ... nullptr pointer");
+	if (_userData == null) {
+		ATA_ERROR("callback event ... null pointer");
 		return -1;
 	}
 	audio::Time tmpTimeime;
-	if (_inTime != nullptr) {
+	if (_inTime != null) {
 		tmpTimeime = audio::Time(_inTime->mHostTime/1000000000LL, _inTime->mHostTime%1000000000LL);
 	}
 	audio::orchestra::api::CoreIos* myClass = static_cast<audio::orchestra::api::CoreIos*>(_userData);
@@ -267,7 +267,7 @@ bool audio::orchestra::api::CoreIos::open(uint32_t _device,
 	desc.componentManufacturer = kAudioUnitManufacturer_Apple;
 	
 	// Get component
-	AudioComponent inputComponent = AudioComponentFindNext(nullptr, &desc);
+	AudioComponent inputComponent = AudioComponentFindNext(null, &desc);
 	
 	// Get audio units
 	status = AudioComponentInstanceNew(inputComponent, &m_private->audioUnit);

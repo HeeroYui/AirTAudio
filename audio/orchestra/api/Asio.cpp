@@ -76,7 +76,7 @@ audio::orchestra::api::Asio::Asio() :
 	// CoInitialize beforehand, but it must be for appartment threading
 	// (in which case, CoInitilialize will return S_FALSE here).
 	m_coInitialized = false;
-	HRESULT hr = CoInitialize(nullptr); 
+	HRESULT hr = CoInitialize(null); 
 	if (FAILED(hr)) {
 		ATA_ERROR("requires a single-threaded appartment. Call CoInitializeEx(0,COINIT_APARTMENTTHREADED)");
 	}
@@ -411,10 +411,10 @@ bool audio::orchestra::api::Asio::open(uint32_t _device,
 	m_deviceInterleaved[modeToIdTable(_mode)] = false;
 	m_private->bufferInfos = 0;
 	// Create a manual-reset event.
-	m_private->condition = CreateEvent(nullptr,  // no security
+	m_private->condition = CreateEvent(null,  // no security
 	                                   TRUE,  // manual-reset
 	                                   FALSE, // non-signaled initially
-	                                   nullptr); // unnamed
+	                                   null); // unnamed
 	// Create the ASIO internal buffers.	Since RtAudio sets up input
 	// and output separately, we'll have to dispose of previously
 	// created output buffers for a duplex stream.
@@ -422,16 +422,16 @@ bool audio::orchestra::api::Asio::open(uint32_t _device,
 	if (    _mode == audio::orchestra::mode_input
 	     && m_mode == audio::orchestra::mode_output) {
 		ASIODisposeBuffers();
-		if (m_private->bufferInfos == nullptr) {
+		if (m_private->bufferInfos == null) {
 			free(m_private->bufferInfos);
-			m_private->bufferInfos = nullptr;
+			m_private->bufferInfos = null;
 		}
 	}
 	// Allocate, initialize, and save the bufferInfos in our stream callbackInfo structure.
 	bool buffersAllocated = false;
 	uint32_t i, nChannels = m_nDeviceChannels[0] + m_nDeviceChannels[1];
 	m_private->bufferInfos = (ASIOBufferInfo *) malloc(nChannels * sizeof(ASIOBufferInfo));
-	if (m_private->bufferInfos == nullptr) {
+	if (m_private->bufferInfos == null) {
 		ATA_ERROR("error allocating bufferInfo memory for driver (" << driverName << ").");
 		goto error;
 	}
@@ -451,7 +451,7 @@ bool audio::orchestra::api::Asio::open(uint32_t _device,
 	asioCallbacks.bufferSwitch = &bufferSwitch;
 	asioCallbacks.sampleRateDidChange = &sampleRateChanged;
 	asioCallbacks.asioMessage = &asioMessages;
-	asioCallbacks.bufferSwitchTimeInfo = nullptr;
+	asioCallbacks.bufferSwitchTimeInfo = null;
 	result = ASIOCreateBuffers(m_private->bufferInfos, nChannels, m_bufferSize, &asioCallbacks);
 	if (result != ASE_OK) {
 		ATA_ERROR("driver (" << driverName << ") error (" << getAsioErrorString(result) << ") creating buffers.");
@@ -471,7 +471,7 @@ bool audio::orchestra::api::Asio::open(uint32_t _device,
 	uint64_t bufferBytes;
 	bufferBytes = m_nUserChannels[modeToIdTable(_mode)] * *_bufferSize * audio::getFormatBytes(m_userFormat);
 	m_userBuffer[modeToIdTable(_mode)] = (char *) calloc(bufferBytes, 1);
-	if (m_userBuffer[modeToIdTable(_mode)] == nullptr) {
+	if (m_userBuffer[modeToIdTable(_mode)] == null) {
 		ATA_ERROR("error allocating user buffer memory.");
 		goto error;
 	}
@@ -490,10 +490,10 @@ bool audio::orchestra::api::Asio::open(uint32_t _device,
 			bufferBytes *= *_bufferSize;
 			if (m_deviceBuffer) {
 				free(m_deviceBuffer);
-				m_deviceBuffer = nullptr;
+				m_deviceBuffer = null;
 			}
 			m_deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_deviceBuffer == nullptr) {
+			if (m_deviceBuffer == null) {
 				ATA_ERROR("error allocating device buffer memory.");
 				goto error;
 			}
@@ -530,9 +530,9 @@ error:
 	}
 	drivers.removeCurrentDriver();
 	CloseHandle(m_private->condition);
-	if (m_private->bufferInfos != nullptr) {
+	if (m_private->bufferInfos != null) {
 		free(m_private->bufferInfos);
-		m_private->bufferInfos = nullptr;
+		m_private->bufferInfos = null;
 	}
 	for (int32_t i=0; i<2; i++) {
 		if (m_userBuffer[i]) {
@@ -680,7 +680,7 @@ bool audio::orchestra::api::Asio::callbackEvent(long bufferIndex) {
 			SetEvent(m_private->condition);
 		} else { // spawn a thread to stop the stream
 			unsigned threadId;
-			m_callbackInfo.thread = _beginthreadex(nullptr,
+			m_callbackInfo.thread = _beginthreadex(null,
 			                                       0,
 			                                       &asioStopStream,
 			                                       &m_callbackInfo,
@@ -712,7 +712,7 @@ bool audio::orchestra::api::Asio::callbackEvent(long bufferIndex) {
 			m_state = audio::orchestra::state::stopping;
 			m_private->drainCounter = 2;
 			unsigned threadId;
-			m_callbackInfo.thread = _beginthreadex(nullptr,
+			m_callbackInfo.thread = _beginthreadex(null,
 			                                              0,
 			                                              &asioStopStream,
 			                                              &m_callbackInfo,

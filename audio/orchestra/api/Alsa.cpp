@@ -47,9 +47,9 @@ namespace audio {
 					enum timestampMode timeMode; //!< the timestamp of the flow came from the harware.
 					etk::Vector<snd_pcm_channel_area_t> areas;
 					AlsaPrivate() :
-					  handle(nullptr),
+					  handle(null),
 					  runnable(false),
-					  thread(nullptr),
+					  thread(null),
 					  threadRunning(false),
 					  mmapInterface(false),
 					  timeMode(timestampMode_soft) {
@@ -674,7 +674,7 @@ bool audio::orchestra::api::Alsa::openName(const etk::String& _deviceName,
 	}
 	snd_pcm_uframes_t val;
 	// Set the software configuration to fill buffers with zeros and prevent device stopping on xruns.
-	snd_pcm_sw_params_t *swParams = nullptr;
+	snd_pcm_sw_params_t *swParams = null;
 	snd_pcm_sw_params_alloca(&swParams);
 	snd_pcm_sw_params_current(m_private->handle, swParams);
 	#if 0
@@ -781,10 +781,10 @@ bool audio::orchestra::api::Alsa::openName(const etk::String& _deviceName,
 		bufferBytes *= *_bufferSize;
 		if (m_deviceBuffer) {
 			free(m_deviceBuffer);
-			m_deviceBuffer = nullptr;
+			m_deviceBuffer = null;
 		}
 		m_deviceBuffer = (char *) calloc(bufferBytes, 1);
-		if (m_deviceBuffer == nullptr) {
+		if (m_deviceBuffer == null) {
 			ATA_ERROR("error allocating device buffer memory.");
 			goto error;
 		}
@@ -802,7 +802,7 @@ bool audio::orchestra::api::Alsa::openName(const etk::String& _deviceName,
 	m_private->threadRunning = true;
 	ATA_INFO("create thread ...");
 	m_private->thread = ETK_NEW(ethread::Thread, [=]() {callbackEvent();});
-	if (m_private->thread == nullptr) {
+	if (m_private->thread == null) {
 		m_private->threadRunning = false;
 		ATA_ERROR("creating callback thread!");
 		goto error;
@@ -812,7 +812,7 @@ bool audio::orchestra::api::Alsa::openName(const etk::String& _deviceName,
 error:
 	if (m_private->handle) {
 		snd_pcm_close(m_private->handle);
-		m_private->handle = nullptr;
+		m_private->handle = null;
 	}
 	for (int32_t iii=0; iii<2; ++iii) {
 		m_userBuffer[iii].clear();
@@ -837,9 +837,9 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::closeStream() {
 		m_private->m_semaphore.post();
 	}
 	m_mutex.unLock();
-	if (m_private->thread != nullptr) {
+	if (m_private->thread != null) {
 		m_private->thread->join();
-		m_private->thread = nullptr;
+		m_private->thread = null;
 	}
 	if (m_state == audio::orchestra::state::running) {
 		m_state = audio::orchestra::state::stopped;
@@ -848,7 +848,7 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::closeStream() {
 	// close all stream :
 	if (m_private->handle) {
 		snd_pcm_close(m_private->handle);
-		m_private->handle = nullptr;
+		m_private->handle = null;
 	}
 	for (int32_t iii=0; iii<2; ++iii) {
 		m_userBuffer[iii].clear();
@@ -880,8 +880,8 @@ enum audio::orchestra::error audio::orchestra::api::Alsa::startStream() {
 	ATA_DEBUG("Lock (done)");
 	int32_t result = 0;
 	snd_pcm_state_t state;
-	if (m_private->handle == nullptr) {
-		ATA_ERROR("send nullptr to alsa ...");
+	if (m_private->handle == null) {
+		ATA_ERROR("send null to alsa ...");
 	}
 	ATA_DEBUG("snd_pcm_state");
 	state = snd_pcm_state(m_private->handle);
@@ -1031,7 +1031,7 @@ void audio::orchestra::api::Alsa::callbackEvent() {
 audio::Time audio::orchestra::api::Alsa::getStreamTime() {
 	//ATA_DEBUG("mode : " << m_private->timeMode);
 	if (m_private->timeMode == timestampMode_Hardware) {
-		snd_pcm_status_t *status = nullptr;
+		snd_pcm_status_t *status = null;
 		snd_pcm_status_alloca(&status);
 		// get harware timestamp all the time:
 		snd_pcm_status(m_private->handle, status);
@@ -1066,7 +1066,7 @@ audio::Time audio::orchestra::api::Alsa::getStreamTime() {
 		return m_startTime;
 	} else if (m_private->timeMode == timestampMode_trigered) {
 		if (m_startTime == audio::Time()) {
-			snd_pcm_status_t *status = nullptr;
+			snd_pcm_status_t *status = null;
 			snd_pcm_status_alloca(&status);
 			// get harware timestamp all the time:
 			snd_pcm_status(m_private->handle, status);
@@ -1192,7 +1192,7 @@ noInput:
 		audio::Time startCall = audio::Time::now();
 		doStopStream = m_callback(&m_userBuffer[1][0],
 		                          streamTime,// - audio::Duration(m_latency[1]*1000000000LL/int64_t(m_sampleRate)),
-		                          nullptr,
+		                          null,
 		                          audio::Time(),
 		                          m_bufferSize,
 		                          status);
@@ -1240,7 +1240,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleWrite() {
 	streamTime = getStreamTime();
 	{
 		audio::Time startCall = audio::Time::now();
-		doStopStream = m_callback(nullptr,
+		doStopStream = m_callback(null,
 		                          audio::Time(),
 		                          &m_userBuffer[0][0],
 		                          streamTime,// + audio::Duration(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
@@ -1346,7 +1346,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
 	streamTime = getStreamTime();
 	{
 		audio::Time startCall = audio::Time::now();
-		doStopStream = m_callback(nullptr,
+		doStopStream = m_callback(null,
 		                          audio::Time(),
 		                          &m_userBuffer[0][0],
 		                          streamTime,// + audio::Duration(m_latency[0]*1000000000LL/int64_t(m_sampleRate)),
@@ -1396,7 +1396,7 @@ void audio::orchestra::api::Alsa::callbackEventOneCycleMMAPWrite() {
 			// TODO: Understand why this does not work ...
 			// Write samples to device in interleaved/non-interleaved format.
 			if (m_deviceInterleaved[0]) {
-				const snd_pcm_channel_area_t* myAreas = nullptr;
+				const snd_pcm_channel_area_t* myAreas = null;
 				snd_pcm_uframes_t offset, frames;
 				frames = m_bufferSize;
 				ATA_DEBUG("START");
@@ -1548,7 +1548,7 @@ noInput:
 		audio::Time startCall = audio::Time::now();
 		doStopStream = m_callback(&m_userBuffer[1][0],
 		                          streamTime,// - audio::Duration(m_latency[1]*1000000000LL/int64_t(m_sampleRate)),
-		                          nullptr,
+		                          null,
 		                          audio::Time(),
 		                          m_bufferSize,
 		                          status);
@@ -1573,7 +1573,7 @@ unlock:
 
 bool audio::orchestra::api::Alsa::isMasterOf(ememory::SharedPtr<audio::orchestra::Api> _api) {
 	ememory::SharedPtr<audio::orchestra::api::Alsa> slave = ememory::dynamicPointerCast<audio::orchestra::api::Alsa>(_api);
-	if (slave == nullptr) {
+	if (slave == null) {
 		ATA_ERROR("NULL ptr API (not ALSA ...)");
 		return false;
 	}
@@ -1585,11 +1585,11 @@ bool audio::orchestra::api::Alsa::isMasterOf(ememory::SharedPtr<audio::orchestra
 		ATA_ERROR("The SLAVE stream is already running! ==> can not synchronize ...");
 		return false;
 	}
-	snd_pcm_t * master = nullptr;
-	if (m_private->handle != nullptr) {
+	snd_pcm_t * master = null;
+	if (m_private->handle != null) {
 		master = m_private->handle;
 	}
-	if (master == nullptr) {
+	if (master == null) {
 		ATA_ERROR("No ALSA handles ...");
 		return false;
 	}

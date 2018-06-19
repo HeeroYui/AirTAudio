@@ -114,7 +114,7 @@ audio::orchestra::api::Ds::Ds() :
 	// Dsound will run both-threaded. If CoInitialize fails, then just
 	// accept whatever the mainline chose for a threading model.
 	m_coInitialized = false;
-	HRESULT hr = CoInitialize(nullptr);
+	HRESULT hr = CoInitialize(null);
 	if (!FAILED(hr)) {
 		m_coInitialized = true;
 	}
@@ -133,9 +133,9 @@ audio::orchestra::api::Ds::~Ds() {
 #include "tchar.h"
 static etk::String convertTChar(LPCTSTR _name) {
 #if defined(UNICODE) || defined(_UNICODE)
-	int32_t length = WideCharToMultiByte(CP_UTF8, 0, _name, -1, nullptr, 0, nullptr, nullptr);
+	int32_t length = WideCharToMultiByte(CP_UTF8, 0, _name, -1, null, 0, null, null);
 	etk::String s(length-1, '\0');
-	WideCharToMultiByte(CP_UTF8, 0, _name, -1, &s[0], length, nullptr, nullptr);
+	WideCharToMultiByte(CP_UTF8, 0, _name, -1, &s[0], length, null, null);
 #else
 	etk::String s(_name);
 #endif
@@ -153,7 +153,7 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
 	if (probeInfo.isInput == true) {
 		DSCCAPS caps;
 		LPDIRECTSOUNDCAPTURE object;
-		hr = DirectSoundCaptureCreate(_lpguid, &object, nullptr);
+		hr = DirectSoundCaptureCreate(_lpguid, &object, null);
 		if (hr != DS_OK) {
 			return TRUE;
 		}
@@ -168,7 +168,7 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
 	} else {
 		DSCAPS caps;
 		LPDIRECTSOUND object;
-		hr = DirectSoundCreate(_lpguid, &object, nullptr);
+		hr = DirectSoundCreate(_lpguid, &object, null);
 		if (hr != DS_OK) {
 			return TRUE;
 		}
@@ -188,7 +188,7 @@ static BOOL CALLBACK deviceQueryCallback(LPGUID _lpguid,
 	// If good device, then save its name and guid.
 	etk::String name = convertTChar(_description);
 	//if (name == "Primary Sound Driver" || name == "Primary Sound Capture Driver")
-	if (_lpguid == nullptr) {
+	if (_lpguid == null) {
 		name = "Default Device";
 	}
 	DsDevice device;
@@ -233,7 +233,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 		info.input = true;
 		LPDIRECTSOUND output;
 		DSCAPS outCaps;
-		result = DirectSoundCreate(m_private->dsDevices[_device].id, &output, nullptr);
+		result = DirectSoundCreate(m_private->dsDevices[_device].id, &output, null);
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": opening output device (" << m_private->dsDevices[_device].name << ")!");
 			info.clear();
@@ -274,7 +274,7 @@ audio::orchestra::DeviceInfo audio::orchestra::api::Ds::getDeviceInfo(uint32_t _
 		return info;
 	} else {
 		LPDIRECTSOUNDCAPTURE input;
-		result = DirectSoundCaptureCreate(m_private->dsDevices[_device].id, &input, nullptr);
+		result = DirectSoundCaptureCreate(m_private->dsDevices[_device].id, &input, null);
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": opening input device (" << m_private->dsDevices[_device].name << ")!");
 			info.clear();
@@ -452,7 +452,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 	HRESULT result;
 	if (_mode == audio::orchestra::mode_output) {
 		LPDIRECTSOUND output;
-		result = DirectSoundCreate(m_private->dsDevices[_device].id, &output, nullptr);
+		result = DirectSoundCreate(m_private->dsDevices[_device].id, &output, null);
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": opening output device (" << m_private->dsDevices[_device].name << ")!");
 			return false;
@@ -509,7 +509,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 		bufferDescription.dwFlags = DSBCAPS_PRIMARYBUFFER;
 		// Obtain the primary buffer
 		LPDIRECTSOUNDBUFFER buffer;
-		result = output->CreateSoundBuffer(&bufferDescription, &buffer, nullptr);
+		result = output->CreateSoundBuffer(&bufferDescription, &buffer, null);
 		if (FAILED(result)) {
 			output->Release();
 			ATA_ERROR(getErrorString(result) << ": accessing primary buffer (" << m_private->dsDevices[_device].name << ")!");
@@ -533,13 +533,13 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 		bufferDescription.lpwfxFormat = &waveFormat;
 		// Try to create the secondary DS buffer.	If that doesn't work,
 		// try to use software mixing.	Otherwise, there's a problem.
-		result = output->CreateSoundBuffer(&bufferDescription, &buffer, nullptr);
+		result = output->CreateSoundBuffer(&bufferDescription, &buffer, null);
 		if (FAILED(result)) {
 			bufferDescription.dwFlags = (   DSBCAPS_STICKYFOCUS
 			                              | DSBCAPS_GLOBALFOCUS
 			                              | DSBCAPS_GETCURRENTPOSITION2
 			                              | DSBCAPS_LOCSOFTWARE);	// Force software mixing
-			result = output->CreateSoundBuffer(&bufferDescription, &buffer, nullptr);
+			result = output->CreateSoundBuffer(&bufferDescription, &buffer, null);
 			if (FAILED(result)) {
 				output->Release();
 				ATA_ERROR(getErrorString(result) << ": creating secondary buffer (" << m_private->dsDevices[_device].name << ")!");
@@ -560,7 +560,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 		// Lock the DS buffer
 		LPVOID audioPtr;
 		DWORD dataLen;
-		result = buffer->Lock(0, dsBufferSize, &audioPtr, &dataLen, nullptr, nullptr, 0);
+		result = buffer->Lock(0, dsBufferSize, &audioPtr, &dataLen, null, null, 0);
 		if (FAILED(result)) {
 			output->Release();
 			buffer->Release();
@@ -570,7 +570,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 		// Zero the DS buffer
 		ZeroMemory(audioPtr, dataLen);
 		// Unlock the DS buffer
-		result = buffer->Unlock(audioPtr, dataLen, nullptr, 0);
+		result = buffer->Unlock(audioPtr, dataLen, null, 0);
 		if (FAILED(result)) {
 			output->Release();
 			buffer->Release();
@@ -582,7 +582,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 	}
 	if (_mode == audio::orchestra::mode_input) {
 		LPDIRECTSOUNDCAPTURE input;
-		result = DirectSoundCaptureCreate(m_private->dsDevices[_device].id, &input, nullptr);
+		result = DirectSoundCaptureCreate(m_private->dsDevices[_device].id, &input, null);
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": opening input device (" << m_private->dsDevices[_device].name << ")!");
 			return false;
@@ -642,7 +642,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 		bufferDescription.lpwfxFormat = &waveFormat;
 		// Create the capture buffer.
 		LPDIRECTSOUNDCAPTUREBUFFER buffer;
-		result = input->CreateCaptureBuffer(&bufferDescription, &buffer, nullptr);
+		result = input->CreateCaptureBuffer(&bufferDescription, &buffer, null);
 		if (FAILED(result)) {
 			input->Release();
 			ATA_ERROR(getErrorString(result) << ": creating input buffer (" << m_private->dsDevices[_device].name << ")!");
@@ -666,7 +666,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 		// Lock the capture buffer
 		LPVOID audioPtr;
 		DWORD dataLen;
-		result = buffer->Lock(0, dsBufferSize, &audioPtr, &dataLen, nullptr, nullptr, 0);
+		result = buffer->Lock(0, dsBufferSize, &audioPtr, &dataLen, null, null, 0);
 		if (FAILED(result)) {
 			input->Release();
 			buffer->Release();
@@ -676,7 +676,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 		// Zero the buffer
 		ZeroMemory(audioPtr, dataLen);
 		// Unlock the buffer
-		result = buffer->Unlock(audioPtr, dataLen, nullptr, 0);
+		result = buffer->Unlock(audioPtr, dataLen, null, 0);
 		if (FAILED(result)) {
 			input->Release();
 			buffer->Release();
@@ -728,17 +728,17 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 				free(m_deviceBuffer);
 			}
 			m_deviceBuffer = (char *) calloc(bufferBytes, 1);
-			if (m_deviceBuffer == nullptr) {
+			if (m_deviceBuffer == null) {
 				ATA_ERROR("error allocating device buffer memory.");
 				goto error;
 			}
 		}
 	}
 	// Create a manual-reset event.
-	m_private->condition = CreateEvent(nullptr,  // no security
+	m_private->condition = CreateEvent(null,  // no security
 	                                TRUE,  // manual-reset
 	                                FALSE, // non-signaled initially
-	                                nullptr); // unnamed
+	                                null); // unnamed
 	m_private->id[modeToIdTable(_mode)] = ohandle;
 	m_private->buffer[modeToIdTable(_mode)] = bhandle;
 	m_private->dsBufferSize[modeToIdTable(_mode)] = dsBufferSize;
@@ -763,7 +763,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 		m_private->threadRunning = true;
 		ememory::SharedPtr<ethread::Thread> tmpThread(ETK_NEW(ethread::Thread, [=](){audio::orchestra::api::Ds::dsCallbackEvent();});
 		m_private->thread =	etk::move(tmpThread);
-		if (m_private->thread == nullptr) {
+		if (m_private->thread == null) {
 			ATA_ERROR("error creating callback thread!");
 			goto error;
 		}
@@ -773,7 +773,7 @@ bool audio::orchestra::api::Ds::open(uint32_t _device,
 	return true;
 error:
 	if (m_private->buffer[0]) {
-		// the object pointer can be nullptr and valid
+		// the object pointer can be null and valid
 		LPDIRECTSOUND object = (LPDIRECTSOUND) m_private->id[0];
 		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
 		if (buffer) {
@@ -784,7 +784,7 @@ error:
 	if (m_private->buffer[1]) {
 		LPDIRECTSOUNDCAPTURE object = (LPDIRECTSOUNDCAPTURE) m_private->id[1];
 		LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
-		if (buffer != nullptr) {
+		if (buffer != null) {
 			buffer->Release();
 		}
 	}
@@ -807,11 +807,11 @@ enum audio::orchestra::error audio::orchestra::api::Ds::closeStream() {
 	}
 	// Stop the callback thread.
 	m_private->threadRunning = false;
-	if (m_private->thread != nullptr) {
+	if (m_private->thread != null) {
 		m_private->thread->join();
-		m_private->thread = nullptr;
+		m_private->thread = null;
 	}
-	if (m_private->buffer[0]) { // the object pointer can be nullptr and valid
+	if (m_private->buffer[0]) { // the object pointer can be null and valid
 		LPDIRECTSOUND object = (LPDIRECTSOUND) m_private->id[0];
 		LPDIRECTSOUNDBUFFER buffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
 		if (buffer) {
@@ -918,7 +918,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 		}
 		// Lock the buffer and clear it so that if we start to play again,
 		// we won't have old data playing.
-		result = buffer->Lock(0, m_private->dsBufferSize[0], &audioPtr, &dataLen, nullptr, nullptr, 0);
+		result = buffer->Lock(0, m_private->dsBufferSize[0], &audioPtr, &dataLen, null, null, 0);
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": locking output buffer!");
 			goto unlock;
@@ -926,7 +926,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 		// Zero the DS buffer
 		ZeroMemory(audioPtr, dataLen);
 		// Unlock the DS buffer
-		result = buffer->Unlock(audioPtr, dataLen, nullptr, 0);
+		result = buffer->Unlock(audioPtr, dataLen, null, 0);
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": unlocking output buffer!");
 			goto unlock;
@@ -937,7 +937,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 	if (    m_mode == audio::orchestra::mode_input
 	     || m_mode == audio::orchestra::mode_duplex) {
 		LPDIRECTSOUNDCAPTUREBUFFER buffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
-		audioPtr = nullptr;
+		audioPtr = null;
 		dataLen = 0;
 		m_state = audio::orchestra::state::stopped;
 		result = buffer->Stop();
@@ -947,7 +947,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 		}
 		// Lock the buffer and clear it so that if we start to play again,
 		// we won't have old data playing.
-		result = buffer->Lock(0, m_private->dsBufferSize[1], &audioPtr, &dataLen, nullptr, nullptr, 0);
+		result = buffer->Lock(0, m_private->dsBufferSize[1], &audioPtr, &dataLen, null, null, 0);
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": locking input buffer!");
 			goto unlock;
@@ -955,7 +955,7 @@ enum audio::orchestra::error audio::orchestra::api::Ds::stopStream() {
 		// Zero the DS buffer
 		ZeroMemory(audioPtr, dataLen);
 		// Unlock the DS buffer
-		result = buffer->Unlock(audioPtr, dataLen, nullptr, 0);
+		result = buffer->Unlock(audioPtr, dataLen, null, 0);
 		if (FAILED(result)) {
 			ATA_ERROR(getErrorString(result) << ": unlocking input buffer!");
 			goto unlock;
@@ -1039,8 +1039,8 @@ void audio::orchestra::api::Ds::callbackEvent() {
 	DWORD currentWritePointer, safeWritePointer;
 	DWORD currentReadPointer, safeReadPointer;
 	UINT nextWritePointer;
-	LPVOID buffer1 = nullptr;
-	LPVOID buffer2 = nullptr;
+	LPVOID buffer1 = null;
+	LPVOID buffer2 = null;
 	DWORD bufferSize1 = 0;
 	DWORD bufferSize2 = 0;
 	char *buffer;
@@ -1063,23 +1063,23 @@ void audio::orchestra::api::Ds::callbackEvent() {
 			LPDIRECTSOUNDBUFFER dsWriteBuffer = (LPDIRECTSOUNDBUFFER) m_private->buffer[0];
 			LPDIRECTSOUNDCAPTUREBUFFER dsCaptureBuffer = (LPDIRECTSOUNDCAPTUREBUFFER) m_private->buffer[1];
 			DWORD startSafeWritePointer, startSafeReadPointer;
-			result = dsWriteBuffer->GetCurrentPosition(nullptr, &startSafeWritePointer);
+			result = dsWriteBuffer->GetCurrentPosition(null, &startSafeWritePointer);
 			if (FAILED(result)) {
 				ATA_ERROR(getErrorString(result) << ": getting current write position!");
 				return;
 			}
-			result = dsCaptureBuffer->GetCurrentPosition(nullptr, &startSafeReadPointer);
+			result = dsCaptureBuffer->GetCurrentPosition(null, &startSafeReadPointer);
 			if (FAILED(result)) {
 				ATA_ERROR(getErrorString(result) << ": getting current read position!");
 				return;
 			}
 			while (true) {
-				result = dsWriteBuffer->GetCurrentPosition(nullptr, &safeWritePointer);
+				result = dsWriteBuffer->GetCurrentPosition(null, &safeWritePointer);
 				if (FAILED(result)) {
 					ATA_ERROR(getErrorString(result) << ": getting current write position!");
 					return;
 				}
-				result = dsCaptureBuffer->GetCurrentPosition(nullptr, &safeReadPointer);
+				result = dsCaptureBuffer->GetCurrentPosition(null, &safeReadPointer);
 				if (FAILED(result)) {
 					ATA_ERROR(getErrorString(result) << ": getting current read position!");
 					return;
@@ -1200,7 +1200,7 @@ void audio::orchestra::api::Ds::callbackEvent() {
 		}
 		// Copy our buffer into the DS buffer
 		CopyMemory(buffer1, buffer, bufferSize1);
-		if (buffer2 != nullptr) {
+		if (buffer2 != null) {
 			CopyMemory(buffer2, buffer+bufferSize1, bufferSize2);
 		}
 		// Update our buffer offset and unlock sound buffer
@@ -1318,12 +1318,12 @@ void audio::orchestra::api::Ds::callbackEvent() {
 		if (m_duplexPrerollBytes <= 0) {
 			// Copy our buffer into the DS buffer
 			CopyMemory(buffer, buffer1, bufferSize1);
-			if (buffer2 != nullptr) {
+			if (buffer2 != null) {
 				CopyMemory(buffer+bufferSize1, buffer2, bufferSize2);
 			}
 		} else {
 			memset(buffer, 0, bufferSize1);
-			if (buffer2 != nullptr) {
+			if (buffer2 != null) {
 				memset(buffer + bufferSize1, 0, bufferSize2);
 			}
 			m_duplexPrerollBytes -= bufferSize1 + bufferSize2;

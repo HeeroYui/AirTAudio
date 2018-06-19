@@ -277,7 +277,7 @@ etk::Vector<audio::orchestra::DeviceInfo> audio::orchestra::api::pulse::getDevic
 		// We can't do anything until PA is ready, so just iterate the mainloop
 		// and continue
 		if (pulseAudioReady == 0) {
-			pa_mainloop_iterate(pulseAudioMainLoop, 1, nullptr);
+			pa_mainloop_iterate(pulseAudioMainLoop, 1, null);
 			continue;
 		}
 		// We couldn't get a connection to the server, so exit out
@@ -331,7 +331,7 @@ etk::Vector<audio::orchestra::DeviceInfo> audio::orchestra::api::pulse::getDevic
 		}
 		// Iterate the main loop ..
 		if (playLoop == true) {
-			pa_mainloop_iterate(pulseAudioMainLoop, 1, nullptr);
+			pa_mainloop_iterate(pulseAudioMainLoop, 1, null);
 		}
 	}
 	// TODO: need to do it better ...
